@@ -18,7 +18,7 @@ $$
 \frac{A}{C + D} + \frac{B}{C + D}
 =\frac{A}{D} + \frac{B}{D}
 = \frac{A_{bin} \cdot 2^{x}}{D} + \frac{B}{D}
-$$
+$$v
 
 ### Version 1
 $$
@@ -67,3 +67,10 @@ $$
 = AD + BC + BD
 $$
 Only $BD$ requires manual multiplication
+
+I have now (later) found out that this is the basics required for the Karatsuba algorithm. \
+The main difference is that I can afford to simply ignore $AC$, since it completely overflows, meaning that calculating $AD + BC$ with the help of $AC$ and $BD$ isn't actually viable \
+The main overhead is calculating over the barrier between the two unsigned 64 bit integers, which I believe can't really be solved with the algorithm
+
+Update: I read the wiki article and now and I can see how the recursive application can be useful. I'm just a bit afraid that the overhead of constructing the large integer class might slow it down quite a bit \
+In any case, I'll attempt to implement it and then I'll check out the speed difference
