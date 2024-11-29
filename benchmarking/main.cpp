@@ -95,8 +95,8 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 100) {
 	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
 
 	// These two vectors should have the same elements
-    std::vector<boostInt128> testNumbersBoost = {0, -1, 1};
-	std::vector<myInt128> testNumbersMyInt = {0, -1, 1};
+    std::vector<boostInt128> testNumbersBoost = {0, 1, -1};
+	std::vector<myInt128> testNumbersMyInt = {0, 1, -1};
 
 	/*
 	DISCLAIMER ABOUT BOOST INTEGERS
@@ -238,117 +238,9 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 100) {
 }
 
 int main() {
-	verifyCorrectnessOfMyInt128<baseInt128>(1000);
-	verifyCorrectnessOfMyInt128<testInt128>();
+	int testCaseAmount = 10000;
+	verifyCorrectnessOfMyInt128<baseInt128>(testCaseAmount);
+	// verifyCorrectnessOfMyInt128<testInt128>();
 	// verifyCorrectnessOfMyInt128<kInt128>();
 	return 0;
-} /*
-	auto start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			int64_t x = g + j;
-		}
-	}
-	auto end = std::chrono::steady_clock::now();
-	auto elapsed = std::chrono::duration<double>(end-start);
-	std::cout << abs((max-min)*(max-min)) << " int64_t additions: \t\t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			int128 x = f + j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << abs((max-min)*(max-min)) << " int128 additions: \t\t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			int64_t x = g - j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << abs((max-min)*(max-min)) << " int64_t subtractions: \t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			int128 x = f - j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << abs((max-min)*(max-min)) << " int128 subtractions: \t\t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			int64_t x = g * j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << abs((max-min)*(max-min)) << " int64_t multiplications: \t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			int128 x = f * j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << abs((max-min)*(max-min)) << " int128 multiplications: \t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			if (j == 0) continue;
-			int64_t x = g / j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << "~" << abs((max-min)*(max-min)) << " int64_t divisions: \t\t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			if (j == 0) continue;
-			int128 x = f / j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << "~" << abs((max-min)*(max-min)) << " int128 divisions: \t\t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			if (j == 0) continue;
-			int64_t x = g % j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << "~" << abs((max-min)*(max-min)) << " int64_t modulo: \t\t" << elapsed.count() << " seconds" << std::endl;
-
-	start = std::chrono::steady_clock::now();
-	for (int i = min; i < max; i++) {
-		for (int j = min; j < max; j++) {
-			if (j == 0) continue;
-			int128 x = f % j;
-		}
-	}
-	end = std::chrono::steady_clock::now();
-	elapsed = std::chrono::duration<double>(end-start);
-	std::cout << "~" << abs((max-min)*(max-min)) << " int128 modulo: \t\t" << elapsed.count() << " seconds" << std::endl;
-
-	// return false;
-
-
-
-} */
+}
