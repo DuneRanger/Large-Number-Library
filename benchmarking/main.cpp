@@ -33,18 +33,21 @@ uint64_t rnd64(uint64_t n)
 
 std::vector<uint64_t> genTwoUint64(uint64_t n) {
 	uint64_t a = 0;
-	uint64_t b = rnd64(n);
-	if (n%4 == 1) {
+	uint64_t b = 0;
+	if (n%8 < 6) {
+		b = rnd64(n);
+	}
+	if (n%8 < 2) {
 		b >>= 32;
 	}
-	if (n%8 >= 2) {
+	if (n%8 >= 4) {
 		a = rnd64(n+1);
 	}
 	if (n%8 >= 6) {
 		a >>= 32;
 	}
-	if (n%8 >= 4) {
-		a |= customBigInt::BIT64_ON;
+	if (n%7 == 0) {
+		a ^= UINT64_MAX;
 	}
 	return {a, b};
 }
@@ -69,17 +72,17 @@ bool twoInt128TypesEqual(T1 a, T2 b) {
 template <typename T>
 void printInt128Words(T a) {
 	std::vector<uint64_t> words;
-	int sign = 1;
-	// Read DISCLAIMER ABOUT BOOST INTEGERS for clarification
+	char sign = ' ';
+	// Because of boost integers and their casting
 	if (a < 0) {
-		sign = -1;
+		sign = '-';
 		a *= -1;
 	}
 	do {
 		words.push_back((uint64_t)a);
 		a >>= 64;
 	} while (a != 0);
-	std::cout << sign << " * ";
+	std::cout << sign << "1 * ";
 	for (int i = words.size()-1; i > -1; i--) {
 		std::cout << words[i] << " ";
 	}
