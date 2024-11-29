@@ -216,18 +216,19 @@ namespace customBigInt {
 
 				// shift divisor maximum to the left
 				int counter = 0;
-				while (divisor <= dividend) {
+				// Also makes sure, that the divisor is always positive
+				while (divisor <= dividend && divisor.B1 < (BIT64_ON >> 1)) {
 					counter++;
 					divisor <<= 1;
 				};
 
-				while (divisor > rhs) {
-					counter--;
-					divisor >>= 1;
-					if (divisor <= dividend) {
+				while (divisor >= rhs) {
+					while (divisor <= dividend) {
 						*this += ((int128)1 << counter);
 						dividend -= divisor;
 					}
+					counter--;
+					divisor >>= 1;
 				}
 				// at this point divisor is its original size
 				// *this += (divisor == dividend);
@@ -254,17 +255,18 @@ namespace customBigInt {
 
 				// shift divisor maximum to the left
 				int counter = 0;
-				while ((divisor > 0) && (divisor <= dividend)) {
+				// Also makes sure, that the divisor is always positive
+				while (divisor <= dividend && divisor.B1 < (BIT64_ON >> 1)) {
 					counter++;
 					divisor <<= 1;
 				};
 
-				while (divisor > rhs) {
-					counter--;
-					divisor >>= 1;
-					if (divisor <= dividend) {
+				while (divisor >= rhs) {
+					while (divisor <= dividend) {
 						dividend -= divisor;
 					}
+					counter--;
+					divisor >>= 1;
 				}
 				// at this point divisor is its original size
 				*this = dividend;
