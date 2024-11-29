@@ -201,18 +201,17 @@ namespace customBigInt {
 				return result *= rhs;
 			}
 
-			int128& operator/=(int128 rhs) {
-				if (rhs == 0) throw std::domain_error("Divide by zero exception");
+			// Division truncates towards zero (just like C and boost)
+			int128& operator/=(int128 divisor) {
+				if (divisor == 0) throw std::domain_error("Divide by zero exception");
 				int128 dividend(B1, B0);
-				int128 divisor(rhs.B1, rhs.B0);
 				// sets sign bit
-				bool sign = (B1 ^ rhs.B1) >= BIT64_ON;
+				bool sign = (B1 ^ divisor.B1) >= BIT64_ON;
 				B1 = 0;
 				B0 = 0;
-				// convert all to positive (even rhs for comparison)
+				// convert all to positive
 				if (dividend < 0) dividend = ~dividend + 1;
 				if (divisor < 0) divisor = ~divisor + 1;
-				if (rhs < 0) rhs = ~rhs + 1;
 
 				// shift divisor maximum to the left
 				int counter = 0;
@@ -230,8 +229,6 @@ namespace customBigInt {
 					counter--;
 					divisor >>= 1;
 				}
-				// at this point divisor is its original size
-				// *this += (divisor == dividend);
 				
 				if (sign) *this = ~*this + 1;
 				return *this;
@@ -241,17 +238,15 @@ namespace customBigInt {
 				return result /= rhs;
 			}
 
-			int128& operator%=(int128 rhs) {
-				if (rhs == 0) throw std::domain_error("Divide by zero exception");
+			int128& operator%=(int128 divisor) {
+				if (divisor == 0) throw std::domain_error("Divide by zero exception");
 
 				int128 dividend(B1, B0);
-				int128 divisor(rhs.B1, rhs.B0);
 				// sets sign bit
 				bool sign = B1 >= BIT64_ON;
 				// convert all to positive (even rhs for comparison)
 				if (dividend < 0) dividend = ~dividend + 1;
 				if (divisor < 0) divisor = ~divisor + 1;
-				if (rhs < 0) rhs = ~rhs + 1;
 
 				// shift divisor maximum to the left
 				int counter = 0;
@@ -261,7 +256,7 @@ namespace customBigInt {
 					divisor <<= 1;
 				};
 
-				while (divisor >= rhs) {
+				while (counter > -1) {
 					while (divisor <= dividend) {
 						dividend -= divisor;
 					}
