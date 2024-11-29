@@ -362,7 +362,7 @@ namespace customBigIntKaratsuba {
 				if (rhs == 0) return *this;
 
 				if (rhs >= 128) {
-					B0 = 0;	
+					B0 = 0;
 					B1 = 0;
 				}
 				else if (rhs >= 64) {
@@ -404,7 +404,7 @@ namespace customBigIntKaratsuba {
 				if (B1 == rhs.B1) {
 					return B0 > rhs.B0;
 				}
-				return B1 > rhs.B0;
+				return B1 > rhs.B1;
 			}
 			bool operator< (int128 const& rhs) {
 				// if different signs - false if B1 is negative, true if rhs.B1 is negative
@@ -420,7 +420,7 @@ namespace customBigIntKaratsuba {
 				if (B1 == rhs.B1) {
 					return B0 >= rhs.B0;
 				}
-				return B1 >= rhs.B0;
+				return B1 >= rhs.B1;
 			}
 			bool operator<= (int128 const& rhs) {
 				// if different signs - false if B1 is negative, true if rhs.B1 is negative
