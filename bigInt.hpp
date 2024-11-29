@@ -217,12 +217,12 @@ namespace customBigInt {
 				// shift divisor maximum to the left
 				int counter = 0;
 				// Also makes sure, that the divisor is always positive
-				while (divisor <= dividend && divisor.B1 < (BIT64_ON >> 1)) {
+				while (divisor < dividend && divisor.B1 < (BIT64_ON >> 1)) {
 					counter++;
 					divisor <<= 1;
 				};
 
-				while (divisor >= rhs) {
+				while (counter > -1) {
 					while (divisor <= dividend) {
 						*this += ((int128)1 << counter);
 						dividend -= divisor;
