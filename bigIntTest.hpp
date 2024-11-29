@@ -5,6 +5,8 @@
 #include <bitset>
 #include <vector>
 
+// This version of bigInt differs from the original by attempting to implement one "iteration" of Karatsuba's algorithm for multiplication and division
+
 namespace customBigIntTest {
 	class bigInt {
 
@@ -107,7 +109,7 @@ namespace customBigIntTest {
 			}
 
 			friend std::ostream& operator<<(std::ostream& os, int128 const& num) {
-				os << std::bitset<64>(num.B1) << "" << std::bitset<64>(num.B0);
+				os << std::bitset<64>(num.B1) << " " << std::bitset<64>(num.B0);
 				return os;
 			}
 
@@ -172,6 +174,7 @@ namespace customBigIntTest {
 				B1 = multiplicand.B1 * rhs.B0;
 				B1 += multiplicand.B0 * rhs.B1;
 				B0 = 0;
+				multiplicand.B1 = 0;
 
 				int counter = 0;
 				while (rhs.B0 != 0) {
@@ -199,45 +202,44 @@ namespace customBigIntTest {
 				return result *= rhs;
 			}
 
-			int128& operator/=(int128 rhs) {
-				if (rhs == 0) throw std::domain_error("Divide by zero exception");
+			// Division truncates towards zero (just like C and boost)
+			int128& operator/=(int128 divisor) {
+				if (divisor == 0) throw std::domain_error("Divide by zero exception");
 				int128 dividend(B1, B0);
-				int128 divisor(rhs.B1, rhs.B0);
 				// sets sign bit
-				bool sign = (B1 ^ rhs.B1) >= BIT64_ON;
+				bool sign = (B1 ^ divisor.B1) >= BIT64_ON;
 				B1 = 0;
 				B0 = 0;
 				// convert all to positive (even rhs for comparison)
 				if (dividend < 0) dividend = ~dividend + 1;
 				if (divisor < 0) divisor = ~divisor + 1;
-				if (rhs < 0) rhs = ~rhs + 1;
 
-				if (rhs.B1 == 0) {
-					B1 = dividend.B1/rhs.B0;
-					B0 = dividend.B0/rhs.B0;
-					dividend.B1 %= rhs.B0;
-					dividend.B0 = 0;
-				} else {
-					dividend.B0 = 0;
+				if (divisor.B1 == 0) {
+					B1 = dividend.B1/divisor.B0;
+					dividend.B1 %= divisor.B0;
+					B0 = dividend.B0/divisor.B0;
+					dividend.B0 %= divisor.B0;
 				}
 
 				// shift divisor maximum to the left
 				int counter = 0;
-				while ((divisor > 0) && (divisor <= dividend)) {
+				while (divisor < dividend && divisor.B1 < (BIT64_ON >> 1)) {
 					counter++;
 					divisor <<= 1;
 				};
 
-				while (divisor > rhs) {
-					counter--;
-					divisor >>= 1;
-					if (divisor <= dividend) {
+				while (counter > -1) {
+				// std::cout << counter << " " << dividend << std::endl;
+				// std::cout << counter << " " << divisor << std::endl;
+					while (divisor <= dividend) {
 						*this += ((int128)1 << counter);
 						dividend -= divisor;
 					}
+					counter--;
+					divisor >>= 1;
 				}
-				// at this point divisor is its original size
-				*this += (divisor == dividend);
+				// if there is a remainder and the result is negative, add 1 to the answer
+				// *this += (dividend > 0)*sign;
 				
 				if (sign) *this = ~*this + 1;
 				return *this;
@@ -247,31 +249,29 @@ namespace customBigIntTest {
 				return result /= rhs;
 			}
 
-			int128& operator%=(int128 rhs) {
-				if (rhs == 0) throw std::domain_error("Divide by zero exception");
+			int128& operator%=(int128 divisor) {
+				if (divisor == 0) throw std::domain_error("Divide by zero exception");
 
 				int128 dividend(B1, B0);
-				int128 divisor(rhs.B1, rhs.B0);
 				// sets sign bit
 				bool sign = B1 >= BIT64_ON;
-				// convert all to positive (even rhs for comparison)
+				// convert all to positive
 				if (dividend < 0) dividend = ~dividend + 1;
 				if (divisor < 0) divisor = ~divisor + 1;
-				if (rhs < 0) rhs = ~rhs + 1;
 
 				// shift divisor maximum to the left
 				int counter = 0;
-				while ((divisor > 0) && (divisor <= dividend)) {
+				while (divisor <= dividend && divisor.B1 < (BIT64_ON >> 1)) {
 					counter++;
 					divisor <<= 1;
 				};
 
-				while (divisor > rhs) {
-					counter--;
-					divisor >>= 1;
+				while (counter > -1) {
 					if (divisor <= dividend) {
 						dividend -= divisor;
 					}
+					counter--;
+					divisor >>= 1;
 				}
 				// at this point divisor is its original size
 				*this = dividend;
