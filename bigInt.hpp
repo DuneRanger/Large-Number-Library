@@ -188,15 +188,7 @@ namespace customBigInt {
 				return *this;
 			}
 			int128& operator*=(int const rhs) {
-				if (rhs == -1) *this = ~*this+1;
-				else *this *= (int128)rhs;
-				return *this;
-			}
 			int128 operator*(int128 const& rhs) {
-				int128 result(B1, B0);
-				return result *= rhs;
-			}
-			int128 operator*(int const rhs) {
 				int128 result(B1, B0);
 				return result *= rhs;
 			}
