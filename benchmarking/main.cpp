@@ -7,13 +7,10 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include "../bigInt.hpp"
 #include "../bigIntTest.hpp"
-#include "../bigIntKaratsuba.hpp"
 
 typedef boost::multiprecision::int128_t boostInt128;
 typedef customBigInt::int128 baseInt128;
 typedef customBigIntTest::int128 testInt128;
-typedef customBigIntKaratsuba::int128 kInt128;
-
 
 // From https://www.reddit.com/r/C_Programming/comments/ozew2u/comment/h7zijm8
 uint64_t rnd64(uint64_t n)
