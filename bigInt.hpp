@@ -63,12 +63,16 @@ namespace customBigInt {
 				}
 			}
 			int128(int a) {
-				B1 = 0;
-				B0 = a;
 				if (a < 0) {
 					B1 = UINT64_MAX;
-					B0 += UINT64_MAX + 1;
+					B0 = UINT64_MAX + a + 1;
+				} else {
+					B1 = 0;
+					B0 = a;
 				}
+			}
+			int128(unsigned int a) {
+				B0 = a;
 			}
 
 			explicit operator uint64_t() const {
@@ -78,7 +82,6 @@ namespace customBigInt {
 			explicit operator int64_t() const {
 				return (int64_t)B0;
 			}
-			// Might change this to simply return (int)B0 and let the user deal with the possible change in sign, the same way a normal int does
 			explicit operator int() const {
 				return (int)B0;
 			}
@@ -187,7 +190,6 @@ namespace customBigInt {
 				if (sign) *this = ~*this + 1;
 				return *this;
 			}
-			int128& operator*=(int const rhs) {
 			int128 operator*(int128 const& rhs) {
 				int128 result(B1, B0);
 				return result *= rhs;
@@ -316,9 +318,10 @@ namespace customBigInt {
 				return result;
 			}
 
-			// Possibly keep the sign and only shift "digit" bits (like boost)
 			int128& operator<<= (int const& rhs) {
-				// special case, since for some reason the final `else` doesn't work
+				// Special case, because when compiling with -O0 (B0 >> (64-x)) seems to just ignore the bitshift for x = 0
+				// Meaning that it returns B0, despite (B0 >> 64) returning 0...
+				// Compiling with any non-zero optimization works normally (returns 0)
 				if (rhs == 0) return *this;
 
 				if (rhs >= 128) {
@@ -342,7 +345,9 @@ namespace customBigInt {
 			}
 
 			int128& operator>>= (int const& rhs) {
-				// special case, since for some reason the final `else` doesn't work
+				// Special case, because when compiling with -O0 (B0 >> (64-x)) seems to just ignore the bitshift for x = 0
+				// Meaning that it returns B0, despite (B0 >> 64) returning 0...
+				// Compiling with any non-zero optimization works normally (returns 0)
 				if (rhs == 0) return *this;
 
 				if (rhs >= 128) {

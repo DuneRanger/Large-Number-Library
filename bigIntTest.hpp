@@ -165,12 +165,14 @@ namespace customBigIntTest {
 				return (~result + 1);
 			}
 
+			// We save a bit of time by manually multiplying some parts that are sure to fit within one of the words
 			int128& operator*=(int128 rhs) {
 				int128 multiplicand(B1, B0);
 				// sets sign bit
 				bool sign = (B1 ^ rhs.B1) >= BIT64_ON;
 				if (multiplicand < 0) multiplicand = ~multiplicand + 1;
 				if (rhs < 0) rhs = ~rhs + 1;
+				// We ignore B1*rhs.B1, because it completely overflows anyway
 				B1 = multiplicand.B1 * rhs.B0;
 				B1 += multiplicand.B0 * rhs.B1;
 				B0 = 0;
