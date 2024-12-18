@@ -4,9 +4,7 @@
 #include <cmath>
 #include <vector>
 #include <chrono>
-#include <random>
 #include <boost/multiprecision/cpp_int.hpp>
-#include <boost/multiprecision/integer.hpp>
 #include "../bigInt.hpp"
 #include "../bigIntTest.hpp"
 #include "../bigIntKaratsuba.hpp"
@@ -56,6 +54,9 @@ std::vector<uint64_t> genTwoUint64(uint64_t n) {
 template <typename T1, typename T2>
 bool twoInt128TypesEqual(T1 a, T2 b) {
 	// because boost doesn't want to cooperate when casting into uint64_t, or even int64_t
+	// Note, creating a specific overload to have a 100% correct multiplication by -1 is valid
+	// But if the overload is done by allowing multiplication by a different standard type, then be aware
+	// That the compiler might convert a larger type into a smaller type to make use of the overloaded multiplication
 	if (a < 0)  {
 		a *= -1;
 		b *= -1;
@@ -90,7 +91,7 @@ void printInt128Words(T a) {
 }
 
 template <typename myInt128>
-bool verifyCorrectnessOfMyInt128(int testNumberCount = 100) {
+bool verifyCorrectnessOfMyInt128(int testNumberCount = 1000) {
 	std::cout << "====================================================================================================" << std::endl;
 	std::cout << "VERIFYING ARITHMETIC CORRECTNESS OF " << myInt128::className() << " WITH BOOST int128_t" << std::endl;
 	std::cout << "====================================================================================================" << std::endl;
@@ -127,34 +128,8 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 100) {
 		}
         testNumbersBoost.push_back(boostNum);
     }
-
-	// Yeah, nah, I'm not doing this after finding out how boost bitshifts, I'll just hope I got bitshifting bug-free
-
-	// std::cout << "VERIFYING BITSHIFTING (PREREQUISITE)" << std::endl;
-	// for (int i = 0; i < testNumberCount; i++) {
-	// 	for (int j = 0; j < 150; j++) {
-	// 		boostInt128 boostResult = testNumbersBoost[i] << j;
-	// 		myInt128 myResult = testNumbersMyInt[i] << j;
-	// 		if (!twoInt128TypesEqual<boostInt128, myInt128>(boostResult, myResult)) {
-	// 			std::cout << "FAILED: " << testNumbersBoost[i] << " << " << j << std::endl;
-	// 			printInt128Words<boostInt128>(boostResult);
-	// 			printInt128Words<myInt128>(myResult);
-	// 			return false;
-	// 		}
-	// 		// if (testNumbersBoost[i] < 0) boo
-	// 		// boostResult = (testNumbersBoost[i] >> j) ^ ();
-	// 		myResult = testNumbersMyInt[i] >> j;
-	// 		if (!twoInt128TypesEqual<boostInt128, myInt128>(boostResult, myResult)) {
-	// 			std::cout << "FAILED: " << testNumbersBoost[i] << " >> " << j << std::endl;
-	// 			printInt128Words<boostInt128>(boostResult);
-	// 			printInt128Words<myInt128>(myResult);
-	// 			return false;
-	// 		}
-	// 	}
-	// }
-	// std::cout << "PASSED BITSHIFTING" << std::endl;
+	
 	std::cout << "------------------" << std::endl;
-
 	std::cout << "VERIFYING ADDITION" << std::endl;
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
@@ -241,9 +216,8 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 100) {
 }
 
 int main() {
-	int testCaseAmount = 10000;
-	verifyCorrectnessOfMyInt128<baseInt128>(testCaseAmount);
-	// verifyCorrectnessOfMyInt128<testInt128>();
-	// verifyCorrectnessOfMyInt128<kInt128>();
+	int testCaseAmount = 3000;
+	verifyCorrectnessOfMyInt128<baseInt128>();
+	verifyCorrectnessOfMyInt128<testInt128>();
 	return 0;
 }
