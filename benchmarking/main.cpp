@@ -47,6 +47,51 @@ std::vector<uint64_t> genTwoUint64(uint64_t n) {
 	return {a, b};
 }
 
+/*
+	DISCLAIMER ABOUT BOOST INTEGERS
+	boostInt128 uses its own variable for signed magnitude and can represent values from 2^(128)-1 to -(2^(128)-1)
+	Additionally, it saves negative values int two's complement, if you imagine the signed magnitude as a hidden 129th bit
+	This also means that when bitshifting a negative value, it keeps the sign (so -1 >> 10 == -1) by filling the shifted area with 1's
+	
+	However, despite bitshifting not changing the sign, any other bit operation does, for reasons unknown to me (or the documentation)
+	Both & and | always change the sign to positive, only (~) uniquely can affect the sign bit and make it negative or positive (as one would expect)
+
+	Reminder: When changing the constants here, change them in generateMyInt128Numbers as well
+*/
+std::vector<boostInt128> generateBoost128Numbers(int count = 1000, uint64_t randState = 1) {
+	std::vector<boostInt128> boostNumbers = {0, 1, -1};
+
+	boostInt128 boostInt128Mask = (boostInt128(UINT64_MAX) << 64) + UINT64_MAX;
+    for (int i = boostNumbers.size(); i < count; i++) {
+        std::vector<uint64_t> words = genTwoUint64(randState);
+		randState += 2;
+
+		boostInt128 boostNum;
+		boost::multiprecision::import_bits(boostNum, words.begin(), words.end());
+
+		if (words[0] & customBigInt::BIT64_ON) {
+			boostNum ^= boostInt128Mask;
+			boostNum += 1;
+			boostNum *= -1;
+		}
+        boostNumbers.push_back(boostNum);
+    }
+	return boostNumbers;
+}
+
+// Reminder: When changing the constants here, change them in generateBoost128Numbers as well
+template <typename myInt128	>
+std::vector<myInt128> generateMyInt128Numbers(int count = 1000, uint64_t randState = 1) {
+	std::vector<myInt128> myIntNumbers = {0, 1, -1};
+
+    for (int i = myIntNumbers.size(); i < count; i++) {
+        std::vector<uint64_t> words = genTwoUint64(randState);
+		randState += 2;
+        myIntNumbers.push_back(myInt128(words[0], words[1]));
+    }
+	return myIntNumbers;
+} 
+
 // If comparing with a boost type, put it as the first argument
 template <typename T1, typename T2>
 bool twoInt128TypesEqual(T1 a, T2 b) {
@@ -88,43 +133,15 @@ void printInt128Words(T a) {
 }
 
 template <typename myInt128>
-bool verifyCorrectnessOfMyInt128(int testNumberCount = 1000) {
+bool verifyCorrectnessOfMyInt128(int testNumberCount = 1000, uint64_t randState = 1) {
 	std::cout << "====================================================================================================" << std::endl;
 	std::cout << "VERIFYING ARITHMETIC CORRECTNESS OF " << myInt128::className() << " WITH BOOST int128_t" << std::endl;
 	std::cout << "====================================================================================================" << std::endl;
 
 	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
 
-	// These two vectors should have the same elements
-    std::vector<boostInt128> testNumbersBoost = {0, 1, -1};
-	std::vector<myInt128> testNumbersMyInt = {0, 1, -1};
-
-	/*
-	DISCLAIMER ABOUT BOOST INTEGERS
-	boostInt128 uses its own variable for signed magnitude and can represent values from 2^(128)-1 to -(2^(128)-1)
-	Additionally, it saves negative values int two's complement, if you imagine the signed magnitude as a hidden 129th bit
-	This also means that when bitshifting a negative value, it keeps the sign (so -1 >> 10 == -1) by filling the shifted area with 1's
-	
-	However, despite bitshifting not changing the sign, any other bit operation does, for reasons unknown to me (or the documentation)
-	Both & and | always change the sign to positive, only (~) uniquely can affect the sign bit and make it negative or positive (as one would expect)
-	*/
-	boostInt128 boostInt128Mask = (boostInt128(UINT64_MAX) << 64) + UINT64_MAX;
-	uint64_t randState = 1;
-    for (int i = testNumbersBoost.size(); i < testNumberCount; i++) {
-        std::vector<uint64_t> words = genTwoUint64(randState);
-		randState += 2;
-        testNumbersMyInt.push_back(myInt128(words[0], words[1]));
-
-		boostInt128 boostNum;
-		boost::multiprecision::import_bits(boostNum, words.begin(), words.end());
-
-		if (words[0] & customBigInt::BIT64_ON) {
-			boostNum ^= boostInt128Mask;
-			boostNum += 1;
-			boostNum *= -1;
-		}
-        testNumbersBoost.push_back(boostNum);
-    }
+    std::vector<boostInt128> testNumbersBoost = generateBoost128Numbers(testNumberCount, randState);
+	std::vector<myInt128> testNumbersMyInt = generateMyInt128Numbers<myInt128>(testNumberCount, randState);
 	
 	std::cout << "------------------" << std::endl;
 	std::cout << "VERIFYING ADDITION" << std::endl;
@@ -212,9 +229,157 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 1000) {
 	return true;
 }
 
+void speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
+	std::cout << "====================================================================================================" << std::endl;
+	std::cout << "BENCHMARKING Boost Int128 ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "====================================================================================================" << std::endl;
+
+	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
+
+	std::vector<boostInt128> testNumbersBoost = generateBoost128Numbers(testNumberCount, randState);
+
+	// for (int i = 0; i < testNumberCount; i++) {
+	// 	std::cout << testNumbersBoost[i] << std::endl;
+	// }
+
+	boostInt128 boostResult = 0;
+	std::cout << "MEASURING ADDITION: ";
+	auto start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			boostResult = testNumbersBoost[i] + testNumbersBoost[j];
+		}
+	}
+	auto end_time = std::chrono::steady_clock::now();
+	std::chrono::duration<double> duration(end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+
+	std::cout << "MEASURING SUBSTRACTION: ";
+	start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			boostResult = testNumbersBoost[i] + testNumbersBoost[j];
+		}
+	}
+	end_time = std::chrono::steady_clock::now();
+	duration = (end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+
+	std::cout << "MEASURING MULTIPLICATION: ";
+	start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			boostResult = testNumbersBoost[i] * testNumbersBoost[j];
+		}
+	}
+	end_time = std::chrono::steady_clock::now();
+	duration = (end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+	
+	std::cout << "MEASURING DIVISION: ";
+	start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			if (testNumbersBoost[j] == 0) continue;
+			boostResult = testNumbersBoost[i] / testNumbersBoost[j];
+		}
+	}
+	end_time = std::chrono::steady_clock::now();
+	duration = (end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+
+	std::cout << "MEASURING MODULO: ";
+	start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			if (testNumbersBoost[j] == 0) continue;
+			boostResult = testNumbersBoost[i] % testNumbersBoost[j];
+		}
+	}
+	end_time = std::chrono::steady_clock::now();
+	duration = (end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+
+	return;
+}
+
+template <typename myInt128>
+void speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t randState = 1) {
+	std::cout << "====================================================================================================" << std::endl;
+	std::cout << "BENCHMARKING " << myInt128::className() << " ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "====================================================================================================" << std::endl;
+
+	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
+
+	std::vector<myInt128> testNumbersMyInt128 = generateMyInt128Numbers<myInt128>(testNumberCount, randState);
+
+	std::cout << "MEASURING ADDITION: ";
+	auto start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			myInt128 myResult = testNumbersMyInt128[i] + testNumbersMyInt128[j];
+		}
+	}
+	auto end_time = std::chrono::steady_clock::now();
+	std::chrono::duration<double> duration(end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+
+	std::cout << "MEASURING SUBSTRACTION: ";
+	start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			myInt128 myResult = testNumbersMyInt128[i] - testNumbersMyInt128[j];
+		}
+	}
+	end_time = std::chrono::steady_clock::now();
+	duration = (end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+
+	std::cout << "MEASURING MULTIPLICATION: ";
+	start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			myInt128 myResult = testNumbersMyInt128[i] * testNumbersMyInt128[j];
+		}
+	}
+	end_time = std::chrono::steady_clock::now();
+	duration = (end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+	
+	std::cout << "MEASURING DIVISION: ";
+	start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			if (testNumbersMyInt128[j] == 0) continue;
+			myInt128 myResult = testNumbersMyInt128[i] / testNumbersMyInt128[j];
+		}
+	}
+	end_time = std::chrono::steady_clock::now();
+	duration = (end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+
+	std::cout << "MEASURING MODULO: ";
+	start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+			if (testNumbersMyInt128[j] == 0) continue;
+			myInt128 myResult = testNumbersMyInt128[i] % testNumbersMyInt128[j];
+		}
+	}
+	end_time = std::chrono::steady_clock::now();
+	duration = (end_time - start_time);
+	std::cout << duration.count() << " seconds" << std::endl;
+
+	return;
+}
+
 int main() {
-	int testCaseAmount = 3000;
-	verifyCorrectnessOfMyInt128<baseInt128>();
-	verifyCorrectnessOfMyInt128<testInt128>();
+	int testCaseAmount = 5000;
+	uint64_t randState = 1;
+	// verifyCorrectnessOfMyInt128<baseInt128>();
+	// verifyCorrectnessOfMyInt128<testInt128>();
+	speedBenchmarkBoost(testCaseAmount, randState);
+	// speedBenchmarkMyInt<baseInt128>(testCaseAmount, randState);
+	speedBenchmarkMyInt<testInt128>(testCaseAmount, randState);
 	return 0;
 }
