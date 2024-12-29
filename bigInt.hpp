@@ -319,9 +319,7 @@ namespace customBigInt {
 			}
 
 			int128& operator<<= (int const& rhs) {
-				// Special case, because when compiling with -O0 (B0 >> (64-x)) seems to just ignore the bitshift for x = 0
-				// Meaning that it returns B0, despite (B0 >> 64) returning 0...
-				// Compiling with any non-zero optimization works normally (returns 0)
+				// Special case, because bitshifting by the bitsize of an integer is undefined (and inconsistent) behaviour
 				if (rhs == 0) return *this;
 
 				if (rhs >= 128) {
@@ -345,9 +343,7 @@ namespace customBigInt {
 			}
 
 			int128& operator>>= (int const& rhs) {
-				// Special case, because when compiling with -O0 (B0 >> (64-x)) seems to just ignore the bitshift for x = 0
-				// Meaning that it returns B0, despite (B0 >> 64) returning 0...
-				// Compiling with any non-zero optimization works normally (returns 0)
+				// Special case, because bitshifting by the bitsize of an integer is undefined (and inconsistent) behaviour
 				if (rhs == 0) return *this;
 
 				if (rhs >= 128) {

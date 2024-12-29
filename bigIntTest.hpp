@@ -338,7 +338,7 @@ namespace customBigIntTest {
 
 			// Possibly keep the sign and only shift "digit" bits (like boost)
 			int128& operator<<= (int const& rhs) {
-				// special case, since for some reason the final `else` doesn't work
+				// Special case, because bitshifting by the bitsize of an integer is undefined (and inconsistent) behaviour
 				if (rhs == 0) return *this;
 
 				if (rhs >= 128) {
@@ -362,7 +362,7 @@ namespace customBigIntTest {
 			}
 
 			int128& operator>>= (int const& rhs) {
-				// special case, since for some reason the final `else` doesn't work
+				// Special case, because bitshifting by the bitsize of an integer is undefined (and inconsistent) behaviour
 				if (rhs == 0) return *this;
 
 				if (rhs >= 128) {
