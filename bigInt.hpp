@@ -22,7 +22,6 @@ namespace customBigInt {
 			// byte 0 and 1
 			uint64_t B0;
 			uint64_t B1;
-			static const int maxCharSize = 39;
 
 		public:
 			/*
@@ -111,6 +110,7 @@ namespace customBigInt {
 
 			// Returns a string of the current value converted to the desired base
 			// '-' is appended to the start, if the number is negative, irregardless of the base
+			// Base is limited to a singe unsigned 64 bit integer, larger bases are supported for other larger integers
 			inline std::string toString(uint64_t base = 10) {
 				// Approximate the largest number of possible words
 				int binWordSize = 0;
@@ -276,6 +276,7 @@ namespace customBigInt {
 				return result /= rhs;
 			}
 
+			// Keeps the sign from the original value
 			int128& operator%=(int128 divisor) {
 				if (divisor == 0) throw std::domain_error("Divide by zero exception");
 
@@ -356,12 +357,13 @@ namespace customBigInt {
 				return result;
 			}
 
-			// returns bit NOT
+			// Returns the bit NOT, so adding 1 gets the two's complement
 			int128 operator~ () {
 				int128 result(~B1, ~B0);
 				return result;
 			}
 
+			// Classic non-arithmetic bitshift
 			int128& operator<<= (int const& rhs) {
 				// Special case, because bitshifting by the bitsize of an integer is undefined (and inconsistent) behaviour
 				if (rhs == 0) return *this;
@@ -381,11 +383,13 @@ namespace customBigInt {
 				}
 				return *this;
 			}
+			// Classic non-arithmetic bitshift
 			int128 operator<< (int const& rhs) {
 				int128 result(B1, B0);
 				return result <<= rhs;
 			}
 
+			// Classic non-arithmetic bitshift
 			int128& operator>>= (int const& rhs) {
 				// Special case, because bitshifting by the bitsize of an integer is undefined (and inconsistent) behaviour
 				if (rhs == 0) return *this;
@@ -405,6 +409,7 @@ namespace customBigInt {
 				}
 				return *this;
 			}
+			// Classic non-arithmetic bitshift
 			int128 operator>> (int const& rhs) {
 				int128 result(B1, B0);
 				return result >>= rhs;
