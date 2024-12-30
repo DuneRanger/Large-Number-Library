@@ -476,7 +476,7 @@ std::vector<double> averageBenchmarkMyInt128(int testNumberCount = 3000, int ite
 
 void formatBenchmarkTimesTable(std::vector<std::vector<double>> averageBenchmarkResults) {
 	std::vector<std::string> operationNames = {"ADDITION", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "MODULO"};
-	std::vector<std::string> benchmarkResultTypeNames = {"Boost Int 128", "testInt128"};
+	std::vector<std::string> benchmarkResultTypeNames = {"Boost int128", "baseInt128", "testInt128"};
 	assert(averageBenchmarkResults.size() == benchmarkResultTypeNames.size());
 	assert(averageBenchmarkResults[0].size() == operationNames.size());
 
@@ -509,14 +509,23 @@ void formatBenchmarkTimesTable(std::vector<std::vector<double>> averageBenchmark
 
 int main() {
 	int testCaseAmount = 5000;
-	int iterations = 5;
+	int iterations = 10;
 	uint64_t randState = 1;
 	std::vector<std::vector<double>> averageBenchmarkResults;
 	// verifyCorrectnessOfMyInt128<baseInt128>();
 	// verifyCorrectnessOfMyInt128<testInt128>();
+	// speedBenchmarkBoost(testCaseAmount);
+	// speedBenchmarkMyInt<testInt128>(testCaseAmount);
 
 	averageBenchmarkResults.push_back(averageBenchmarkBoost(testCaseAmount, iterations));
+	averageBenchmarkResults.push_back(averageBenchmarkMyInt128<baseInt128>(testCaseAmount, iterations));
 	averageBenchmarkResults.push_back(averageBenchmarkMyInt128<testInt128>(testCaseAmount, iterations));
+
+	std::cout << std::endl;
+	std::cout << "UNIQUE TEST NUMBERS PER BENCHMARK: " << testCaseAmount << " (INCLUDING 0, 1, -1)" << std::endl;
+	std::cout << "TOTAL CALCULATIONS PER TEST: " << testCaseAmount*testCaseAmount << std::endl;
+	std::cout << "TIMES AVERAGED OVER " << iterations << " DIFFERENT BENCHMARK ITERATIONS" << std::endl;
+	std::cout << "INITIAL RANDSTATE: " << randState << std::endl; 
 
 	formatBenchmarkTimesTable(averageBenchmarkResults);
 	return 0;
