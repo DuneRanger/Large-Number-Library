@@ -153,9 +153,11 @@ namespace customBigInt {
 				return output;
 			}
 
-			friend std::ostream& operator<<(std::ostream& os, int128& num) {
+			// Note: This overload doesn't take int128&, because it would throw an error when printing a complex expression
+			// For example (a * -1)
+			// It also doesn't consider num as a const, because methods can't be called on consts (at least from my understanding of the error)
+			friend std::ostream& operator<<(std::ostream& os, int128 num) {
 				os << num.toString();
-				// os << std::bitset<64>(num.B1) << "" << std::bitset<64>(num.B0);
 				return os;
 			}
 
