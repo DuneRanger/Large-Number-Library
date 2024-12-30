@@ -440,6 +440,37 @@ std::vector<double> averageBenchmarkMyInt128(int testNumberCount = 3000, int ite
 	return operationTimes;
 }
 
+void formatBenchmarkTimesTable(std::vector<std::vector<double>> averageBenchmarkResults) {
+	std::vector<std::string> operationNames = {"ADDITION", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "MODULO"};
+	std::vector<std::string> benchmarkResultTypeNames = {"Boost Int 128", "testInt128"};
+	assert(averageBenchmarkResults.size() == benchmarkResultTypeNames.size());
+	assert(averageBenchmarkResults[0].size() == operationNames.size());
+
+	printf("+");
+	for (int buffer = 0; buffer < operationNames.size()+ 1; buffer++) {
+		printf("----------------+"); // 16 long, because of the space before %-15
+	}
+	printf("\n");
+	std::printf("| %-15s|", "");
+	for (std::string opName : operationNames) {
+		printf(" %-15s|", opName.c_str());
+	}
+	printf("\n+");
+	for (int buffer = 0; buffer < operationNames.size()+ 1; buffer++) {
+		printf("----------------+"); // 16 long, because of the space before %-15
+	}
+	printf("\n");
+	for (int i = 0; i < averageBenchmarkResults.size(); i++) {
+		printf("| %-15s|", benchmarkResultTypeNames[i].c_str());
+		for (int j = 0; j < operationNames.size(); j++) {
+			printf(" %-15.8f|", averageBenchmarkResults[i][j]);
+		}
+		printf("\n+");
+		for (int buffer = 0; buffer < operationNames.size() + 1; buffer++) {
+			printf("----------------+"); // 15 long
+		}
+		printf("\n");
+	}
 }
 
 int main() {
@@ -449,9 +480,10 @@ int main() {
 	std::vector<std::vector<double>> averageBenchmarkResults;
 	// verifyCorrectnessOfMyInt128<baseInt128>();
 	// verifyCorrectnessOfMyInt128<testInt128>();
-	speedBenchmarkBoost(testCaseAmount, randState);
 
 	averageBenchmarkResults.push_back(averageBenchmarkBoost(testCaseAmount, iterations));
 	averageBenchmarkResults.push_back(averageBenchmarkMyInt128<testInt128>(testCaseAmount, iterations));
+
+	formatBenchmarkTimesTable(averageBenchmarkResults);
 	return 0;
 }
