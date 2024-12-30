@@ -22,7 +22,7 @@ namespace customBigInt {
 			// byte 0 and 1
 			uint64_t B0;
 			uint64_t B1;
-			// const int maxCharSize = ceil(128*log10(2));
+			static const int maxCharSize = 39;
 
 		public:
 			/*
@@ -85,6 +85,9 @@ namespace customBigInt {
 			explicit operator int() const {
 				return (int)B0;
 			}
+			explicit operator char() const {
+				return (char)B0;
+			}
 
 			int128& operator= (int128 const& rhs) {
 				B1 = rhs.B1;
@@ -107,13 +110,27 @@ namespace customBigInt {
 			}
 
 			inline std::string toString() {
-				// char* s = new char[maxCharSize];
-				char carry = 0;
-				return "";
+				// Just do the whole possible size, since it is probably faster than calculating how much is needed
+				std::string s(maxCharSize+1, 'x');
+				int128 copy = *this;
+				bool sign = copy < 0;
+				int index = maxCharSize;
+				if (sign) copy = ~copy+1;
+				do {
+					s[index] = '0' + (char)(copy%10);
+					copy /= 10;
+					index--;
+				} while (copy != 0);
+				if (sign) {
+					s[index] = '-';
+					index--;
+				}
+				return s.substr(index+1);
 			}
 
-			friend std::ostream& operator<<(std::ostream& os, int128 const& num) {
-				os << std::bitset<64>(num.B1) << "" << std::bitset<64>(num.B0);
+			friend std::ostream& operator<<(std::ostream& os, int128& num) {
+				os << num.toString();
+				// os << std::bitset<64>(num.B1) << "" << std::bitset<64>(num.B0);
 				return os;
 			}
 
