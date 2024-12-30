@@ -73,4 +73,8 @@ The main difference is that I can afford to simply ignore $AC$, since it complet
 The main overhead is calculating over the barrier between the two unsigned 64 bit integers, which I believe can't really be solved with the algorithm
 
 Update: I read the wiki article and now and I can see how the recursive application can be useful. I'm just a bit afraid that the overhead of constructing the large integer class might slow it down quite a bit \
-In any case, I'll attempt to implement it and then I'll check out the speed difference
+In any case, I'll attempt to implement it and then I'll check out the speed differenceIn any case, I'll attempt to implement it and then I'll check out the speed difference
+
+Notes about compiling with optimization:
+- O1 doesn't compile out the for loop, but it may possibly compile out the computation (an empty for loop took longer than one with addition)
+- O2 compiles out for loops, but with an if statement it seemed to leave it alone

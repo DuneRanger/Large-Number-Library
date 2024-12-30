@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <iostream>
+#include <cstdio>
 #include <string>
 #include <cmath>
 #include <vector>
@@ -229,20 +230,20 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 1000, uint64_t randState 
 	return true;
 }
 
-void speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
-	std::cout << "====================================================================================================" << std::endl;
-	std::cout << "BENCHMARKING Boost Int128 ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
-	std::cout << "====================================================================================================" << std::endl;
+
+std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
+	// std::cout << "====================================================================================================" << std::endl;
+	// std::cout << "BENCHMARKING Boost Int128 ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	// std::cout << "====================================================================================================" << std::endl;
 
 	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
 
 	std::vector<boostInt128> testNumbersBoost = generateBoost128Numbers(testNumberCount, randState);
-
-	// for (int i = 0; i < testNumberCount; i++) {
-	// 	std::cout << testNumbersBoost[i] << std::endl;
-	// }
-
+	std::vector<double> results;
 	boostInt128 boostResult = 0;
+
+	// I'm not sure how to improve the repetitiveness of these for loops without sacrificing some kind of time inaccuracy (a function with a switch statement)
+	// Though some kind of buffer operation will be required to measure -O2 and -O3 optimization results
 	std::cout << "MEASURING ADDITION: ";
 	auto start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
@@ -253,17 +254,19 @@ void speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
 	auto end_time = std::chrono::steady_clock::now();
 	std::chrono::duration<double> duration(end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 
 	std::cout << "MEASURING SUBSTRACTION: ";
 	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
-			boostResult = testNumbersBoost[i] + testNumbersBoost[j];
+			boostResult = testNumbersBoost[i] - testNumbersBoost[j];
 		}
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 
 	std::cout << "MEASURING MULTIPLICATION: ";
 	start_time = std::chrono::steady_clock::now();
@@ -275,6 +278,7 @@ void speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 	
 	std::cout << "MEASURING DIVISION: ";
 	start_time = std::chrono::steady_clock::now();
@@ -287,6 +291,7 @@ void speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 
 	std::cout << "MEASURING MODULO: ";
 	start_time = std::chrono::steady_clock::now();
@@ -299,87 +304,154 @@ void speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 
-	return;
+	return results;
 }
 
 template <typename myInt128>
-void speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t randState = 1) {
-	std::cout << "====================================================================================================" << std::endl;
-	std::cout << "BENCHMARKING " << myInt128::className() << " ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
-	std::cout << "====================================================================================================" << std::endl;
+std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t randState = 1) {
+	// std::cout << "====================================================================================================" << std::endl;
+	// std::cout << "BENCHMARKING " << myInt128::className() << " ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	// std::cout << "====================================================================================================" << std::endl;
 
 	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
 
 	std::vector<myInt128> testNumbersMyInt128 = generateMyInt128Numbers<myInt128>(testNumberCount, randState);
-
+	std::vector<double> results;
+	myInt128 myResult = 0;
+	
+	// I'm not sure how to improve the repetitiveness of these for loops without sacrificing some kind of time inaccuracy (a function with a switch statement)
+	// Though some kind of buffer operation will be required to measure -O2 and -O3 optimization results
 	std::cout << "MEASURING ADDITION: ";
 	auto start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
-			myInt128 myResult = testNumbersMyInt128[i] + testNumbersMyInt128[j];
+			myResult = testNumbersMyInt128[i] + testNumbersMyInt128[j];
 		}
 	}
 	auto end_time = std::chrono::steady_clock::now();
 	std::chrono::duration<double> duration(end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 
 	std::cout << "MEASURING SUBSTRACTION: ";
 	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
-			myInt128 myResult = testNumbersMyInt128[i] - testNumbersMyInt128[j];
+			myResult = testNumbersMyInt128[i] - testNumbersMyInt128[j];
 		}
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 
 	std::cout << "MEASURING MULTIPLICATION: ";
 	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
-			myInt128 myResult = testNumbersMyInt128[i] * testNumbersMyInt128[j];
+			myResult = testNumbersMyInt128[i] * testNumbersMyInt128[j];
 		}
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 	
 	std::cout << "MEASURING DIVISION: ";
 	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
 			if (testNumbersMyInt128[j] == 0) continue;
-			myInt128 myResult = testNumbersMyInt128[i] / testNumbersMyInt128[j];
+			myResult = testNumbersMyInt128[i] / testNumbersMyInt128[j];
 		}
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 
 	std::cout << "MEASURING MODULO: ";
 	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
 			if (testNumbersMyInt128[j] == 0) continue;
-			myInt128 myResult = testNumbersMyInt128[i] % testNumbersMyInt128[j];
+			myResult = testNumbersMyInt128[i] % testNumbersMyInt128[j];
 		}
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
 	std::cout << duration.count() << " seconds" << std::endl;
+	results.push_back(duration.count());
 
-	return;
+	return results;
+}
+
+std::vector<double> averageBenchmarkBoost(int testNumberCount = 3000, int iterations = 5) {
+	std::cout << "====================================================================================================" << std::endl;
+	std::cout << "CONDUCTING " << iterations << " BENCHMARKS OF Boost Int128 ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "====================================================================================================" << std::endl;
+	
+	uint64_t randState = 1;
+	// addition, subtraction, multiplication, division, modulo
+	std::vector<double> operationTimes = {0, 0, 0, 0, 0};
+	std::vector<std::string> operationNames = {"ADDITION", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "MODULO"};
+
+	for (int i = 0; i < iterations; i++) {
+		std::cout << std::endl << "Iteration " << i+1 << ":" << std::endl;
+		auto results = speedBenchmarkBoost(testNumberCount, randState);
+		for (int j = 0; j < results.size(); j++) {
+			operationTimes[j] += results[j];
+		}
+		randState += testNumberCount*testNumberCount + 1;
+	}
+	for (int i = 0; i < operationTimes.size(); i++) {
+		operationTimes[i] /= iterations;
+		std::cout << "AVERAGE" << operationNames[i] << "TIME: " << operationTimes[i] << std::endl;
+	}
+	return operationTimes;
+}
+
+template <typename myInt128>
+std::vector<double> averageBenchmarkMyInt128(int testNumberCount = 3000, int iterations = 5) {
+	std::cout << "====================================================================================================" << std::endl;
+	std::cout << "CONDUCTING " << iterations << " BENCHMARKS OF " << myInt128::className() << " ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "====================================================================================================" << std::endl;
+	
+	uint64_t randState = 1;
+	// addition, subtraction, multiplication, division, modulo
+	std::vector<double> operationTimes = {0, 0, 0, 0, 0};
+	std::vector<std::string> operationNames = {"ADDITION", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "MODULO"};
+
+	for (int i = 0; i < iterations; i++) {
+		std::cout << std::endl << "Iteration " << i+1 << ":" << std::endl;
+		auto results = speedBenchmarkMyInt<myInt128>(testNumberCount, randState);
+		for (int j = 0; j < results.size(); j++) {
+			operationTimes[j] += results[j];
+		}
+		randState += testNumberCount*testNumberCount + 1;
+	}
+	std::cout << std::endl;
+	for (int i = 0; i < operationTimes.size(); i++) {
+		operationTimes[i] /= iterations;
+		std::cout << "AVERAGE " << operationNames[i] << " TIME: " << operationTimes[i] << std::endl;
+	}
+	return operationTimes;
+}
+
 }
 
 int main() {
 	int testCaseAmount = 5000;
+	int iterations = 5;
 	uint64_t randState = 1;
+	std::vector<std::vector<double>> averageBenchmarkResults;
 	// verifyCorrectnessOfMyInt128<baseInt128>();
 	// verifyCorrectnessOfMyInt128<testInt128>();
 	speedBenchmarkBoost(testCaseAmount, randState);
-	// speedBenchmarkMyInt<baseInt128>(testCaseAmount, randState);
-	speedBenchmarkMyInt<testInt128>(testCaseAmount, randState);
+
+	averageBenchmarkResults.push_back(averageBenchmarkBoost(testCaseAmount, iterations));
+	averageBenchmarkResults.push_back(averageBenchmarkMyInt128<testInt128>(testCaseAmount, iterations));
 	return 0;
 }
