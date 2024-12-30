@@ -109,23 +109,48 @@ namespace customBigInt {
 				return "customBigInt::int128";
 			}
 
-			inline std::string toString() {
-				// Just do the whole possible size, since it is probably faster than calculating how much is needed
-				std::string s(maxCharSize+1, 'x');
-				int128 copy = *this;
-				bool sign = copy < 0;
-				int index = maxCharSize;
-				if (sign) copy = ~copy+1;
-				do {
-					s[index] = '0' + (char)(copy%10);
-					copy /= 10;
-					index--;
-				} while (copy != 0);
-				if (sign) {
-					s[index] = '-';
-					index--;
+			// Returns a string of the current value converted to the desired base
+			// '-' is appended to the start, if the number is negative, irregardless of the base
+			inline std::string toString(uint64_t base = 10) {
+				// Approximate the largest number of possible words
+				int binWordSize = 0;
+				uint64_t base_copy = base;
+				while (base_copy != 0) {
+					base_copy >>= 1;
+					binWordSize++;
 				}
-				return s.substr(index+1);
+				// -1 to binWordSize to account for unfilled bits
+				// +1 at the end to act as a ceil() for cases like base-8 (requires 42.66... words)
+				int maxWordCount = 128/(binWordSize - 1) + 1;
+
+				// Convert this into a vector of word-size chunks (yes, it is a bit wasteful for low bases)
+				std::vector<uint64_t> words(maxWordCount, 0);
+				int128 num = *this;
+				bool sign = num < 0;
+				int index = maxWordCount-1;
+				if (sign) num = ~num+1;
+				do {
+					words[index] = (uint64_t)(num%base);
+					num /= base;
+					index--;
+				} while (num != 0);
+
+				// Convert the word-size chunks into the string
+				std::string output = "";
+				if (sign) output += '-';
+				for (uint64_t word : words) {
+					if (output.size() <= sign && word == 0) continue;
+					if (base < 10) {
+						output += '0' + (char)word;
+					} else if (base < 37) { // the whole alphabet
+						char charWord = '0' + (char)word;
+						if (word > 9) charWord = 'A' + (char)word - 10;
+						output += charWord;
+					} else {
+						output += std::to_string(word) + "_"; // + word divider for clarity
+					}
+				}
+				return output;
 			}
 
 			friend std::ostream& operator<<(std::ostream& os, int128& num) {

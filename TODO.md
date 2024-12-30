@@ -1,7 +1,7 @@
 # Near Future
 
 - Measure benchmark results, so that I can replace bigInt with bigIntTest
-- Allow proper string conversion
+- Rename toString, so that it is recognisably exclusive to int128 (at at least all classes in my header file)
 
 # Long term goals
 
