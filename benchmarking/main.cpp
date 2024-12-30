@@ -232,8 +232,9 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 1000, uint64_t randState 
 
 
 std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
+	std::cout << std::endl;
 	// std::cout << "====================================================================================================" << std::endl;
-	// std::cout << "BENCHMARKING Boost Int128 ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "BENCHMARKING Boost Int128 ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
 	// std::cout << "====================================================================================================" << std::endl;
 
 	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
@@ -243,18 +244,30 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 	boostInt128 boostResult = 0;
 
 	// I'm not sure how to improve the repetitiveness of these for loops without sacrificing some kind of time inaccuracy (a function with a switch statement)
-	// Though some kind of buffer operation will be required to measure -O2 and -O3 optimization results
-	std::cout << "MEASURING ADDITION: ";
+	// Printing out boostResult at the end seems to ward off O1 optimizing away the operations
+	// The empty loop only plays a role for compilation with O0
+	std::cout << "MEASURING EMPTY FOR LOOP OFFSET: ";
 	auto start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+
+		}
+	}
+	auto end_time = std::chrono::steady_clock::now();
+	std::chrono::duration<double> emptyLoop(end_time - start_time);
+	std::cout << emptyLoop.count() << " seconds" << std::endl;
+
+	std::cout << "MEASURING ADDITION: ";
+	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
 			boostResult = testNumbersBoost[i] + testNumbersBoost[j];
 		}
 	}
-	auto end_time = std::chrono::steady_clock::now();
+	end_time = std::chrono::steady_clock::now();
 	std::chrono::duration<double> duration(end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
 
 	std::cout << "MEASURING SUBSTRACTION: ";
 	start_time = std::chrono::steady_clock::now();
@@ -265,8 +278,8 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
 
 	std::cout << "MEASURING MULTIPLICATION: ";
 	start_time = std::chrono::steady_clock::now();
@@ -277,8 +290,8 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
 	
 	std::cout << "MEASURING DIVISION: ";
 	start_time = std::chrono::steady_clock::now();
@@ -290,8 +303,8 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
 
 	std::cout << "MEASURING MODULO: ";
 	start_time = std::chrono::steady_clock::now();
@@ -303,8 +316,13 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
+
+	// printing boostResult to ward away optimization, but also putting it in an if statement to not bloat the log
+	if (boostResult == -2) {
+		std::cout << boostResult << std::endl;
+	}
 
 	return results;
 }
@@ -312,7 +330,7 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 template <typename myInt128>
 std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t randState = 1) {
 	// std::cout << "====================================================================================================" << std::endl;
-	// std::cout << "BENCHMARKING " << myInt128::className() << " ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "BENCHMARKING " << myInt128::className() << " ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
 	// std::cout << "====================================================================================================" << std::endl;
 
 	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
@@ -322,18 +340,30 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 	myInt128 myResult = 0;
 	
 	// I'm not sure how to improve the repetitiveness of these for loops without sacrificing some kind of time inaccuracy (a function with a switch statement)
-	// Though some kind of buffer operation will be required to measure -O2 and -O3 optimization results
-	std::cout << "MEASURING ADDITION: ";
+	// Printing out boostResult at the end seems to ward off O1 optimizing away the operations
+	// The empty loop only plays a role for compilation with O0
+	std::cout << "MEASURING EMPTY FOR LOOP OFFSET: ";
 	auto start_time = std::chrono::steady_clock::now();
+	for (int i = 0; i < testNumberCount; i++) {
+		for (int j = 0; j < testNumberCount; j++) {
+
+		}
+	}
+	auto end_time = std::chrono::steady_clock::now();
+	std::chrono::duration<double> emptyLoop(end_time - start_time);
+	std::cout << emptyLoop.count() << " seconds" << std::endl;
+
+	std::cout << "MEASURING ADDITION: ";
+	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
 			myResult = testNumbersMyInt128[i] + testNumbersMyInt128[j];
 		}
 	}
-	auto end_time = std::chrono::steady_clock::now();
+	end_time = std::chrono::steady_clock::now();
 	std::chrono::duration<double> duration(end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
 
 	std::cout << "MEASURING SUBSTRACTION: ";
 	start_time = std::chrono::steady_clock::now();
@@ -344,8 +374,8 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
 
 	std::cout << "MEASURING MULTIPLICATION: ";
 	start_time = std::chrono::steady_clock::now();
@@ -356,8 +386,8 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
 	
 	std::cout << "MEASURING DIVISION: ";
 	start_time = std::chrono::steady_clock::now();
@@ -369,8 +399,8 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
 
 	std::cout << "MEASURING MODULO: ";
 	start_time = std::chrono::steady_clock::now();
@@ -382,8 +412,12 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 	}
 	end_time = std::chrono::steady_clock::now();
 	duration = (end_time - start_time);
-	std::cout << duration.count() << " seconds" << std::endl;
-	results.push_back(duration.count());
+	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
+	results.push_back(duration.count() - emptyLoop.count());
+
+	if (myResult == -2) {
+		std::cout << myResult << std::endl;
+	}
 
 	return results;
 }
