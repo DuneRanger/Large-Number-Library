@@ -5,7 +5,6 @@
 #include <bitset>
 #include <vector>
 
-
 namespace customBigInt {
 	class bigInt {
 
@@ -19,9 +18,10 @@ namespace customBigInt {
 	// Two's complement
 	class int128 {
 		private: 
-			// byte 0 and 1
+			// byte/word 0 and 1
 			uint64_t B0;
 			uint64_t B1;
+			// const int maxCharSize = ceil(128*log10(2));
 
 		public:
 			/*
@@ -37,6 +37,7 @@ namespace customBigInt {
 				uint64_t DONE
 				int64_t DONE
 				int DONE
+				char DONE
 			= (assignment operator) DONE
 			=============================================================
 			*/
@@ -77,7 +78,7 @@ namespace customBigInt {
 			explicit operator uint64_t() const {
 				return B0;
 			}
-			// Simply returns LSB, because I don't want to be like boost, where I can't actually find out the bits of a number easily
+			// Simply returns LSB to allow for easier bit manipulation
 			explicit operator int64_t() const {
 				return (int64_t)B0;
 			}
@@ -87,7 +88,6 @@ namespace customBigInt {
 			explicit operator char() const {
 				return (char)B0;
 			}
-
 			int128& operator= (int128 const& rhs) {
 				B1 = rhs.B1;
 				B0 = rhs.B0;
@@ -98,19 +98,18 @@ namespace customBigInt {
 			/*
 			SECTION: PRINTING
 			=============================================================
-			toString
-			<< (insertion to stream)
+			toString DONE
+			<< (insertion to stream) DONE
 			>> (extraction from stream)
 			=============================================================
 			*/
-
 			inline static std::string className() {
 				return "customBigInt::int128";
 			}
 
 			// Returns a string of the current value converted to the desired base
 			// '-' is appended to the start, if the number is negative, irregardless of the base
-			// Base is limited to a singe unsigned 64 bit integer, larger bases are supported for other larger integers
+			// Base is limited to a single unsigned 64 bit integer, larger bases are supported for other larger integers
 			inline std::string toString(uint64_t base = 10) {
 				// Approximate the largest number of possible words
 				int binWordSize = 0;
@@ -176,8 +175,8 @@ namespace customBigInt {
 			- (subtraction) DONE
 			* (multiplication) DONE
 			/ (division) DONE
-			% (modulus)
-			respective compound operators (+=, -=, *=, /=, %=)
+			% (modulus) DONE
+			respective compound operators (+=, -=, *=, /=, %=) DONE
 			=============================================================
 			*/
 
@@ -207,28 +206,32 @@ namespace customBigInt {
 				int128 result(B1, B0);
 				return result += (~rhs + 1);
 			}
-			// negates -a
+			// negates value
 			int128 operator-() {
 				int128 result(B1, B0);
 				return (~result + 1);
 			}
 
+			// We save a bit of time by manually multiplying some parts that are sure to fit within one of the words
 			int128& operator*=(int128 rhs) {
 				int128 multiplicand(B1, B0);
 				// sets sign bit
 				bool sign = (B1 ^ rhs.B1) >= BIT64_ON;
-				B1 = 0;
-				B0 = 0;
 				if (multiplicand < 0) multiplicand = ~multiplicand + 1;
 				if (rhs < 0) rhs = ~rhs + 1;
+				// We ignore B1*rhs.B1, because it completely overflows anyway
+				B1 = multiplicand.B1 * rhs.B0;
+				B1 += multiplicand.B0 * rhs.B1;
+				B0 = 0;
+				multiplicand.B1 = 0;
 
 				int counter = 0;
-				while (rhs != 0) {
+				while (rhs.B0 != 0) {
 					if (rhs.B0%2 == 1) {
 						*this += (multiplicand << counter);
 					}
 					counter++;
-					rhs >>= 1;
+					rhs.B0 >>= 1;
 				}
 				
 				if (sign) *this = ~*this + 1;
@@ -247,20 +250,26 @@ namespace customBigInt {
 				bool sign = (B1 ^ divisor.B1) >= BIT64_ON;
 				B1 = 0;
 				B0 = 0;
-				// convert all to positive
+				// convert all to positive (even rhs for comparison)
 				if (dividend < 0) dividend = ~dividend + 1;
 				if (divisor < 0) divisor = ~divisor + 1;
 
+				if (divisor.B1 == 0) {
+					B1 = dividend.B1/divisor.B0;
+					dividend.B1 %= divisor.B0;
+					B0 = dividend.B0/divisor.B0;
+					dividend.B0 %= divisor.B0;
+				}
+
 				// shift divisor maximum to the left
 				int counter = 0;
-				// Also makes sure, that the divisor is always positive
 				while (divisor < dividend && divisor.B1 < (BIT64_ON >> 1)) {
 					counter++;
 					divisor <<= 1;
 				};
 
 				while (counter > -1) {
-					while (divisor <= dividend) {
+					if (divisor <= dividend) {
 						*this += ((int128)1 << counter);
 						dividend -= divisor;
 					}
@@ -275,28 +284,28 @@ namespace customBigInt {
 				int128 result(B1, B0);
 				return result /= rhs;
 			}
-
-			// Keeps the sign from the original value
+			// Keeps the sign from the dividend (original value)
+			// The sign of the divisor doesn't affect anything
 			int128& operator%=(int128 divisor) {
 				if (divisor == 0) throw std::domain_error("Divide by zero exception");
 
 				int128 dividend(B1, B0);
 				// sets sign bit
 				bool sign = B1 >= BIT64_ON;
-				// convert all to positive (even rhs for comparison)
+				// convert all to positive
 				if (dividend < 0) dividend = ~dividend + 1;
 				if (divisor < 0) divisor = ~divisor + 1;
 
 				// shift divisor maximum to the left
 				int counter = 0;
-				// Also makes sure, that the divisor is always positive
+				// Also makes sure, that the divisor doesn't overflow 
 				while (divisor <= dividend && divisor.B1 < (BIT64_ON >> 1)) {
 					counter++;
 					divisor <<= 1;
 				};
 
 				while (counter > -1) {
-					while (divisor <= dividend) {
+					if (divisor <= dividend) {
 						dividend -= divisor;
 					}
 					counter--;
@@ -471,6 +480,10 @@ namespace customBigInt {
 			! (NOT) DONE
 			&& (AND) DONE
 			|| (OR) DONE
+
+			> When overloaded, these operators get function call precedence,
+			and short circuit behavior is lost
+			> This shouldn't be a problem here, since the overload itself makes use of normal boolean && and ||
 			=============================================================
 			*/
 			bool operator! () {
@@ -481,6 +494,6 @@ namespace customBigInt {
 			}
 			bool operator|| (int128 const& rhs) {
 				return B1 != 0 || B0 != 0 || rhs.B1 != 0 || rhs.B0 != 0;
-			}		
+			}
 	};
 }

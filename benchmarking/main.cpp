@@ -7,11 +7,9 @@
 #include <chrono>
 #include <boost/multiprecision/cpp_int.hpp>
 #include "../bigInt.hpp"
-#include "../bigIntTest.hpp"
 
 typedef boost::multiprecision::int128_t boostInt128;
-typedef customBigInt::int128 baseInt128;
-typedef customBigIntTest::int128 testInt128;
+typedef customBigInt::int128 int128;
 
 // From https://www.reddit.com/r/C_Programming/comments/ozew2u/comment/h7zijm8
 uint64_t rnd64(uint64_t n)
@@ -476,7 +474,7 @@ std::vector<double> averageBenchmarkMyInt128(int testNumberCount = 3000, int ite
 
 void formatBenchmarkTimesTable(std::vector<std::vector<double>> averageBenchmarkResults) {
 	std::vector<std::string> operationNames = {"ADDITION", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "MODULO"};
-	std::vector<std::string> benchmarkResultTypeNames = {"Boost int128", "baseInt128", "testInt128"};
+	std::vector<std::string> benchmarkResultTypeNames = {"Boost int128", "int128"};
 	assert(averageBenchmarkResults.size() == benchmarkResultTypeNames.size());
 	assert(averageBenchmarkResults[0].size() == operationNames.size());
 
@@ -512,14 +510,12 @@ int main() {
 	int iterations = 10;
 	uint64_t randState = 1;
 	std::vector<std::vector<double>> averageBenchmarkResults;
-	// verifyCorrectnessOfMyInt128<baseInt128>();
-	// verifyCorrectnessOfMyInt128<testInt128>();
+	verifyCorrectnessOfMyInt128<int128>();
 	// speedBenchmarkBoost(testCaseAmount);
-	// speedBenchmarkMyInt<testInt128>(testCaseAmount);
+	// speedBenchmarkMyInt<int128>(testCaseAmount);
 
 	averageBenchmarkResults.push_back(averageBenchmarkBoost(testCaseAmount, iterations));
-	averageBenchmarkResults.push_back(averageBenchmarkMyInt128<baseInt128>(testCaseAmount, iterations));
-	averageBenchmarkResults.push_back(averageBenchmarkMyInt128<testInt128>(testCaseAmount, iterations));
+	averageBenchmarkResults.push_back(averageBenchmarkMyInt128<int128>(testCaseAmount, iterations));
 
 	std::cout << std::endl;
 	std::cout << "UNIQUE TEST NUMBERS PER BENCHMARK: " << testCaseAmount << " (INCLUDING 0, 1, -1)" << std::endl;
