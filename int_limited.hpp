@@ -46,6 +46,7 @@ namespace customBigInt {
 				char DONE
 			= (assignment operator) DONE
 			importBits (vector) DONE
+			importBits (vector iterator) DONE
 			exportBits DONE
 			=============================================================
 			*/
@@ -119,6 +120,19 @@ namespace customBigInt {
 				}
 				this->updateLSW(0);
 				this->updateMSW(newWords.size()-1);
+			}
+
+			// The first iterator is taken as the Least Significant Word (+ wordOffset)
+			// The second iterator is non-inclusive in the import
+			void importBits(std::vector<uint64_t>::iterator beginWords, std::vector<uint64_t>::iterator endWords, int wordOffset = 0) {
+				int index = wordOffset;
+				while (beginWords != endWords) {
+					this->words[index] = *beginWords;
+					beginWords++;
+					index++;
+				}
+				this->updateLSW(wordOffset);
+				this->updateMSW(index - 1);
 			}
 
 			// For simplicity's sake this function only returns
