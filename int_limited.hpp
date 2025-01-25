@@ -133,9 +133,14 @@ namespace customBigInt {
 			=============================================================
 			Update LSW DONE
 			Update MSW DONE
+			Word Shift Left DONE
+			Word Shift Right DONE
+			Bit Shift Left DONE
+			Bit Shift Right DONE
 			=============================================================
 			*/
 			void updateLSW(int lowerBound) {
+				lowerBound = std::max(0, lowerBound);
 				// Find the highest non-zero word
 				while (this->words[lowerBound] == 0) {
 					lowerBound++;
@@ -147,6 +152,7 @@ namespace customBigInt {
 			}
 
 			void updateMSW(int upperBound) {
+				upperBound = std::min(this->wordCount, upperBound);
 				// Find the highest non-zero word
 				while (this->words[upperBound] == 0) {
 					upperBound--;
@@ -154,6 +160,42 @@ namespace customBigInt {
 				// If the number is zero
 				if (upperBound < 0) upperBound = 0;
 				this->MSW = upperBound;
+				return;
+			}
+			
+			// Shift a whole word left by an amount of words
+			void wordShiftLeft(int wordIndex, int shift) {
+				if (wordIndex + shift < this->wordCount) {
+					this->words[wordIndex + shift] = this->words[wordIndex];
+				}
+				return;
+			}
+
+			// Shift a whole word right by an amount of words
+			void wordShiftRight(int wordIndex, int shift) {
+				if (wordIndex - shift > -1) {
+					this->words[wordIndex - shift] = this->words[wordIndex];
+				}
+				return;
+			}
+
+			// Shifts a whole word left by an amount of bits
+			void bitShiftLeft(int wordIndex, int shift) {
+				if (shift == 0) return;
+				if (wordIndex + 1 < this->wordCount) {
+					this->words[wordIndex + 1] = this->words[wordIndex] >> (64 - shift);
+				}
+				this->words[wordIndex] <<= shift;
+				return;
+			}
+
+			// Shifts a whole word right by an amount of bits
+			void bitShiftRight(int wordIndex, int shift) {
+				if (shift == 0) return;
+				if (wordIndex - 1 > -1) {
+					this->words[wordIndex - 1] = this->words[wordIndex] << (64 - shift);
+				}
+				this->words[wordIndex] >>= shift;
 				return;
 			}
 
@@ -365,17 +407,38 @@ namespace customBigInt {
 
 			// Classic non-arithmetic bitshift
 			int_limited& operator<<= (int const& rhs) {
-				uint64_t tempCarry = 0;
-				for (int i = this->LSW; i < this->MSW; i++) {
-					tempCarry = this->words[i];
-					// this->words[i] <<
+				int wordshift = rhs / 64;
+				int bitshift = rhs % 64;
+				for (int i = this->MSW; i >= this->LSW; i--) {
+					this->wordShiftLeft(i, wordshift);
+					this->bitShiftLeft(i, bitshift);
 				}
+				this->updateLSW(this->LSW + wordshift);
+				this->updateMSW(this->MSW + wordshift + 1);
 				return *this;
 			}
 			// Classic non-arithmetic bitshift
 			int_limited operator<< (int const& rhs) {
-				// int_limited result(B1, B0);
-				// return result <<= rhs;
+				int_limited result = *this;
+				return result <<= rhs;
+			}
+
+			// Classic non-arithmetic bitshift
+			int_limited& operator>>= (int const& rhs) {
+				int wordshift = rhs / 64;
+				int bitshift = rhs % 64;
+				for (int i = this->LSW; i <= this->MSW; i++) {
+					this->wordShiftRight(i, wordshift);
+					this->bitShiftRight(i, bitshift);
+				}
+				this->updateLSW(this->LSW - wordshift - 1);
+				this->updateMSW(this->MSW - wordshift);
+				return *this;
+			}
+			// Classic non-arithmetic bitshift
+			int_limited operator>> (int const& rhs) {
+				int_limited result = *this;
+				return result >>= rhs;
 			}
 
 
@@ -489,8 +552,8 @@ namespace customBigInt {
 			&& (AND) DONE
 			|| (OR) DONE
 
-			These should all be pretty fast since they utilise == 0
-			Which is for most cases only compares MSW and LSW (otherwise also word[0])
+			The only slowdown here is converting 0 to an int_limited (of any size), otherwise 
+			For most cases it only compares MSW and LSW (or subsequently also word[0])
 			=============================================================
 			*/
 			// Arguments do not need to have equal bitSize
