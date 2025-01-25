@@ -1,15 +1,10 @@
+#pragma once
 #include <cstdint>
 #include <iostream>
 #include <string>
-#include <cmath>
-#include <bitset>
 #include <vector>
 
 namespace customBigInt {
-	class bigInt {
-
-	};
-
 	// equivalent to INT64_MAX
 	constexpr uint64_t UINT63_MAX = 0x7FFFFFFFFFFFFFFF;
 	// equivalent to INT64_MIN
@@ -21,7 +16,6 @@ namespace customBigInt {
 			// byte/word 0 and 1
 			uint64_t B0;
 			uint64_t B1;
-			// const int maxCharSize = ceil(128*log10(2));
 
 		public:
 			/*
@@ -33,6 +27,7 @@ namespace customBigInt {
 				uint64_t DONE
 				int64_t DONE
 				int DONE
+				uint DONE
 			conversion TO:
 				uint64_t DONE
 				int64_t DONE
@@ -75,6 +70,8 @@ namespace customBigInt {
 				B0 = a;
 			}
 
+			// All explicit conversions simply returns the bits for the given bit amount
+			// For example the minimum value (in two's complement) converted to a int64_t will simply return 0
 			explicit operator uint64_t() const {
 				return B0;
 			}
@@ -109,7 +106,7 @@ namespace customBigInt {
 
 			// Returns a string of the current value converted to the desired base
 			// '-' is appended to the start, if the number is negative, irregardless of the base
-			// Base is limited to a single unsigned 64 bit integer, larger bases are supported for other larger integers
+			// Base is limited to a single unsigned 64 bit integer
 			inline std::string toString(uint64_t base = 10) {
 				// Approximate the largest number of possible words
 				int binWordSize = 0;
