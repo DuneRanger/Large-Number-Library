@@ -45,11 +45,11 @@ namespace customBigInt {
 				int DONE
 				char DONE
 			= (assignment operator) DONE
-			importBits DONE
+			importBits (vector) DONE
 			exportBits DONE
 			=============================================================
 			*/
-
+			#pragma region
 
 			// Accepts conversions from individual standard int types (doesn't change MSW and LSW)
 			// To convert multiple integers of a type into an int_limited
@@ -127,6 +127,7 @@ namespace customBigInt {
 			std::vector<uint64_t> exportBits() {
 				return this->words;
 			}
+			#pragma endregion
 
 			/*
 			SECTION: HELPER FUNCTIONS
@@ -139,6 +140,8 @@ namespace customBigInt {
 			Bit Shift Right DONE
 			=============================================================
 			*/
+			#pragma region
+
 			void updateLSW(int lowerBound) {
 				lowerBound = std::max(0, lowerBound);
 				// Find the highest non-zero word
@@ -198,6 +201,7 @@ namespace customBigInt {
 				this->words[wordIndex] >>= shift;
 				return;
 			}
+			#pragma endregion
 
 			/*
 			SECTION: PRINTING
@@ -207,6 +211,8 @@ namespace customBigInt {
 			>> (extraction from stream)
 			=============================================================
 			*/
+			#pragma region
+
 			static std::string className() {
 				return "customBigInt::int_limited";
 			}
@@ -263,6 +269,7 @@ namespace customBigInt {
 				os << num.toString();
 				return os;
 			}
+			#pragma endregion
 
 			/*
 			SECTION: MATHEMATICAL FUNCTIONS
@@ -283,6 +290,7 @@ namespace customBigInt {
 			respective compound operators (+=, -=, *=, /=, %=)
 			=============================================================
 			*/
+			#pragma region
 			
 			int_limited& operator+=(int_limited const& rhs) {
 				bool carry = false;
@@ -337,7 +345,7 @@ namespace customBigInt {
 				int_limited result = *this;
 				return (~result + 1);
 			}
-
+			#pragma endregion
 
 			/*
 			SECTION: BITWISE OPERATORS
@@ -346,11 +354,12 @@ namespace customBigInt {
 			| (OR) DONE
 			& (AND) DONE
 			~ (complement) DONE
-			<< (shift left)
-			>> (shift right)
-			respective compound operators (^=, |=, &=, <<=, >>=)
+			<< (shift left) DONE
+			>> (shift right) DONE
+			respective compound operators (^=, |=, &=, <<=, >>=) DONE
 			=============================================================
 			*/
+			#pragma region
 
 			int_limited& operator^= (int_limited const& rhs) {
 				for (int i = std::min(this->LSW, this.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
@@ -440,6 +449,7 @@ namespace customBigInt {
 				int_limited result = *this;
 				return result >>= rhs;
 			}
+			#pragma endregion
 
 
 			/*
@@ -453,6 +463,7 @@ namespace customBigInt {
 			<= (less-than-or-equal-to) DONE
 			=============================================================
 			*/
+			#pragma region
 
 			// Compares values regardless of bitSize (purely by value)
 			bool operator== (int_limited const& rhs) {
@@ -544,6 +555,7 @@ namespace customBigInt {
 			bool operator<= (int_limited const& rhs) {
 				return !(*this > rhs);
 			}
+			#pragma endregion
 
 			/*
 			SECTION: LOGICAL OPERATORS
@@ -556,6 +568,7 @@ namespace customBigInt {
 			For most cases it only compares MSW and LSW (or subsequently also word[0])
 			=============================================================
 			*/
+			#pragma region
 			// Arguments do not need to have equal bitSize
 			bool operator! () {
 				return *this == 0;
@@ -568,5 +581,6 @@ namespace customBigInt {
 			bool operator|| (int_limited const& rhs) {
 				return (*this != 0) || (rhs != 0);
 			}
+			#pragma endregion
 	};
 }
