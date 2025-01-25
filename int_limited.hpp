@@ -359,6 +359,49 @@ namespace customBigInt {
 				int_limited result = *this;
 				return (~result + 1);
 			}
+
+			// Multiplication done by Karatsuba's algorithm
+			int_limited& operator*= (int_limited rhs) {
+				int maxWordCount = std::max(this->MSW, rhs->MSW);
+				bool negative = false;
+				if (*this < 0) {
+					*this = ~(*this) + 1;
+					negative = !negative;
+				}
+				if (rhs < 0) {
+					rhs = ~rhs + 1;
+					negative = !negative;
+				}
+				// If both values are only 64 bit/1 word
+				if (maxWordCount == 0) {
+					// If the result fits within 64 bits
+					if (*this < UINT32_MAX && rhs < UINT32_MAX) {
+						int_limited<64> result = *this->words[0] * rhs.words[0];
+						if (negative) result = ~result + 1;
+						return result;
+					}
+					// Otherwise just manually divide the words and add them to a large enough int_limited
+					int_limited<128> result = 0;
+					uint64_t lhsWord = *this->words[0];
+					uint64_t rhsWord = rhs.words[0];
+					result += (lhsWord >> 32) * (rhsWord >> 32);
+					result <<= 32;
+					result += (lhsWord >> 32) * (rhsWord & UINT32_MAX);
+					result += (lhsWord & UINT32_MAX) * (rhsWord >> 32);
+					result <<= 32;
+					result += (lhsWord & UINT32_MAX) * (rhsWord & UINT32_MAX);
+					if (negative) result = ~result + 1;
+					return result;
+				}
+				// The plan here is to skip the most significant half of the words, because they will overflow in the result anyway
+				// But to allow the use of this function recursively, then we need to save each high and low split in an int_limited
+				// twice the size they need to be, so that we don't lose any bits during the multiplication
+				// Example: Consider two full 512 bit int_limited, then we will call the function recursively on two half empty 512 bit int_limited
+				// Then, once they take up less than half of their size, we can reduce the bit size of the next int_limited
+				// So: 512(512) -> 512(256) -> 256(128) -> 128(64) -> 64(64)
+				// There will be slight differences for the second term of the algorithm, since it can go: 512(512) -> 512(257) -> 512(129) | 512(128) -> 256(65) | 256(64) | 256(64)
+				
+			}
 			#pragma endregion
 
 			/*
