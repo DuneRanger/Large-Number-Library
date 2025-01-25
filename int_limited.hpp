@@ -254,16 +254,22 @@ namespace customBigInt {
 					// carry = (either both had BIT64_ON), or (only one had it on and the sum didn't)
 					carry = (flag1 + flag2 > 1);
 				}
-				// If the carry can still affect anything (up to (exclusive)this->wordCount or (inclusive)this->MSW+1)
+				uint64_t rhsExtension = 0;
+				if (rhs < 0) rhsExtension = UINT64_MAX;
 				if (this->MSW - 1 > rhs.MSW) {
-					while (carry) {
-						// <= this->MSW + 1  changed to  < this->MSW + 2 for simplicity
-						int lastAffectedWord = std::min(this->wordCount, this->MSW + 2);
+					// If the carry can still affect anything (theoretically up to (exclusive)this->wordCount, then continue addition
+					// Also must continue if rhs requires a one extension
+					if (carry || rhsExtension) {
+						// Marks the last word that we will still operate on
+						int lastAffectedWord = this->wordCount;
 						for (int i = rhs.MSW; i < lastAffectedWord; i++) {
-							bool flag1 = this->words[i] >= BIT64_ON;
+							char flag1 = (this->words[i] >= BIT64_ON) && (rhsExtension != 0);
+							this->words[i] += rhsExtension;
 							this->words[i] += carry;
 							bool flag2 = this->words[i] < BIT64_ON;
 							carry = (flag1 && flag2);
+							// If we can finish early, the break
+							if (!carry && rhsExtension == 0) break;
 						}
 					}
 				}
