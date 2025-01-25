@@ -1,3 +1,9 @@
+# Because I keep on forgetting
+
+https://en.wikipedia.org/wiki/Template:Arithmetic_operations
+
+
+
 # Laptop info
 
 Procesor - 12th Gen Intel(R) Core(TM) i5-1240P   1.70 GHz
