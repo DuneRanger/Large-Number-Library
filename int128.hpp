@@ -36,6 +36,7 @@ namespace customBigInt {
 			= (assignment operator) DONE
 			=============================================================
 			*/
+			#pragma region
 
 
 			int128() { B1 = 0; B0 = 0; }
@@ -90,7 +91,7 @@ namespace customBigInt {
 				B0 = rhs.B0;
 				return *this;
 			}
-			
+			#pragma endregion
 
 			/*
 			SECTION: PRINTING
@@ -100,6 +101,8 @@ namespace customBigInt {
 			>> (extraction from stream)
 			=============================================================
 			*/
+			#pragma region
+
 			inline static std::string className() {
 				return "customBigInt::int128";
 			}
@@ -156,6 +159,7 @@ namespace customBigInt {
 				os << num.toString();
 				return os;
 			}
+			#pragma endregion
 
 			/*
 			SECTION: MATHEMATICAL FUNCTIONS
@@ -176,6 +180,7 @@ namespace customBigInt {
 			respective compound operators (+=, -=, *=, /=, %=) DONE
 			=============================================================
 			*/
+			#pragma region
 
 
 			int128& operator+=(int128 const& rhs) {
@@ -318,6 +323,7 @@ namespace customBigInt {
 				int128 result(B1, B0);
 				return result %= rhs;
 			}
+			#pragma endregion
 
 			/*
 			SECTION: BITWISE OPERATORS
@@ -331,7 +337,7 @@ namespace customBigInt {
 			respective compound operators (^=, |=, &=, <<=, >>=) DONE
 			=============================================================
 			*/
-
+			#pragma region
 
 			int128& operator^= (int128 const& rhs) {
 				B1 ^= rhs.B1;
@@ -420,6 +426,7 @@ namespace customBigInt {
 				int128 result(B1, B0);
 				return result >>= rhs;
 			}
+			#pragma endregion
 
 			/*
 			SECTION: RELATIONAL OPERATORS
@@ -432,6 +439,8 @@ namespace customBigInt {
 			<= (less-than-or-equal-to) DONE
 			=============================================================
 			*/
+			#pragma region
+
 			bool operator== (int128 const& rhs) {
 				return B0 == rhs.B0 && B1 == rhs.B1;
 			}
@@ -470,6 +479,7 @@ namespace customBigInt {
 				}
 				return B1 <= rhs.B1;
 			}
+			#pragma endregion
 
 			/*
 			SECTION: LOGICAL OPERATORS

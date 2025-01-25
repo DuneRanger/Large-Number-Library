@@ -306,7 +306,7 @@ namespace customBigInt {
 			*/
 			#pragma region
 			
-			int_limited& operator+=(int_limited const& rhs) {
+			int_limited& operator+= (int_limited const& rhs) {
 				bool carry = false;
 				// Cycle from the lowest LSW to max(this.wordCount, rhs.MSW)
 				// to end the earliest we can
@@ -342,20 +342,20 @@ namespace customBigInt {
 				this->updateMSW(std::max(this->MSW, rhs.MSW) + 1); // +1 for potential carry
 				return *this;
 			}
-			int_limited operator+(int_limited const& rhs) {
+			int_limited operator+ (int_limited const& rhs) {
 				int_limited result = *this;
 				return result += rhs;
 			}
 
-			int_limited& operator-=(int_limited rhs) {
+			int_limited& operator-= (int_limited rhs) {
 				return *this += (~rhs + 1);
 			}
-			int_limited operator-(int_limited rhs) {
+			int_limited operator- (int_limited rhs) {
 				int_limited result = *this;
 				return result += (~rhs + 1);
 			}
 			// negates value
-			int_limited operator-() {
+			int_limited operator- () {
 				int_limited result = *this;
 				return (~result + 1);
 			}
