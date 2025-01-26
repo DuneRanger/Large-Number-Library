@@ -46,7 +46,7 @@ namespace customBigInt {
 				char DONE
 			= (assignment operator) DONE
 			importBits (vector) DONE
-			importBits (vector iterator) DONE
+			importBits (iterator to iterator) DONE
 			exportBits DONE
 			=============================================================
 			*/
@@ -114,12 +114,25 @@ namespace customBigInt {
 
 			// For simplicity's sake this function only accepts
 			// a vector of unsigned 64 bit integers from the standard library
-			void importBits(std::vector<uint64_t> newWords) {
-				for (int i = 0; i < wordCount && i < newWords.size(); i++) {
+			void importBits(std::vector<uint64_t>& newWords) {
+				for (int i = 0; i < this->wordCount && i < newWords.size(); i++) {
 					this->words[i] = newWords[i];
 				}
 				this->updateLSW(0);
 				this->updateMSW(newWords.size()-1);
+				return;
+			}
+
+			// Starts importing from startIndex (inclusive) to endIndex (exclusive)
+			// Import into the destinations words, starting from wordOffset (default = 0)
+			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
+				int maxWord = std::min(this->wordCount, newWords.size(), endIndex);
+				for (int i = startIndex; i < maxWord; i++) {
+					this->words[i] = newWords[i];
+				}
+				this->updateLSW(0);
+				this->updateMSW(newWords.size()-1);
+				return;
 			}
 
 			// The first iterator is taken as the Least Significant Word (+ wordOffset)
@@ -133,6 +146,7 @@ namespace customBigInt {
 				}
 				this->updateLSW(wordOffset);
 				this->updateMSW(index - 1);
+				return;
 			}
 
 			// For simplicity's sake this function only returns
@@ -362,7 +376,7 @@ namespace customBigInt {
 
 			// Multiplication done by Karatsuba's algorithm
 			int_limited& operator*= (int_limited rhs) {
-				int maxWordCount = std::max(this->MSW, rhs->MSW);
+				// By converting both numbers to positive ones, we can multiply small negative numbers much smaller
 				bool negative = false;
 				if (*this < 0) {
 					*this = ~(*this) + 1;
@@ -372,35 +386,69 @@ namespace customBigInt {
 					rhs = ~rhs + 1;
 					negative = !negative;
 				}
+				// The max word count only counts the amount of words used for values
+				// So we discover 64 bit values in int_limited with a larger bitSize
+				int maxWordCount = std::max(this->MSW, rhs->MSW);
 				// If both values are only 64 bit/1 word
 				if (maxWordCount == 0) {
 					// If the result fits within 64 bits
 					if (*this < UINT32_MAX && rhs < UINT32_MAX) {
-						int_limited<64> result = *this->words[0] * rhs.words[0];
-						if (negative) result = ~result + 1;
-						return result;
+						*this->words[0] *= rhs.words[0];
+						if (negative) *this = ~(*this) + 1;
+						return *this;
 					}
-					// Otherwise just manually divide the words and add them to a large enough int_limited
-					int_limited<128> result = 0;
+					// Otherwise just manually divide the words and overwrite *this
 					uint64_t lhsWord = *this->words[0];
 					uint64_t rhsWord = rhs.words[0];
-					result += (lhsWord >> 32) * (rhsWord >> 32);
-					result <<= 32;
-					result += (lhsWord >> 32) * (rhsWord & UINT32_MAX);
-					result += (lhsWord & UINT32_MAX) * (rhsWord >> 32);
-					result <<= 32;
-					result += (lhsWord & UINT32_MAX) * (rhsWord & UINT32_MAX);
-					if (negative) result = ~result + 1;
-					return result;
+					*this = (lhsWord >> 32) * (rhsWord >> 32);
+					*this <<= 32;
+					*this += (lhsWord >> 32) * (rhsWord & UINT32_MAX);
+					*this += (lhsWord & UINT32_MAX) * (rhsWord >> 32);
+					*this <<= 32;
+					*this += (lhsWord & UINT32_MAX) * (rhsWord & UINT32_MAX);
+					if (negative) *this = ~(*this) + 1;
+					this->updateLSW(0);
+					this->updateMSW(1);
+					return *this;
 				}
 				// The plan here is to skip the most significant half of the words, because they will overflow in the result anyway
 				// But to allow the use of this function recursively, then we need to save each high and low split in an int_limited
 				// twice the size they need to be, so that we don't lose any bits during the multiplication
+
 				// Example: Consider two full 512 bit int_limited, then we will call the function recursively on two half empty 512 bit int_limited
 				// Then, once they take up less than half of their size, we can reduce the bit size of the next int_limited
+
 				// So: 512(512) -> 512(256) -> 256(128) -> 128(64) -> 64(64)
-				// There will be slight differences for the second term of the algorithm, since it can go: 512(512) -> 512(257) -> 512(129) | 512(128) -> 256(65) | 256(64) | 256(64)
-				
+				// There will be slight differences for z1 (the second term of the algorithm), since it can go:
+				// 512(512) -> 512(257) -> 512(129) | 512(128) -> 256(65) | 256(64) | 256(64) Due to the addition of the two words
+				int splitWordIndex = maxWordCount / 2;
+
+				int_limited<splitWordIndex*64*2> low1 = 0;
+				low1.importBits(this->words, 0, splitWordIndex);
+				int_limited<splitWordIndex*64*2> high1 = 0;
+				high1.importBits(this->words, splitWordIndex, this->wordCount);
+
+				int_limited<splitWordIndex*64*2> low2 = 0;
+				low2.importBits(rhs.words, 0, splitWordIndex);
+				int_limited<splitWordIndex*64*2> high2 = 0;
+				high2.importBits(rhs.words, splitWordIndex, rhs.wordCount);
+
+				int_limited<this->bitSize> z0 = low1 * low2;
+				int_limited<this->bitSize> z1 = (high1 + low1) * (high2 + low2);
+				int_limited<this->bitSize> z2 = high1 * high2;
+
+				*this = z2;
+				*this <<= splitWordIndex*64;
+				*this += (z1 - z2 - z0);
+				*this <<= splitWordIndex*64;
+				*this += z0;
+				this->updateLSW(this->LSW);
+				this->updateMSW(this->wordCount);
+				return *this;
+			}
+			int_limited operator* (int_limited const& rhs) {
+				int_limited result = *this;
+				return result *= rhs;
 			}
 			#pragma endregion
 
