@@ -1,19 +1,17 @@
 # Near Future
 
-- Rename toString, so that it is recognisably exclusive to int128 (at at least all classes in my header file)
+- Rename toString, so that it is recognisably exclusive to library classes
 
 ### int_limited
 
-- bitshifting
-- multiplication
-- division
-- modulo
 - testing
 
 ## Documentation
 
 - Re-format the current benchmark results into a nice markdown table
-- Note that adding a larger bitSize to a smaller bitSize results results in truncated addition (truncated from the MSB of the larger), however multiplication and division may as well be undefined (or at least it seems that way before implementation)
+- Note that adding a larger bitSize to a smaller bitSize results results in truncated addition (truncated from the MSB of the larger)
+  - for multiplication, I *believe* it should multiply with enough accuracy that it would be equivalent to extra accuracy and then truncation to fit in the left side
+  - for division, it only matters if the right hand side is larger than the dividend, for which it will return zero
 
 # Long term goals
 
