@@ -323,10 +323,10 @@ namespace customBigInt {
 			=============================================================
 			+ (addition) DONE
 			- (subtraction) DONE
-			* (multiplication)
-			/ (division)
-			% (modulus)
-			respective compound operators (+=, -=, *=, /=, %=)
+			* (multiplication) DONE
+			/ (division) DONE
+			% (modulus) DONE
+			respective compound operators (+=, -=, *=, /=, %=) DONE
 			=============================================================
 			*/
 			#pragma region
@@ -387,13 +387,15 @@ namespace customBigInt {
 
 			// Multiplication done by Karatsuba's algorithm
 			int_limited& operator*= (int_limited rhs) {
-				// By converting both numbers to positive ones, we can multiply small negative numbers much smaller
+				// By converting both numbers to positive ones, we can multiply small negative numbers much faster
 				bool negative = false;
 				if (*this < 0) {
+					// We can afford to overwrite (*this) because we will overwrite it later anyway
 					*this = ~(*this) + 1;
 					negative = !negative;
 				}
 				if (rhs < 0) {
+					// We can afford to overwrite rhs, because it is a copy, not a reference
 					rhs = ~rhs + 1;
 					negative = !negative;
 				}
@@ -460,6 +462,106 @@ namespace customBigInt {
 			int_limited operator* (int_limited const& rhs) {
 				int_limited result = *this;
 				return result *= rhs;
+			}
+
+			// Any sort of optimized division algorithm depend on optimized multiplication algorithms
+			// And frankly I don't completely believe that the constant of my multiplication implementation
+			// are good enough for my implementation of a simple division optimization (Newton-Raphson method)
+			// to be significantly faster than a "O(n^2)" implementationdone with MSW, LSW and bitshifts
+
+			// Considering the implementation of bitshifting, negation and addition with MSW, LSW
+			// This division should have a complexity of O(bitSize + (rhs.MSW - rhs.LSW)^2)
+			int_limited& operator/= (int_limited rhs) {
+				if (rhs == 0) throw std::domain_error("Divide by zero exception");
+				int_limited dividend = *this;
+				*this = 0;
+				// By converting both numbers to positive ones, we can divide small negative numbers much faster
+				bool negative = false;
+				if (dividend < 0) {
+					// We can afford to overwrite (dividend) because we will overwrite it later anyway
+					dividend = ~dividend + 1;
+					negative = !negative;
+				}
+				if (rhs < 0) {
+					// We can afford to overwrite rhs, because it is a copy, not a reference
+					rhs = ~rhs + 1;
+					negative = !negative;
+				}
+				if (rhs > dividend) {
+					return *this;
+				}
+				int_limited<this->bitSize> shiftCounter = 1;
+				// Now rhs <= dividend, which means rhs->MSW <= dividend.MSW
+				if (rhs.MSW < dividend.MSW) {
+					// this make rhs.MSW = dividend.MSW - 1, if it was originally smaller
+					rhs <<= 64*(dividend.MSW - rhs.MSW);
+					shiftCounter <<= 64;
+				}
+				// Now either rhs == dividend, or rhs.MSW == dividend.MSW - 1
+				while (rhs <= dividend) {
+					rhs <<= 1;
+					shiftCounter <<= 1;
+				}
+				while (shiftCounter > 0) {
+					if (rhs <= dividend) {
+						dividend -= rhs;
+						*this |= shiftCounter;
+					}
+					rhs >>= 1;
+					shiftCounter >>= 1;
+				}
+				if (negative) *this = ~(*this) + 1;
+				return *this;
+			}
+			int_limited operator/ (int_limited const& rhs) {
+				int_limited result = /this;
+				return result /= rhs;
+			}
+
+			int_limited& operator%= (int_limited rhs) {
+				if (rhs == 0) throw std::domain_error("Divide by zero exception");
+				int_limited *this = *this;
+				*this = 0;
+				// By converting both numbers to positive ones, we can divide by small negative numbers much faster
+				bool negative = false;
+				if (*this < 0) {
+					// We can afford to overwrite (*this) because we will overwrite it later anyway
+					*this = ~*this + 1;
+					negative = !negative;
+				}
+				if (rhs < 0) {
+					// We can afford to overwrite rhs, because it is a copy, not a reference
+					rhs = ~rhs + 1;
+					negative = !negative;
+				}
+				if (rhs > *this) {
+					return *this;
+				}
+				int totalShifts = 1;
+				// Now rhs <= *this, which means rhs->MSW <= this->MSW
+				if (rhs.MSW < *this.MSW) {
+					// this make rhs.MSW = this->MSW - 1, if it was originally smaller
+					rhs <<= 64*(*this.MSW - rhs.MSW);
+					totalShifts += 64;
+				}
+				// Now either rhs == *this, or rhs.MSW == this->MSW - 1
+				while (rhs <= *this) {
+					rhs <<= 1;
+					totalShifts += 1;
+				}
+				while (totalShifts > 0) {
+					if (rhs <= *this) {
+						*this -= rhs;
+					}
+					rhs >>= 1;
+					totalShifts -= 1;
+				}
+				if (negative) *this = ~(*this) + 1;
+				return *this;
+			}
+			int_limited operator% (int_limited const& rhs) {
+				int_limited result = %this;
+				return result %= rhs;
 			}
 			#pragma endregion
 
