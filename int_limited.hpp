@@ -191,7 +191,7 @@ namespace customBigInt {
 			}
 
 			void updateMSW(int upperBound) {
-				upperBound = std::min(this->wordCount, upperBound);
+				upperBound = std::min(this->wordCount - 1, upperBound);
 				// Find the highest non-zero word
 				while (this->words[upperBound] == 0) {
 					upperBound--;
