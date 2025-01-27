@@ -160,6 +160,7 @@ namespace customBigInt {
 			/*
 			SECTION: HELPER FUNCTIONS
 			=============================================================
+			Truncate extra bits DONE
 			Update LSW DONE
 			Update MSW DONE
 			Word Shift Left DONE
@@ -169,6 +170,13 @@ namespace customBigInt {
 			=============================================================
 			*/
 			#pragma region
+
+			void truncateExtraBits() {
+				int bitsInMSW = this->bitSize % 64;
+				if (bitsInMSW == 0) return;
+				this->words[this->wordCount-1] &= UINT64_MAX >> (64 - bitsInMSW);
+				return
+			}
 
 			void updateLSW(int lowerBound) {
 				lowerBound = std::max(0, lowerBound);
@@ -191,6 +199,9 @@ namespace customBigInt {
 				// If the number is zero
 				if (upperBound < 0) upperBound = 0;
 				this->MSW = upperBound;
+				if (this->MSW == this->wordCount - 1) {
+					this->truncateExtraBits();
+				}
 				return;
 			}
 			

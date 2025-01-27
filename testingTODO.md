@@ -12,3 +12,4 @@
 ## Assignment
 
 - Test value assignment between int_limited for different sizes
+- Test truncation of extra bits for bitSizes not equal to a multiple of 64
