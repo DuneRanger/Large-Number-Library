@@ -109,6 +109,8 @@ namespace customBigInt {
 				for (int i = 0; i < wordCount && i <= rhs.LWS; i++) {
 					this->words[i] = rhs.words[i];
 				}
+				this->updateLSW(rhs.LSW);
+				this->updateMSW(rhs.MSW);
 				return *this;
 			}
 
@@ -457,6 +459,7 @@ namespace customBigInt {
 				*this += z0;
 				this->updateLSW(this->LSW);
 				this->updateMSW(this->wordCount);
+				if (negative) *this = ~(*this);
 				return *this;
 			}
 			int_limited operator* (int_limited const& rhs) {
@@ -510,6 +513,8 @@ namespace customBigInt {
 					rhs >>= 1;
 					shiftCounter >>= 1;
 				}
+				this->updateLSW(0);
+				this->updateMSW(this->wordCount);
 				if (negative) *this = ~(*this) + 1;
 				return *this;
 			}
@@ -556,6 +561,8 @@ namespace customBigInt {
 					rhs >>= 1;
 					totalShifts -= 1;
 				}
+				this->updateLSW(0);
+				this->updateMSW(this->wordCount);
 				if (negative) *this = ~(*this) + 1;
 				return *this;
 			}
