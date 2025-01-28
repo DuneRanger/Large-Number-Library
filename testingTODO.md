@@ -14,3 +14,7 @@
 
 - Test value assignment between int_limited for different sizes
 - Test truncation of extra bits for bitSizes not equal to a multiple of 64
+
+## Comparison
+
+- Double check how comparing two negative numbers of different bitSizes works (they have different MSW)
