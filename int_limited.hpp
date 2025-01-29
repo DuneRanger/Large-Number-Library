@@ -106,7 +106,7 @@ namespace customBigInt {
 			// Allows conversion *from* different size int_limited
 			// However if rhs is larger, then the bits will be cut off
 			int_limited& operator= (int_limited const& rhs) {
-				for (int i = 0; i < wordCount && i <= rhs.LWS; i++) {
+				for (int i = 0; i < wordCount && i <= rhs.LSW; i++) {
 					this->words[i] = rhs.words[i];
 				}
 				this->updateLSW(rhs.LSW);
@@ -128,7 +128,7 @@ namespace customBigInt {
 			// Starts importing from startIndex (inclusive) to endIndex (exclusive)
 			// Import into the destinations words, starting from wordOffset (default = 0)
 			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
-				int maxWord = std::min(this->wordCount, newWords.size(), endIndex);
+				int maxWord = std::min(this->wordCount, (int)newWords.size(), endIndex);
 				for (int i = startIndex; i < maxWord; i++) {
 					this->words[i] = newWords[i];
 				}
@@ -177,7 +177,7 @@ namespace customBigInt {
 				int bitsInMSW = this->bitSize % 64;
 				if (bitsInMSW == 0) return;
 				this->words[this->wordCount-1] &= UINT64_MAX >> (64 - bitsInMSW);
-				return
+				return;
 			}
 
 			void updateLSW(int lowerBound) {
@@ -338,8 +338,8 @@ namespace customBigInt {
 				// Cycle from the lowest LSW to max(this.wordCount, rhs.MSW)
 				// to end the earliest we can
 				for (int i = std::min(LSW, rhs.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
-					char flag1 = (this->words[i] >= BIT64_ON) + (rhs->words[i] >= BIT64_ON);
-					this->words[i] += rhs->words[i];
+					char flag1 = (this->words[i] >= BIT64_ON) + (rhs.words[i] >= BIT64_ON);
+					this->words[i] += rhs.words[i];
 					this->words[i] += carry;
 					bool flag2 = this->words[i] < BIT64_ON;
 					// carry = (either both had BIT64_ON), or (only one had it on and the sum didn't)
@@ -403,17 +403,17 @@ namespace customBigInt {
 				}
 				// The max word count only counts the amount of words used for values
 				// So we discover 64 bit values in int_limited with a larger bitSize
-				int maxWordCount = std::max(this->MSW, rhs->MSW);
+				int maxWordCount = std::max(this->MSW, rhs.MSW);
 				// If both values are only 64 bit/1 word
 				if (maxWordCount == 0) {
 					// If the result fits within 64 bits
 					if (*this < UINT32_MAX && rhs < UINT32_MAX) {
-						*this->words[0] *= rhs.words[0];
+						this->words[0] *= rhs.words[0];
 						if (negative) *this = ~(*this) + 1;
 						return *this;
 					}
 					// Otherwise just manually divide the words and overwrite *this
-					uint64_t lhsWord = *this->words[0];
+					uint64_t lhsWord = this->words[0];
 					uint64_t rhsWord = rhs.words[0];
 					*this = (lhsWord >> 32) * (rhsWord >> 32);
 					*this <<= 32;
@@ -494,7 +494,7 @@ namespace customBigInt {
 					return *this;
 				}
 				int_limited<this->bitSize> shiftCounter = 1;
-				// Now rhs <= dividend, which means rhs->MSW <= dividend.MSW
+				// Now rhs <= dividend, which means rhs.MSW <= dividend.MSW
 				if (rhs.MSW < dividend.MSW) {
 					// this make rhs.MSW = dividend.MSW - 1, if it was originally smaller
 					rhs <<= 64*(dividend.MSW - rhs.MSW);
@@ -519,14 +519,12 @@ namespace customBigInt {
 				return *this;
 			}
 			int_limited operator/ (int_limited const& rhs) {
-				int_limited result = /this;
+				int_limited result = *this;
 				return result /= rhs;
 			}
 
 			int_limited& operator%= (int_limited rhs) {
 				if (rhs == 0) throw std::domain_error("Divide by zero exception");
-				int_limited *this = *this;
-				*this = 0;
 				// By converting both numbers to positive ones, we can divide by small negative numbers much faster
 				bool negative = false;
 				if (*this < 0) {
@@ -537,16 +535,16 @@ namespace customBigInt {
 				if (rhs < 0) {
 					// We can afford to overwrite rhs, because it is a copy, not a reference
 					rhs = ~rhs + 1;
-					negative = !negative;
+					// Don't change (negative) here
 				}
 				if (rhs > *this) {
 					return *this;
 				}
 				int totalShifts = 1;
-				// Now rhs <= *this, which means rhs->MSW <= this->MSW
-				if (rhs.MSW < *this.MSW) {
+				// Now rhs <= *this, which means rhs.MSW <= this->MSW
+				if (rhs.MSW < this->MSW) {
 					// this make rhs.MSW = this->MSW - 1, if it was originally smaller
-					rhs <<= 64*(*this.MSW - rhs.MSW);
+					rhs <<= 64*(this->MSW - rhs.MSW);
 					totalShifts += 64;
 				}
 				// Now either rhs == *this, or rhs.MSW == this->MSW - 1
@@ -567,7 +565,7 @@ namespace customBigInt {
 				return *this;
 			}
 			int_limited operator% (int_limited const& rhs) {
-				int_limited result = %this;
+				int_limited result = *this;
 				return result %= rhs;
 			}
 			#pragma endregion
@@ -587,7 +585,7 @@ namespace customBigInt {
 			#pragma region
 
 			int_limited& operator^= (int_limited const& rhs) {
-				for (int i = std::min(this->LSW, this.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
+				for (int i = std::min(this->LSW, rhs.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
 					this->words[i] ^= rhs.words[i];
 				}
 				this->updateLSW(std::min(this->LSW, rhs.LSW));
@@ -600,7 +598,7 @@ namespace customBigInt {
 			}
 
 			int_limited& operator|= (int_limited const& rhs) {
-				for (int i = std::min(this->LSW, this.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
+				for (int i = std::min(this->LSW, rhs.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
 					this->words[i] |= rhs.words[i];
 				}
 				// Although it is guaranteed to be one of the two possibilities
@@ -615,7 +613,7 @@ namespace customBigInt {
 			}
 
 			int_limited& operator&= (int_limited const& rhs) {
-				for (int i = std::min(this->LSW, this.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
+				for (int i = std::min(this->LSW, rhs.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
 					this->words[i] &= rhs.words[i];
 				}
 				this->updateLSW(std::min(this->LSW, rhs.LSW));
