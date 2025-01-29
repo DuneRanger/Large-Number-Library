@@ -191,7 +191,7 @@ namespace customBigInt {
 					lowerBound++;
 				}
 				// If the number is zero
-				if (lowerBound > this->wordCount) lowerBound = 0;
+				if (lowerBound >= this->wordCount) lowerBound = 0;
 				this->LSW = lowerBound;
 				return;
 			}
@@ -277,18 +277,18 @@ namespace customBigInt {
 				// +1 at the end to act as a ceil() for special cases
 				int maxWordCount = bitSize/(binWordSize - 1) + 1;
 
-				// Convert this into a vector of uin64_t chunks (yes, it is a bit wasteful for low bases)
+				// Convert this into a vector of uin64_t chunks (a bit wasteful for low bases)
 				std::vector<uint64_t> baseWords(maxWordCount, 0);
 				int_limited num = *this;
 				bool sign = num < 0;
-				int index = maxWordCount-1;
 				if (sign) num = ~num+1;
+				// baseWords will be in MSb first, for ease of conversion to a string
+				int index = maxWordCount-1;
 				do {
 					baseWords[index] = (uint64_t)(num%base);
 					num /= base;
 					index--;
 				} while (num != 0);
-
 				// Convert the word-size chunks into the string
 				std::string output = "";
 				if (sign) output += '-';
