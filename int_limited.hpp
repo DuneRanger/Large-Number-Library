@@ -71,8 +71,10 @@ namespace customBigInt {
 				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
 					for (int i = 1; i < wordCount; i++) {
+					for (int i = 1; i < this->wordCount; i++) {
 						this->words[i] = UINT64_MAX;
 					}
+					this->updateMSW(this->wordCount - 1);
 				}
 				this->words[0] = a;
 				this->truncateExtraBits();
@@ -80,9 +82,10 @@ namespace customBigInt {
 			int_limited(int a) {
 				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
-					for (int i = 1; i < wordCount; i++) {
+					for (int i = 1; i < this->wordCount; i++) {
 						this->words[i] = UINT64_MAX;
 					}
+					this->updateMSW(this->wordCount - 1);
 				}
 				this->words[0] = (int64_t)a;
 				this->truncateExtraBits();
@@ -132,7 +135,8 @@ namespace customBigInt {
 			// Starts importing from startIndex (inclusive) to endIndex (exclusive)
 			// Import into the destinations words, starting from index 0
 			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex) {
-				int maxWord = std::min(this->wordCount, (int)newWords.size(), endIndex);
+				int maxWord = std::min((int)newWords.size(), endIndex);
+				maxWord = std::min(maxWord, this->wordCount);
 				for (int i = startIndex; i < maxWord; i++) {
 					this->words[i] = newWords[i];
 				}
@@ -213,17 +217,21 @@ namespace customBigInt {
 			
 			// Shift a whole word left by an amount of words
 			void wordShiftLeft(int wordIndex, int shift) {
+				if (shift == 0) return;
 				if (wordIndex + shift < this->wordCount) {
 					this->words[wordIndex + shift] = this->words[wordIndex];
 				}
+				this->words[wordIndex] = 0;
 				return;
 			}
 
 			// Shift a whole word right by an amount of words
 			void wordShiftRight(int wordIndex, int shift) {
+				if (shift == 0) return;
 				if (wordIndex - shift > -1) {
 					this->words[wordIndex - shift] = this->words[wordIndex];
 				}
+				this->words[wordIndex] = 0;
 				return;
 			}
 
@@ -231,7 +239,7 @@ namespace customBigInt {
 			void bitShiftLeft(int wordIndex, int shift) {
 				if (shift == 0) return;
 				if (wordIndex + 1 < this->wordCount) {
-					this->words[wordIndex + 1] = this->words[wordIndex] >> (64 - shift);
+					this->words[wordIndex + 1] |= this->words[wordIndex] >> (64 - shift);
 				}
 				this->words[wordIndex] <<= shift;
 				return;
@@ -241,7 +249,7 @@ namespace customBigInt {
 			void bitShiftRight(int wordIndex, int shift) {
 				if (shift == 0) return;
 				if (wordIndex - 1 > -1) {
-					this->words[wordIndex - 1] = this->words[wordIndex] << (64 - shift);
+					this->words[wordIndex - 1] |= this->words[wordIndex] << (64 - shift);
 				}
 				this->words[wordIndex] >>= shift;
 				return;
@@ -259,7 +267,7 @@ namespace customBigInt {
 			#pragma region
 
 			static std::string className() {
-				return "customBigInt::int_limited";
+				return std::to_string(bitSize) + " bit customBigInt::int_limited";
 			}
 
 			// Returns a string of the current value converted to the desired base
