@@ -70,7 +70,6 @@ namespace customBigInt {
 			int_limited(int64_t a) {
 				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
-					for (int i = 1; i < wordCount; i++) {
 					for (int i = 1; i < this->wordCount; i++) {
 						this->words[i] = UINT64_MAX;
 					}
@@ -356,23 +355,15 @@ namespace customBigInt {
 					// carry = (either both had BIT64_ON), or (only one had it on and the sum didn't)
 					carry = (flag1 + flag2 > 1);
 				}
-				// if (this->MSW - 1 > rhs.MSW) {
-				// 	// If the carry can still affect anything (theoretically up to (exclusive)this->wordCount, then continue addition
-				// 	// Also must continue if rhs requires a one extension
-				// 	if (carry || rhsExtension) {
-				// 		// Marks the last word that we will still operate on
-				// 		int lastAffectedWord = this->wordCount;
-				// 		for (int i = rhs.MSW; i < lastAffectedWord; i++) {
-				// 			char flag1 = (this->words[i] >= BIT64_ON) && (rhsExtension != 0);
-				// 			this->words[i] += rhsExtension;
-				// 			this->words[i] += carry;
-				// 			bool flag2 = this->words[i] < BIT64_ON;
-				// 			carry = (flag1 && flag2);
-				// 			// If we can finish early, the break
-				// 			if (!carry && rhsExtension == 0) break;
-				// 		}
-				// 	}
-				// }
+				// Finish off adding the carry to other words in *this
+				for (int i = rhs.MSW + 1; i < this->wordCount; i++) {
+					bool flag1 = this->words[i] >= BIT64_ON;
+					this->words[i] += carry;
+					bool flag2 = this->words[i] < BIT64_ON;
+					
+					if (flag1 && flag2) carry = true;
+					else break;
+				}
 
 				this->updateLSW(std::min(this->LSW, rhs.LSW));
 				this->updateMSW(std::max(this->MSW, rhs.MSW) + 1); // +1 for potential carry
