@@ -7,15 +7,17 @@
 
 
 namespace customBigInt {
+
 	// Two's complement
 	// Constructs a vector of 64 bit unsigned integers, so that the specified bit size fits
 	// If the bitSize isn't a multiple of 64, operations will still be processed for all 64 bits of the most significant word
 	// However overflow will still occur if the value were to surpass the bitSize
 	// Comparisons will also ignore any extra bits above the bitSize
 	// No further optimizations are made on the most significant word (even if the instance only has 1 word)
+	// All operations occur on class instances with equal bitSize
 	template <int bitSize>
 	class int_limited {
-		private: 
+		private:
 			const int wordCount = bitSize/64 + (bitSize%64 > 0);
 
 			// LSb first
@@ -58,33 +60,37 @@ namespace customBigInt {
 
 			// For all of these instances, LSW and MSW are by default zero, which is correct;
 			int_limited() {
-				static_assert(this->bitSize > 1, "Invalid int_limited size");
+				static_assert(bitSize > 1, "Invalid int_limited size");
 			}
 			int_limited(uint64_t a) {
-				static_assert(this->bitSize > 1, "Invalid int_limited size");
+				static_assert(bitSize > 1, "Invalid int_limited size");
 				this->words[0] = a;
+				this->truncateExtraBits();
 			}
 			int_limited(int64_t a) {
-				static_assert(this->bitSize > 1, "Invalid int_limited size");
+				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
 					for (int i = 1; i < wordCount; i++) {
 						this->words[i] = UINT64_MAX;
 					}
 				}
 				this->words[0] = a;
+				this->truncateExtraBits();
 			}
 			int_limited(int a) {
-				static_assert(this->bitSize > 1, "Invalid int_limited size");
+				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
 					for (int i = 1; i < wordCount; i++) {
 						this->words[i] = UINT64_MAX;
 					}
 				}
 				this->words[0] = (int64_t)a;
+				this->truncateExtraBits();
 			}
 			int_limited(unsigned int a) {
-				static_assert(this->bitSize > 1, "Invalid int_limited size");
+				static_assert(bitSize > 1, "Invalid int_limited size");
 				this->words[0] = a;
+				this->truncateExtraBits();
 			}
 
 			// All explicit conversions simply returns the bits for the given bit amount
@@ -103,10 +109,8 @@ namespace customBigInt {
 				return (char)this->words[0];
 			}
 
-			// Allows conversion *from* different size int_limited
-			// However if rhs is larger, then the bits will be cut off
 			int_limited& operator= (int_limited const& rhs) {
-				for (int i = 0; i < wordCount && i <= rhs.LSW; i++) {
+				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
 					this->words[i] = rhs.words[i];
 				}
 				this->updateLSW(rhs.LSW);
@@ -126,8 +130,8 @@ namespace customBigInt {
 			}
 
 			// Starts importing from startIndex (inclusive) to endIndex (exclusive)
-			// Import into the destinations words, starting from wordOffset (default = 0)
-			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
+			// Import into the destinations words, starting from index 0
+			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex) {
 				int maxWord = std::min(this->wordCount, (int)newWords.size(), endIndex);
 				for (int i = startIndex; i < maxWord; i++) {
 					this->words[i] = newWords[i];
@@ -174,7 +178,7 @@ namespace customBigInt {
 			#pragma region
 
 			void truncateExtraBits() {
-				int bitsInMSW = this->bitSize % 64;
+				int bitsInMSW = bitSize % 64;
 				if (bitsInMSW == 0) return;
 				this->words[this->wordCount-1] &= UINT64_MAX >> (64 - bitsInMSW);
 				return;
@@ -271,11 +275,11 @@ namespace customBigInt {
 				}
 				// -1 to binWordSize to account for unfilled bits
 				// +1 at the end to act as a ceil() for special cases
-				int maxWordCount = this->bitSize/(binWordSize - 1) + 1;
+				int maxWordCount = bitSize/(binWordSize - 1) + 1;
 
 				// Convert this into a vector of uin64_t chunks (yes, it is a bit wasteful for low bases)
 				std::vector<uint64_t> baseWords(maxWordCount, 0);
-				int_limited<this->bitSize> num = *this;
+				int_limited num = *this;
 				bool sign = num < 0;
 				int index = maxWordCount-1;
 				if (sign) num = ~num+1;
@@ -306,7 +310,7 @@ namespace customBigInt {
 			// Note: This overload doesn't take a reference, because it would throw an error when printing a complex expression
 			// For example (a * -1)
 			// It also doesn't consider num as a const, because methods can't be called on consts (at least from my understanding of the error)
-			friend std::ostream& operator<<(std::ostream& os, int128 num) {
+			friend std::ostream& operator<<(std::ostream& os, int_limited num) {
 				os << num.toString();
 				return os;
 			}
@@ -335,9 +339,8 @@ namespace customBigInt {
 			
 			int_limited& operator+= (int_limited const& rhs) {
 				bool carry = false;
-				// Cycle from the lowest LSW to max(this.wordCount, rhs.MSW)
-				// to end the earliest we can
-				for (int i = std::min(LSW, rhs.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
+				// Cycle from the lowest word in rhs with a non-zero value
+				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
 					char flag1 = (this->words[i] >= BIT64_ON) + (rhs.words[i] >= BIT64_ON);
 					this->words[i] += rhs.words[i];
 					this->words[i] += carry;
@@ -345,25 +348,23 @@ namespace customBigInt {
 					// carry = (either both had BIT64_ON), or (only one had it on and the sum didn't)
 					carry = (flag1 + flag2 > 1);
 				}
-				uint64_t rhsExtension = 0;
-				if (rhs < 0) rhsExtension = UINT64_MAX;
-				if (this->MSW - 1 > rhs.MSW) {
-					// If the carry can still affect anything (theoretically up to (exclusive)this->wordCount, then continue addition
-					// Also must continue if rhs requires a one extension
-					if (carry || rhsExtension) {
-						// Marks the last word that we will still operate on
-						int lastAffectedWord = this->wordCount;
-						for (int i = rhs.MSW; i < lastAffectedWord; i++) {
-							char flag1 = (this->words[i] >= BIT64_ON) && (rhsExtension != 0);
-							this->words[i] += rhsExtension;
-							this->words[i] += carry;
-							bool flag2 = this->words[i] < BIT64_ON;
-							carry = (flag1 && flag2);
-							// If we can finish early, the break
-							if (!carry && rhsExtension == 0) break;
-						}
-					}
-				}
+				// if (this->MSW - 1 > rhs.MSW) {
+				// 	// If the carry can still affect anything (theoretically up to (exclusive)this->wordCount, then continue addition
+				// 	// Also must continue if rhs requires a one extension
+				// 	if (carry || rhsExtension) {
+				// 		// Marks the last word that we will still operate on
+				// 		int lastAffectedWord = this->wordCount;
+				// 		for (int i = rhs.MSW; i < lastAffectedWord; i++) {
+				// 			char flag1 = (this->words[i] >= BIT64_ON) && (rhsExtension != 0);
+				// 			this->words[i] += rhsExtension;
+				// 			this->words[i] += carry;
+				// 			bool flag2 = this->words[i] < BIT64_ON;
+				// 			carry = (flag1 && flag2);
+				// 			// If we can finish early, the break
+				// 			if (!carry && rhsExtension == 0) break;
+				// 		}
+				// 	}
+				// }
 
 				this->updateLSW(std::min(this->LSW, rhs.LSW));
 				this->updateMSW(std::max(this->MSW, rhs.MSW) + 1); // +1 for potential carry
@@ -402,12 +403,12 @@ namespace customBigInt {
 					negative = !negative;
 				}
 				// The max word count only counts the amount of words used for values
-				// So we discover 64 bit values in int_limited with a larger bitSize
+				// So that we can uncover 64 bit values in instances with a larger bitSize
 				int maxWordCount = std::max(this->MSW, rhs.MSW);
 				// If both values are only 64 bit/1 word
 				if (maxWordCount == 0) {
 					// If the result fits within 64 bits
-					if (*this < UINT32_MAX && rhs < UINT32_MAX) {
+					if (*this <= UINT32_MAX && rhs <= UINT32_MAX) {
 						this->words[0] *= rhs.words[0];
 						if (negative) *this = ~(*this) + 1;
 						return *this;
@@ -427,30 +428,23 @@ namespace customBigInt {
 					return *this;
 				}
 				// The plan here is to skip the most significant half of the words, because they will overflow in the result anyway
-				// But to allow the use of this function recursively, then we need to save each high and low split in an int_limited
-				// twice the size they need to be, so that we don't lose any bits during the multiplication
-
-				// Example: Consider two full 512 bit int_limited, then we will call the function recursively on two half empty 512 bit int_limited
-				// Then, once they take up less than half of their size, we can reduce the bit size of the next int_limited
-
-				// So: 512(512) -> 512(256) -> 256(128) -> 128(64) -> 64(64)
-				// There will be slight differences for z1 (the second term of the algorithm), since it can go:
-				// 512(512) -> 512(257) -> 512(129) | 512(128) -> 256(65) | 256(64) | 256(64) Due to the addition of the two words
+				// But unfortunately, since bitSize is part of a template, then all recursive calls will have this many int_limited<bitSize> variables
+				// So the memory usage will be rather high (in terms of constants)
 				int splitWordIndex = maxWordCount / 2;
 
-				int_limited<splitWordIndex*64*2> low1 = 0;
+				int_limited low1 = 0;
 				low1.importBits(this->words, 0, splitWordIndex);
-				int_limited<splitWordIndex*64*2> high1 = 0;
+				int_limited high1 = 0;
 				high1.importBits(this->words, splitWordIndex, this->wordCount);
 
-				int_limited<splitWordIndex*64*2> low2 = 0;
+				int_limited low2 = 0;
 				low2.importBits(rhs.words, 0, splitWordIndex);
-				int_limited<splitWordIndex*64*2> high2 = 0;
+				int_limited high2 = 0;
 				high2.importBits(rhs.words, splitWordIndex, rhs.wordCount);
 
-				int_limited<this->bitSize> z0 = low1 * low2;
-				int_limited<this->bitSize> z1 = (high1 + low1) * (high2 + low2);
-				int_limited<this->bitSize> z2 = high1 * high2;
+				int_limited z0 = low1 * low2;
+				int_limited z1 = (high1 + low1) * (high2 + low2);
+				int_limited z2 = high1 * high2;
 
 				*this = z2;
 				*this <<= splitWordIndex*64;
@@ -491,9 +485,10 @@ namespace customBigInt {
 					negative = !negative;
 				}
 				if (rhs > dividend) {
+					// returns zero
 					return *this;
 				}
-				int_limited<this->bitSize> shiftCounter = 1;
+				int_limited shiftCounter = 1;
 				// Now rhs <= dividend, which means rhs.MSW <= dividend.MSW
 				if (rhs.MSW < dividend.MSW) {
 					// this make rhs.MSW = dividend.MSW - 1, if it was originally smaller
@@ -514,7 +509,7 @@ namespace customBigInt {
 					shiftCounter >>= 1;
 				}
 				this->updateLSW(0);
-				this->updateMSW(this->wordCount);
+				this->updateMSW(this->MSW);
 				if (negative) *this = ~(*this) + 1;
 				return *this;
 			}
@@ -538,6 +533,8 @@ namespace customBigInt {
 					// Don't change (negative) here
 				}
 				if (rhs > *this) {
+					// returns the full value
+					if (negative) *this = ~(*this) + 1;
 					return *this;
 				}
 				int totalShifts = 1;
@@ -560,7 +557,7 @@ namespace customBigInt {
 					totalShifts -= 1;
 				}
 				this->updateLSW(0);
-				this->updateMSW(this->wordCount);
+				this->updateMSW(this->MSW);
 				if (negative) *this = ~(*this) + 1;
 				return *this;
 			}
@@ -585,7 +582,7 @@ namespace customBigInt {
 			#pragma region
 
 			int_limited& operator^= (int_limited const& rhs) {
-				for (int i = std::min(this->LSW, rhs.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
+				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
 					this->words[i] ^= rhs.words[i];
 				}
 				this->updateLSW(std::min(this->LSW, rhs.LSW));
@@ -598,7 +595,7 @@ namespace customBigInt {
 			}
 
 			int_limited& operator|= (int_limited const& rhs) {
-				for (int i = std::min(this->LSW, rhs.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
+				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
 					this->words[i] |= rhs.words[i];
 				}
 				// Although it is guaranteed to be one of the two possibilities
@@ -616,8 +613,8 @@ namespace customBigInt {
 				for (int i = std::min(this->LSW, rhs.LSW); i < this->wordCount && i <= rhs.MSW; i++) {
 					this->words[i] &= rhs.words[i];
 				}
-				this->updateLSW(std::min(this->LSW, rhs.LSW));
-				this->updateMSW(std::max(this->MSW, rhs.MSW));
+				this->updateLSW(std::max(this->LSW, rhs.LSW));
+				this->updateMSW(std::min(this->MSW, rhs.MSW));
 				return *this;
 			}
 			int_limited operator& (int_limited const& rhs) {
@@ -628,8 +625,8 @@ namespace customBigInt {
 			// Returns the bit NOT, so adding 1 gets the two's complement
 			int_limited operator~ () {
 				// If this doesn't work, then just do result = *this and double operation time
-				int_limited<this->bitSize> result = 0;
-				for (int i = this->LSW; i <= this->MSW; i++) {
+				int_limited result = 0;
+				for (int i = 0; i < this->wordCount; i++) {
 					result.words[i] = ~this->words[i];
 				}
 				this->updateLSW(0);
@@ -688,93 +685,49 @@ namespace customBigInt {
 			*/
 			#pragma region
 
-			// Compares values regardless of bitSize (purely by value)
 			bool operator== (int_limited const& rhs) {
 				// If they don't have 1's in the same words, return false
-				// This also guarantees that going out of index won't happen during later comparison
 				if (this->LSW != rhs.LSW || this->MSW != rhs.MSW) return false;
+				// Since they have the same word range, then just check the equality of those
 				for (int i = this->LSW; i <= this->MSW; i++) {
 					if (this->words[i] != rhs.words[i]) return false;
 				}
 				return true;
 			}
-			// Compares values regardless of bitSize (purely by value)
 			bool operator!= (int_limited const& rhs) {
 				return !(*this == rhs);
 			}
-			// Compares values regardless of bitSize (purely by value)
 			bool operator> (int_limited const& rhs) {
 				// if different signs - false if *this is negative, true if rhs is negative
 				bool isNegative = this->words[this->wordCount-1] & BIT64_ON;
 				if (isNegative != (rhs.words[rhs.wordCount-1] & BIT64_ON)) return this->words[wordCount-1] < rhs.words[rhs.wordCount-1];
 				
-				// Both signs are the same, so both numbers are positive here
-				if (!isNegative) {
-					// if one of them has a more significant bit, return based on that
-					if (this->MSW != rhs.MSW) return this->MSW > rhs.MSW;
-					// If they have the same MSW, then start comparing from there
-					for (int i = this->MSW; i > -1; i--) {
-						if (this->words[i] != rhs.words[i]) return this->words[i] > rhs.words[i];
-					}
-				} else { // Here they are both negative
-					int leftMSW = this->MSW;
-					int rightMSW = rhs.MSW;
-					for (; leftMSW > rightMSW; leftMSW--) {
-						// If this number is "longer" and isn't just a two's complement extension of rhs
-						// then it is smaller (due to containing a zero)
-						if (this->words[leftMSW] != UINT64_MAX) return false;
-					}
-					for (; rightMSW > leftMSW; rightMSW--) {
-						// The opposite situation of above
-						if (rhs.words[rightMSW] != UINT64_MAX) return true;
-					}
-					// Here both MSW are equal
-					for (; leftMSW > -1; leftMSW--) {
-						if (this->words[leftMSW] != rhs.words[leftMSW]) return this->words[leftMSW] > rhs.words[leftMSW];
-					}
+				// Both signs are the same, so simply compare each value
+				if (this->MSW != rhs.MSW) return this->MSW > rhs.MSW;
+
+				for (int i = this->MSW; i >= this->LSW; i--) {
+					if (this->words[i] != rhs.words[i]) return this->words[i] > rhs.words[i];
 				}
-				// Occurs when they are equal
+				// if they have been equal up to here then they are either equal or rhs.LSW < this->LSW (*this < rhs)
 				return false;
 			}
-			// Compares values regardless of bitSize (purely by value)
 			bool operator< (int_limited const& rhs) {
 				// if different signs, then false if *this is negative, true if rhs is negative
 				bool isNegative = this->words[this->wordCount-1] & BIT64_ON;
 				if (isNegative != (rhs.words[rhs.wordCount-1] & BIT64_ON)) return this->words[wordCount-1] > rhs.words[rhs.wordCount-1];
 				
-				// Both signs are the same, so both numbers are positive here
-				if (!isNegative) {
-					// if one of them has a more significant bit, return based on that
-					if (this->MSW != rhs.MSW) return this->MSW < rhs.MSW;
-					// If they have the same MSW, then start comparing from there
-					for (int i = this->MSW; i > -1; i--) {
-						if (this->words[i] != rhs.words[i]) return this->words[i] < rhs.words[i];
-					}
-				} else { // Here they are both negative
-					int leftMSW = this->MSW;
-					int rightMSW = rhs.MSW;
-					for (; leftMSW > rightMSW; leftMSW--) {
-						// If this number is "longer" and isn't just a two's complement extension of rhs
-						// then it is smaller (due to containing a zero)
-						if (this->words[leftMSW] != UINT64_MAX) return true;
-					}
-					for (; rightMSW > leftMSW; rightMSW--) {
-						// The opposite situation of above
-						if (rhs.words[rightMSW] != UINT64_MAX) return false;
-					}
-					// Here both MSW are equal
-					for (; leftMSW > -1; leftMSW--) {
-						if (this->words[leftMSW] != rhs.words[leftMSW]) return this->words[leftMSW] < rhs.words[leftMSW];
-					}
+				// Both signs are the same, so simply compare each value
+				if (this->MSW != rhs.MSW) return this->MSW < rhs.MSW;
+
+				for (int i = this->MSW; i >= this->LSW; i--) {
+					if (this->words[i] != rhs.words[i]) return this->words[i] < rhs.words[i];
 				}
-				// Occurs when they are equal
-				return false;
+				// if they have been equal up to here then they are either equal or rhs.LSW < this->LSW (*this < rhs)
+				return rhs.LSW < this->LSW;
 			}
-			// Compares values regardless of bitSize (purely by value)
 			bool operator>= (int_limited const& rhs) {
 				return !(*this < rhs);
 			}
-			// Compares values regardless of bitSize (purely by value)
 			bool operator<= (int_limited const& rhs) {
 				return !(*this > rhs);
 			}
@@ -792,18 +745,23 @@ namespace customBigInt {
 			=============================================================
 			*/
 			#pragma region
-			// Arguments do not need to have equal bitSize
+			// returns *this == 0
 			bool operator! () {
-				return *this == 0;
+				if (this->MSW != 0) return false;
+				return this->words[0] == 0;
 			}
-			// Arguments do not need to have equal bitSize
 			bool operator&& (int_limited const& rhs) {
-				return (*this != 0) && (rhs != 0);
+				// if *this and rhs are non-zero
+				return (!!(*this)) && (!!(rhs));
 			}
-			// Arguments do not need to have equal bitSize
 			bool operator|| (int_limited const& rhs) {
-				return (*this != 0) || (rhs != 0);
+				// if *this or rhs are non-zero
+				return (!!(*this)) || (!!(rhs));
 			}
 			#pragma endregion
 	};
+
+	typedef int_limited<256> int256;
+	typedef int_limited<512> int512;
+	typedef int_limited<1024> int1024;
 }
