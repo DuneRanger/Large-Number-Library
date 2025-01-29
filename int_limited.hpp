@@ -693,9 +693,12 @@ namespace customBigInt {
 				return !(*this == rhs);
 			}
 			bool operator> (int_limited const& rhs) {
-				// if different signs - false if *this is negative, true if rhs is negative
-				bool isNegative = this->words[this->wordCount-1] & BIT64_ON;
-				if (isNegative != (rhs.words[rhs.wordCount-1] & BIT64_ON)) return this->words[wordCount-1] < rhs.words[rhs.wordCount-1];
+				uint64_t MSb = BIT64_ON;
+				if (bitSize%64 != 0) {
+					MSb >>= 64 - (bitSize%64);
+				}
+				// if different signs, then false if *this is negative, true if rhs is negative
+				if ((this->words[this->wordCount-1] & MSb) != (rhs.words[rhs.wordCount-1] & MSb)) return this->words[wordCount-1] < rhs.words[rhs.wordCount-1];
 				
 				// Both signs are the same, so simply compare each value
 				if (this->MSW != rhs.MSW) return this->MSW > rhs.MSW;
@@ -707,9 +710,12 @@ namespace customBigInt {
 				return false;
 			}
 			bool operator< (int_limited const& rhs) {
+				uint64_t MSb = BIT64_ON;
+				if (bitSize%64 != 0) {
+					MSb >>= 64 - (bitSize%64);
+				}
 				// if different signs, then false if *this is negative, true if rhs is negative
-				bool isNegative = this->words[this->wordCount-1] & BIT64_ON;
-				if (isNegative != (rhs.words[rhs.wordCount-1] & BIT64_ON)) return this->words[wordCount-1] > rhs.words[rhs.wordCount-1];
+				if ((this->words[this->wordCount-1] & MSb) != (rhs.words[rhs.wordCount-1] & MSb)) return this->words[wordCount-1] > rhs.words[rhs.wordCount-1];
 				
 				// Both signs are the same, so simply compare each value
 				if (this->MSW != rhs.MSW) return this->MSW < rhs.MSW;
