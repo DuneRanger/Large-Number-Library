@@ -457,7 +457,8 @@ namespace customBigInt {
 				if (rhs == 0) throw std::domain_error("Divide by zero exception");
 				int_limited dividend = *this;
 				*this = 0;
-				// By converting both numbers to positive ones, we can divide small negative numbers much faster
+				// Convert both numbers to positive, so that we can subtract the shifted rhs from the dividend
+				// We also don't need to worry about the asymmetry of integer limits, because the result is always zero for the minimum value
 				bool negative = false;
 				if (dividend < 0) {
 					// We can afford to overwrite (dividend) because we will overwrite it later anyway
@@ -481,9 +482,13 @@ namespace customBigInt {
 					shiftCounter <<= 64;
 				}
 				// Now either rhs == dividend, or rhs.MSW == dividend.MSW - 1
-				while (rhs <= dividend) {
+				while (rhs <= dividend && rhs > 0) {
 					rhs <<= 1;
 					shiftCounter <<= 1;
+				}
+				if (rhs < 0) {
+					rhs >>= 1;
+					shiftCounter >>= 1;
 				}
 				while (shiftCounter > 0) {
 					if (rhs <= dividend) {
@@ -505,8 +510,9 @@ namespace customBigInt {
 
 			int_limited& operator%= (int_limited rhs) {
 				if (rhs == 0) throw std::domain_error("Divide by zero exception");
-				// By converting both numbers to positive ones, we can divide by small negative numbers much faster
 				bool negative = false;
+				// Convert both numbers to positive, so that we can subtract the shifted rhs from the dividend
+				// We also don't need to worry about the asymmetry of integer limits, because the result is always zero for the minimum value
 				if (*this < 0) {
 					// We can afford to overwrite (*this) because we will overwrite it later anyway
 					*this = ~*this + 1;
@@ -530,9 +536,13 @@ namespace customBigInt {
 					totalShifts += 64;
 				}
 				// Now either rhs == *this, or rhs.MSW == this->MSW - 1
-				while (rhs <= *this) {
+				while (rhs <= *this && rhs > 0) {
 					rhs <<= 1;
 					totalShifts += 1;
+				}
+				if (rhs < 0) {
+					rhs >>= 1;
+					totalShifts -= 1;
 				}
 				while (totalShifts > 0) {
 					if (rhs <= *this) {
