@@ -762,10 +762,8 @@ namespace customBigInt {
 				}
 				// if different signs, then false if *this is negative, true if rhs is negative
 				if ((this->words[this->wordCount-1] & MSb) != (rhs.words[rhs.wordCount-1] & MSb)) return this->words[wordCount-1] < rhs.words[rhs.wordCount-1];
-				
 				// Both signs are the same, so simply compare each value
 				if (this->MSW != rhs.MSW) return this->MSW > rhs.MSW;
-
 				for (int i = this->MSW; i >= this->LSW; i--) {
 					if (this->words[i] != rhs.words[i]) return this->words[i] > rhs.words[i];
 				}

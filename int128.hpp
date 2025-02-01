@@ -252,7 +252,7 @@ namespace customBigInt {
 				bool sign = (B1 ^ divisor.B1) >= BIT64_ON;
 				B1 = 0;
 				B0 = 0;
-				// convert all to positive (even rhs for comparison)
+				// convert all to positive
 				if (dividend < 0) dividend = ~dividend + 1;
 				if (divisor < 0) divisor = ~divisor + 1;
 

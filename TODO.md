@@ -21,6 +21,7 @@
 - Implement input from stream
 - Improve toString() for *int_limited* and *int_unlimited* so as to not be wasteful for small bases
   - Also possibly improve the design, so that it doesn't require a vector of maxWordCount at once (implement it as a buffer for adding into the string)
+- Add conversion from a string to int_limited (and also from any base)
 
 # Undecided options
 
@@ -29,3 +30,4 @@
 - Conversion from an class instance into a standard library integer currently simply returns the bits as is (for easier bit manipulation)
   - This could possibly be changed to return the integer types max/min value, if the instance has a higher/lower value
 - Consider whether toString() should allow conversion to bases larger than an unsigned 64 bit integer for *int_limited* and *int_unlimited*
+- Speed up multiplication of small negative numbers by testing out if their two's complement is relatively small (less than half the bits)
