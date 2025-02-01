@@ -451,58 +451,52 @@ namespace customBigInt {
 				return (~result + 1);
 			}
 
+			// Many thanks to the author of http://kt8216.unixcab.org/karatsuba/index.html
+			// The website cleared many doubts I had about my own implementation and helped guide me in the right direction
+
 			// Multiplication done by Karatsuba's algorithm
-			int_limited& operator*= (int_limited rhs) {
-				// The max word count only counts the amount of words used for values
-				// So that we can uncover 64 bit values in instances with a larger bitSize
-				int maxWordCount = std::max(this->MSW, rhs.MSW);
-				// If both values are only 64 bit/1 word
-				if (maxWordCount == 0) {
-					// If the result fits within 64 bits
-					if (*this <= UINT32_MAX && rhs <= UINT32_MAX) {
-						this->words[0] *= rhs.words[0];
-						this->truncateExtraBits();
-						return *this;
-					}
-					// Otherwise just manually divide the words and overwrite *this
-					uint64_t lhsWord = this->words[0];
-					uint64_t rhsWord = rhs.words[0];
-					*this = (lhsWord >> 32) * (rhsWord >> 32);
-					*this <<= 32;
-					*this += (lhsWord >> 32) * (rhsWord & UINT32_MAX);
-					*this += (lhsWord & UINT32_MAX) * (rhsWord >> 32);
-					*this <<= 32;
-					*this += (lhsWord & UINT32_MAX) * (rhsWord & UINT32_MAX);
-					this->updateLSW(0);
-					this->updateMSW(1);
+			// Design changes and decisions heavily influenced by http://kt8216.unixcab.org/karatsuba/index.html
+			int_limited& operator*= (int_limited const& rhs) {
+				int_limited A, B;
+				if (this->MSW < rhs.MSW) {
+					A = rhs;
+					B = *this;
+				} else {
+					A = *this;
+					B = rhs;
+				}
+				if (B.MSW <= 8) {
+					*this = this->basicMult(A, B);
 					return *this;
 				}
-				// The plan here is to skip the most significant half of the words, because they will overflow in the result anyway
-				// But unfortunately, since bitSize is part of a template, then all recursive calls will have this many int_limited<bitSize> variables
-				// So the memory usage will be rather high (in terms of constants)
-				int splitWordIndex = maxWordCount / 2;
-				int_limited low1 = 0;
-				low1.importBits(this->words, 0, splitWordIndex);
-				int_limited high1 = 0;
-				high1.importBits(this->words, splitWordIndex, splitWordIndex*2);
-				std::cout << this->words[0] << std::endl;
+				int maxWordAmount = A.MSW;
+				int splitWordIndex  = maxWordAmount / 2 + 1;
+				int_limited lowA = 0;
+				lowA.importBits(A.words, 0, splitWordIndex);
+				int_limited highA = 0;
+				highA.importBits(A.words, splitWordIndex, maxWordAmount + 1);
 
-				int_limited low2 = 0;
-				low2.importBits(rhs.words, 0, splitWordIndex);
-				int_limited high2 = 0;
-				high2.importBits(rhs.words, splitWordIndex, splitWordIndex*2);
+				if (splitWordIndex >= B.MSW) {
+					*this = ((highA * B) << (64*splitWordIndex)) + (lowA * B);
+					return *this;
+				}
 
-				int_limited z0 = low1 * low2;
-				int_limited z2 = high1 * high2;
-				int_limited z1 = (low1 - high1) * (high2 - low2) + z0 + z2;
+				int_limited lowB = 0;
+				lowB.importBits(B.words, 0, splitWordIndex);
+				int_limited highB = 0;
+				highB.importBits(B.words, splitWordIndex, maxWordAmount + 1);
+
+				int_limited z0 = lowA * lowB;
+				int_limited z2 = highA * highB;
+				int_limited z1 = (lowA + highA) * (highB + lowB) - z0 - z2;
 
 				*this = z2;
-				*this <<= splitWordIndex*64;
+				*this <<= 64*splitWordIndex;
 				*this += z1;
-				*this <<= splitWordIndex*64;
+				*this <<= 64*splitWordIndex;
 				*this += z0;
-				this->updateLSW(this->LSW);
-				this->updateMSW(this->wordCount - 1);
+				this->updateLSW(A.LSW);
+				this->updateMSW(A.MSW + B.MSW + 1);
 				return *this;
 			}
 			int_limited operator* (int_limited const& rhs) {
