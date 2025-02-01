@@ -180,6 +180,7 @@ namespace customBigInt {
 			Word Shift Right DONE
 			Bit Shift Left DONE
 			Bit Shift Right DONE
+			Simple Multiplication DONE
 			=============================================================
 			*/
 			#pragma region
@@ -257,6 +258,64 @@ namespace customBigInt {
 				}
 				this->words[wordIndex] >>= shift;
 				return;
+			}
+
+			int_limited& basicMult(int_limited const& A, int_limited const& B) {
+				*this = 0;
+				for (int b_i = B.LSW; b_i <= B.MSW; b_i++) {
+					uint64_t carry = 0;
+					bool secondCarry = false;
+					for (int a_i = A.LSW; a_i <= A.MSW; a_i++) {
+						// If the result is outside of precision, continue
+						if (a_i + b_i >= this->wordCount) continue;
+						// If some of the lower 64 bits of the result fit into the integer
+						// Then multiply with only 64 bit precision (and additional bits for the carry)
+						if (a_i + b_i + 1 == this->wordCount) {
+						// std::cout << std::bitset<64>(this->words[2]) << std::endl;
+							this->words[a_i + b_i] +=  A.words[a_i] * B.words[b_i] + carry + secondCarry;
+							// No need to set carry, because it will be out of precision next iteration
+							continue;
+						}
+						// product cannot overflow, unless carry = (UINT64_MAX << 1) + 1
+						int128 product = carry;
+						product += secondCarry;
+						int128 multiplicand = A.words[a_i];
+						uint64_t multiplier = B.words[b_i];
+						while (multiplier != 0) {
+							// this slightly speeds up the loop
+							// if (multiplier%4 == 0) {
+							// 	multiplicand <<= 2;
+							// 	multiplier >>= 2;
+							// 	continue;
+							// }
+							if (multiplier%2 == 1) {
+								product += multiplicand;
+							}
+							multiplicand <<= 1;
+							multiplier >>= 1;
+						}
+						char flag1 = (this->words[a_i + b_i] >= BIT64_ON) + ((uint64_t)product >= BIT64_ON);
+						this->words[a_i + b_i] += (uint64_t)product;
+						bool flag2 = this->words[a_i + b_i] < BIT64_ON;
+						// The maximum value of (product >> 64) is UINT64_MAX, which means that
+						// by itself, it can fit in the carry, but (flag1 && flag2) doesn't have to
+						// That is why we separate them
+						carry = (uint64_t)(product >> 64);
+						secondCarry = (flag1 + flag2) > 1;
+					}
+
+					if (b_i + A.MSW + 1 < this->wordCount) {
+						// if (carry + secondCarry) overflows and will fit into precision, then overflow
+						if (secondCarry && (carry == UINT64_MAX) && ((b_i + A.MSW + 2) < this->wordCount)) this->words[b_i + A.MSW + 2] = 1;
+						// Otherwise simply add regardless of overflow/precision
+						else this->words[b_i + A.MSW + 1] = carry + secondCarry;
+					}
+
+					// No need to worry about checking for a new carry, because [b_i + A.MSW + 1] is guaranteed to have been empty at this point
+				}
+				this->updateLSW(A.LSW);
+				this->updateMSW(A.MSW + B.MSW + 1);
+				return *this;
 			}
 			#pragma endregion
 
