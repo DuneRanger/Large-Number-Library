@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 #include <chrono>
+#include <array>
 #include <boost/multiprecision/cpp_int.hpp>
 #include "../int_limited.hpp"
 
@@ -132,6 +133,9 @@ bool int_limitedEqualBoost(int_limited<bitSize> a, boostInt b) {
 	return true;
 }
 
+	char sign = ' ';
+		words.push_back((uint64_t)a);
+		a >>= 64;
 template <int bitSize>
 bool verifyCorrectnessOfInt_limited(int testNumberCount = 1000, uint64_t randState = 1) {
 	std::cout << "====================================================================================================" << std::endl;
