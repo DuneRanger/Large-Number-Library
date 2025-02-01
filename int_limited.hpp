@@ -324,7 +324,6 @@ namespace customBigInt {
 			=============================================================
 			toString DONE
 			<< (insertion to stream) DONE
-			>> (extraction from stream)
 			=============================================================
 			*/
 			#pragma region
@@ -386,13 +385,6 @@ namespace customBigInt {
 				return os;
 			}
 			#pragma endregion
-
-			/*
-			SECTION: MATHEMATICAL FUNCTIONS
-			=============================================================
-			toPow();
-			=============================================================
-			*/
 
 
 			/*
