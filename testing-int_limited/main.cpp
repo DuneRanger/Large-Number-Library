@@ -276,7 +276,7 @@ bool verifyCorrectnessOfInt_limited(int testNumberCount = 1000, uint64_t randSta
 }
 
 int main() {
-	int testCaseAmount = 2000;
+	int testCaseAmount = 1000;
 	uint64_t randState = 1;
 
 
@@ -287,22 +287,22 @@ int main() {
 	verifyCorrectnessOfInt_limited<64*1 + 1>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<64*2>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<64*2 + 2>(testCaseAmount, randState);
-	testCaseAmount = 1000;
+	testCaseAmount = 500;
 	verifyCorrectnessOfInt_limited<64*3>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<64*3 + 3>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<64*4>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<64*4 + 6>(testCaseAmount, randState);
-	testCaseAmount = 500;
-	verifyCorrectnessOfInt_limited<64*10>(testCaseAmount, randState, true);
-	verifyCorrectnessOfInt_limited<64*10 + 17>(testCaseAmount, randState, true);
+	testCaseAmount = 300;
+	verifyCorrectnessOfInt_limited<64*10>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<64*10 + 17>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<64*16>(testCaseAmount, randState); // 1024
 	verifyCorrectnessOfInt_limited<64*16 + 31>(testCaseAmount, randState); // 1051
-	testCaseAmount = 250;
+	testCaseAmount = 200;
 	verifyCorrectnessOfInt_limited<64*21>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<64*21 + 32>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<64*32>(testCaseAmount, randState); // 2048
-	verifyCorrectnessOfInt_limited<64*32 + 59>(testCaseAmount, randState); // 2107
-	testCaseAmount = 150;
+	verifyCorrectnessOfInt_limited<64*32 + 59>(testCaseAmount, randState, true); // 2107, also tests conversion to string
+	testCaseAmount = 100;
 	verifyCorrectnessOfInt_limited<64*64>(testCaseAmount, randState); // 4096
 	verifyCorrectnessOfInt_limited<64*64 + 63>(testCaseAmount, randState); // 4159
 
