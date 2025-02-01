@@ -683,13 +683,12 @@ namespace customBigInt {
 
 			// Returns the bit NOT, so adding 1 gets the two's complement
 			int_limited operator~ () {
-				// If this doesn't work, then just do result = *this and double operation time
 				int_limited result = 0;
 				for (int i = 0; i < this->wordCount; i++) {
 					result.words[i] = ~this->words[i];
 				}
-				this->updateLSW(0);
-				this->updateMSW(this->wordCount-1);
+				result.updateLSW(0);
+				result.updateMSW(this->wordCount-1);
 				return result;
 			}
 
@@ -701,7 +700,7 @@ namespace customBigInt {
 					this->wordShiftLeft(i, wordshift);
 					this->bitShiftLeft(i, bitshift);
 				}
-				this->updateLSW(this->LSW + wordshift);
+				this->updateLSW(this->LSW + wordshift - 1);
 				this->updateMSW(this->MSW + wordshift + 1);
 				return *this;
 			}
@@ -720,7 +719,7 @@ namespace customBigInt {
 					this->bitShiftRight(i, bitshift);
 				}
 				this->updateLSW(this->LSW - wordshift - 1);
-				this->updateMSW(this->MSW - wordshift);
+				this->updateMSW(this->MSW - wordshift + 1);
 				return *this;
 			}
 			// Classic non-arithmetic bitshift
