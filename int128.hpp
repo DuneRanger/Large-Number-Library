@@ -32,6 +32,7 @@ namespace customBigInt {
 				uint64_t DONE
 				int64_t DONE
 				int DONE
+				uint DONE
 				char DONE
 			= (assignment operator) DONE
 			=============================================================
@@ -84,6 +85,9 @@ namespace customBigInt {
 			explicit operator int() const {
 				return (int)B0;
 			}
+			explicit operator unsigned int() const {
+				return (unsigned int)B0;
+			}
 			explicit operator char() const {
 				return (char)B0;
 			}
@@ -97,6 +101,7 @@ namespace customBigInt {
 			/*
 			SECTION: PRINTING
 			=============================================================
+			className DONE
 			toString DONE
 			<< (insertion to stream) DONE
 			=============================================================
@@ -111,6 +116,7 @@ namespace customBigInt {
 			// '-' is appended to the start, if the number is negative, irregardless of the base
 			// Base is limited to a single unsigned 64 bit integer
 			inline std::string toString(uint64_t base = 10) {
+				if (base == 0) throw std::out_of_range("Unable to convert value to base 0");
 				// Approximate the largest number of possible words
 				int binWordSize = 0;
 				uint64_t base_copy = base;
@@ -324,7 +330,7 @@ namespace customBigInt {
 			^ (XOR) DONE
 			| (OR) DONE
 			& (AND) DONE
-			~ (complement) DONE
+			~ (NOT) DONE
 			<< (shift left) DONE
 			>> (shift right) DONE
 			respective compound operators (^=, |=, &=, <<=, >>=) DONE
@@ -425,7 +431,7 @@ namespace customBigInt {
 			SECTION: RELATIONAL OPERATORS
 			=============================================================
 			== (equality) DONE
-			!= (inequality) DONE
+			!= (not equality) DONE
 			> (greater-than) DONE
 			< (less-than) DONE
 			>= (greater-than-or-equal-to) DONE
@@ -435,10 +441,10 @@ namespace customBigInt {
 			#pragma region
 
 			bool operator== (int128 const& rhs) {
-				return B0 == rhs.B0 && B1 == rhs.B1;
+				return (B0 == rhs.B0 && B1 == rhs.B1);
 			}
 			bool operator!= (int128 const& rhs) {
-				return B0 != rhs.B0 || B1 != rhs.B1;
+				return (B0 != rhs.B0 || B1 != rhs.B1);
 			}
 			bool operator> (int128 const& rhs) {
 				// if different signs - false if B1 is negative, true if rhs.B1 is negative
@@ -487,13 +493,13 @@ namespace customBigInt {
 			=============================================================
 			*/
 			bool operator! () {
-				return B1 == 0 && B0 == 0;
+				return (B1 == 0 && B0 == 0);
 			}
 			bool operator&& (int128 const& rhs) {
-				return (B1 != 0 || B0 != 0) && (rhs.B1 != 0 || rhs.B0 != 0);
+				return ((B1 != 0 || B0 != 0) && (rhs.B1 != 0 || rhs.B0 != 0));
 			}
 			bool operator|| (int128 const& rhs) {
-				return B1 != 0 || B0 != 0 || rhs.B1 != 0 || rhs.B0 != 0;
+				return (B1 != 0 || B0 != 0 || rhs.B1 != 0 || rhs.B0 != 0);
 			}
 	};
 }

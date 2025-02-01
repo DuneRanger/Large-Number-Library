@@ -25,8 +25,8 @@ namespace customBigInt {
 			std::vector<uint64_t> words = std::vector<uint64_t>(wordCount, 0);
 
 			// Most and Least Significant Word containing a non-zero bit
-			// Used for a minor optimization for arithmetic operations
-			// Doesn't really help for small negative numbers
+			// Used for a optimization for arithmetic operations
+			// Doesn't really help for small negative numbers - they require negation
 			int MSW = 0;
 			int LSW = 0;
 
@@ -348,6 +348,7 @@ namespace customBigInt {
 			/*
 			SECTION: PRINTING
 			=============================================================
+			className DONE
 			toString DONE
 			<< (insertion to stream) DONE
 			=============================================================
@@ -355,13 +356,14 @@ namespace customBigInt {
 			#pragma region
 
 			static std::string className() {
-				return std::to_string(bitSize) + " bit customBigInt::int_limited";
+				return "customBigInt::int_limited<" + std::to_string(bitSize) + ">";
 			}
 
 			// Returns a string of the current value converted to the desired base
 			// '-' is appended to the start, if the number is negative, irregardless of the base
 			// Base is limited to a single unsigned 64 bit integer
 			std::string toString(uint64_t base = 10) {
+				if (base == 0) throw std::out_of_range("Unable to convert value to base 0");
 				// Approximate of the largest number of possible words in the chosen base
 				int binWordSize = 0;
 				uint64_t base_copy = base;
@@ -489,9 +491,9 @@ namespace customBigInt {
 				}
 				int maxWordAmount = A.MSW;
 				int splitWordIndex  = maxWordAmount / 2 + 1;
-				int_limited lowA = 0;
+				int_limited lowA;
 				lowA.importBits(A.words, 0, splitWordIndex);
-				int_limited highA = 0;
+				int_limited highA;
 				highA.importBits(A.words, splitWordIndex, maxWordAmount + 1);
 
 				if (splitWordIndex >= B.MSW) {
@@ -499,9 +501,9 @@ namespace customBigInt {
 					return *this;
 				}
 
-				int_limited lowB = 0;
+				int_limited lowB;
 				lowB.importBits(B.words, 0, splitWordIndex);
-				int_limited highB = 0;
+				int_limited highB;
 				highB.importBits(B.words, splitWordIndex, maxWordAmount + 1);
 
 				int_limited z0 = lowA * lowB;
@@ -650,7 +652,7 @@ namespace customBigInt {
 			^ (XOR) DONE
 			| (OR) DONE
 			& (AND) DONE
-			~ (complement) DONE
+			~ (NOT) DONE
 			<< (shift left) DONE
 			>> (shift right) DONE
 			respective compound operators (^=, |=, &=, <<=, >>=) DONE
@@ -752,7 +754,7 @@ namespace customBigInt {
 			SECTION: RELATIONAL OPERATORS
 			=============================================================
 			== (equality) DONE
-			!= (inequality) DONE
+			!= (not equality) DONE
 			> (greater-than) DONE
 			< (less-than) DONE
 			>= (greater-than-or-equal-to) DONE
@@ -827,7 +829,7 @@ namespace customBigInt {
 			#pragma region
 			// returns *this == 0
 			bool operator! () {
-				if (this->MSW != 0) return false;
+				if (!!this->MSW) return false;
 				return this->words[0] == 0;
 			}
 			bool operator&& (int_limited const& rhs) {
