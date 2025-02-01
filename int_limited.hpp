@@ -30,146 +30,6 @@ namespace customBigInt {
 			int MSW = 0;
 			int LSW = 0;
 
-		public:
-			/*
-			SECTION: CONSTRUCTION
-			=============================================================
-			default constructor DONE
-			base constructor DONE
-			IMPLICIT conversion FROM:
-				uint64_t DONE
-				int64_t DONE
-				int DONE
-				uint DONE
-			conversion TO:
-				uint64_t DONE
-				int64_t DONE
-				int DONE
-				char DONE
-			= (assignment operator) DONE
-			importBits (vector) DONE
-			importBits (iterator to iterator) DONE
-			exportBits DONE
-			=============================================================
-			*/
-			#pragma region
-
-			// Accepts conversions from individual standard int types (doesn't change MSW and LSW)
-			// To convert multiple integers of a type into an int_limited
-			// It is required to declare an instance and call importBits
-
-			// For all of these instances, LSW and MSW are by default zero, which is correct;
-			int_limited() {
-				static_assert(bitSize > 1, "Invalid int_limited size");
-			}
-			int_limited(uint64_t a) {
-				static_assert(bitSize > 1, "Invalid int_limited size");
-				this->words[0] = a;
-				this->truncateExtraBits();
-			}
-			int_limited(int64_t a) {
-				static_assert(bitSize > 1, "Invalid int_limited size");
-				if (a < 0) {
-					for (int i = 1; i < this->wordCount; i++) {
-						this->words[i] = UINT64_MAX;
-					}
-					this->updateMSW(this->wordCount - 1);
-				}
-				this->words[0] = a;
-				this->truncateExtraBits();
-			}
-			int_limited(int a) {
-				static_assert(bitSize > 1, "Invalid int_limited size");
-				if (a < 0) {
-					for (int i = 1; i < this->wordCount; i++) {
-						this->words[i] = UINT64_MAX;
-					}
-					this->updateMSW(this->wordCount - 1);
-				}
-				this->words[0] = (int64_t)a;
-				this->truncateExtraBits();
-			}
-			int_limited(unsigned int a) {
-				static_assert(bitSize > 1, "Invalid int_limited size");
-				this->words[0] = a;
-				this->truncateExtraBits();
-			}
-
-			// All explicit conversions simply returns the bits for the given bit amount
-			// For example the minimum value (in two's complement) converted to a int64_t will simply return 0
-			explicit operator uint64_t() const {
-				return this->words[0];
-			}
-			// Simply returns LSB to allow for easier bit manipulation
-			explicit operator int64_t() const {
-				return (int64_t)this->words[0];
-			}
-			explicit operator int() const {
-				return (int)this->words[0];
-			}
-			explicit operator char() const {
-				return (char)this->words[0];
-			}
-
-			int_limited& operator= (int_limited const& rhs) {
-				for (int i = 0; i < rhs.wordCount; i++) {
-					this->words[i] = rhs.words[i];
-				}
-				this->updateLSW(rhs.LSW);
-				this->updateMSW(rhs.MSW);
-				return *this;
-			}
-
-			// For simplicity's sake this function only accepts
-			// a vector of unsigned 64 bit integers from the standard library
-			void importBits(std::vector<uint64_t>& newWords) {
-				*this = 0;
-				for (int i = 0; i < this->wordCount && i < newWords.size(); i++) {
-					this->words[i] = newWords[i];
-				}
-				this->updateLSW(0);
-				this->updateMSW(newWords.size()-1);
-				return;
-			}
-
-			// Starts importing from newWords[startIndex] (inclusive) to newWords[endIndex - 1]
-			// Import into the destinations words, starting from wordOffset
-			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
-				*this = 0;
-				int maxWord = std::min((int)newWords.size(), endIndex);
-				maxWord = std::min(maxWord, startIndex + (this->wordCount - wordOffset));
-				for (int i = startIndex; i < maxWord; i++) {
-					this->words[wordOffset] = newWords[i];
-					wordOffset++;
-				}
-				this->updateLSW(0);
-				this->updateMSW(endIndex - startIndex + wordOffset + 1);
-				return;
-			}
-
-			// The first iterator is taken as the Least Significant Word (+ wordOffset)
-			// The second iterator is non-inclusive in the import
-			void importBits(std::vector<uint64_t>::iterator beginWords, std::vector<uint64_t>::iterator endWords, int wordOffset = 0) {
-				*this = 0;
-				int index = wordOffset;
-				while (beginWords != endWords) {
-					this->words[index] = *beginWords;
-					beginWords++;
-					index++;
-				}
-				this->updateLSW(wordOffset);
-				this->updateMSW(index - 1);
-				return;
-			}
-
-			// For simplicity's sake this function only returns
-			// a vector of unsigned 64 bit integers from the standard library
-			// Currently returns *all* words, even those higher than the Most Significant Word
-			std::vector<uint64_t> exportBits() {
-				return this->words;
-			}
-			#pragma endregion
-
 			/*
 			SECTION: HELPER FUNCTIONS
 			=============================================================
@@ -318,6 +178,172 @@ namespace customBigInt {
 				return *this;
 			}
 			#pragma endregion
+
+		public:
+			/*
+			SECTION: CONSTRUCTION
+			=============================================================
+			default constructor DONE
+			base constructor DONE
+			IMPLICIT conversion FROM:
+				uint64_t DONE
+				int64_t DONE
+				int DONE
+				uint DONE
+			conversion TO:
+				uint64_t DONE
+				int64_t DONE
+				int DONE
+				uint DONE
+				char DONE
+			= (assignment operator) DONE
+			importBits (vector) DONE
+			importBits (vector, startIndex, endIndex, wordOffset) DONE
+			importBits (iterator to iterator) DONE
+			exportBits DONE
+			=============================================================
+			*/
+			#pragma region
+
+			// Accepts conversions from individual standard int types (doesn't change MSW and LSW)
+			// To convert multiple integers of a type into an int_limited
+			// It is required to declare an instance and call importBits
+
+			// For all of these instances, LSW and MSW are by default zero, which is correct;
+			int_limited() {
+				static_assert(bitSize > 1, "Invalid int_limited size");
+			}
+			int_limited(uint64_t a) {
+				static_assert(bitSize > 1, "Invalid int_limited size");
+				this->words[0] = a;
+				this->truncateExtraBits();
+			}
+			int_limited(int64_t a) {
+				static_assert(bitSize > 1, "Invalid int_limited size");
+				if (a < 0) {
+					for (int i = 1; i < this->wordCount; i++) {
+						this->words[i] = UINT64_MAX;
+					}
+					this->updateMSW(this->wordCount - 1);
+				}
+				this->words[0] = a;
+				this->truncateExtraBits();
+			}
+			int_limited(int a) {
+				static_assert(bitSize > 1, "Invalid int_limited size");
+				if (a < 0) {
+					for (int i = 1; i < this->wordCount; i++) {
+						this->words[i] = UINT64_MAX;
+					}
+					this->updateMSW(this->wordCount - 1);
+				}
+				this->words[0] = (int64_t)a;
+				this->truncateExtraBits();
+			}
+			int_limited(unsigned int a) {
+				static_assert(bitSize > 1, "Invalid int_limited size");
+				this->words[0] = a;
+				this->truncateExtraBits();
+			}
+
+			// All explicit conversions simply returns the bits for the given bit amount
+			// For example the minimum value (in two's complement) converted to a int64_t will simply return 0
+			explicit operator uint64_t() const {
+				return this->words[0];
+			}
+			// Simply returns LSB to allow for easier bit manipulation
+			explicit operator int64_t() const {
+				return (int64_t)this->words[0];
+			}
+			explicit operator int() const {
+				return (int)this->words[0];
+			}
+			explicit operator unsigned int() const {
+				return (unsigned int)this->words[0];
+			}
+			explicit operator char() const {
+				return (char)this->words[0];
+			}
+
+			int_limited& operator= (int_limited const& rhs) {
+				// Will rewrite all bits, because this->wordCount == rhs.wordCount
+				for (int i = 0; i < rhs.wordCount; i++) {
+					this->words[i] = rhs.words[i];
+				}
+				this->updateLSW(rhs.LSW);
+				this->updateMSW(rhs.MSW);
+				return *this;
+			}
+
+			// For simplicity's sake this function only accepts
+			// a vector of unsigned 64 bit integers from the standard library
+			void importBits(std::vector<uint64_t>& newWords) {
+				for (int i = 0; i < this->wordCount && i < newWords.size(); i++) {
+					this->words[i] = newWords[i];
+				}
+				for (int i = newWords.size(); i < this->wordCount; i++) {
+					this->words[i] = 0;
+				}
+				this->updateLSW(0);
+				this->updateMSW(newWords.size()-1);
+				return;
+			}
+
+			// Starts importing from newWords[startIndex] (inclusive) to newWords[endIndex - 1]
+			// Import into the destinations words, starting from wordOffset
+			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
+				if (startIndex < 0 || endIndex < 0 || wordCount < 0) {
+					throw std::range_error("Invalid argument for importBits");
+				}
+				int maxWord = std::min((int)newWords.size(), endIndex);
+				maxWord = std::min(maxWord, startIndex + (this->wordCount - wordOffset));
+
+				for (int i = 0; i < wordOffset; i++) {
+					this->words[i] = 0;
+				}
+				for (int i = startIndex; i < maxWord; i++) {
+					this->words[wordOffset] = newWords[i];
+					wordOffset++;
+				}
+				for (int i = maxWord; i < this->wordCount; i++) {
+					this->words[i] = 0;
+				}
+				this->updateLSW(0);
+				this->updateMSW(endIndex - startIndex + wordOffset + 1);
+				return;
+			}
+
+			// The first iterator is taken as the Least Significant Word (+ wordOffset)
+			// The second iterator is non-inclusive in the import
+			void importBits(std::vector<uint64_t>::iterator beginWords, std::vector<uint64_t>::iterator endWords, int wordOffset = 0) {
+				if (wordCount < 0) {
+					throw std::range_error("Invalid wordOffset for importBits");
+				}
+				for (int i = 0; i < wordOffset; i++) {
+					this->words[i] = 0;
+				}
+				int index = wordOffset;
+				while (beginWords != endWords) {
+					this->words[index] = *beginWords;
+					beginWords++;
+					index++;
+				}
+				for (int i = index; i < this->wordCount; i++) {
+					this->words[i] = 0;
+				}
+				this->updateLSW(wordOffset);
+				this->updateMSW(index - 1);
+				return;
+			}
+
+			// For simplicity's sake this function only returns
+			// a vector of unsigned 64 bit integers from the standard library
+			// Currently returns *all* words, even those higher than the Most Significant Word
+			std::vector<uint64_t> exportBits() {
+				return this->words;
+			}
+			#pragma endregion
+
 
 			/*
 			SECTION: PRINTING
