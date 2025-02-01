@@ -188,6 +188,7 @@ namespace customBigInt {
 				int bitsInMSW = bitSize % 64;
 				if (bitsInMSW == 0) return;
 				this->words[this->wordCount-1] &= UINT64_MAX >> (64 - bitsInMSW);
+				if (this->words[this->wordCount-1] == 0) this->updateMSW(this->MSW);
 				return;
 			}
 
