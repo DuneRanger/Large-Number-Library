@@ -9,4 +9,4 @@ If you wish to contribute to the library, please see the [Developer Documentatio
 ## Currently supported
 
 - int128 - A 128 bit precision signed integer
-- int_limited - A unlimited size fixed precision signed integer
+- int_limited - An arbitrary, fixed size signed integer
