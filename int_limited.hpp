@@ -112,7 +112,7 @@ namespace customBigInt {
 			}
 
 			int_limited& operator= (int_limited const& rhs) {
-				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
+				for (int i = 0; i < rhs.wordCount; i++) {
 					this->words[i] = rhs.words[i];
 				}
 				this->updateLSW(rhs.LSW);
@@ -123,6 +123,7 @@ namespace customBigInt {
 			// For simplicity's sake this function only accepts
 			// a vector of unsigned 64 bit integers from the standard library
 			void importBits(std::vector<uint64_t>& newWords) {
+				*this = 0;
 				for (int i = 0; i < this->wordCount && i < newWords.size(); i++) {
 					this->words[i] = newWords[i];
 				}
@@ -131,22 +132,25 @@ namespace customBigInt {
 				return;
 			}
 
-			// Starts importing from startIndex (inclusive) to endIndex (exclusive)
-			// Import into the destinations words, starting from index 0
-			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex) {
+			// Starts importing from newWords[startIndex] (inclusive) to newWords[endIndex - 1]
+			// Import into the destinations words, starting from wordOffset
+			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
+				*this = 0;
 				int maxWord = std::min((int)newWords.size(), endIndex);
-				maxWord = std::min(maxWord, this->wordCount);
+				maxWord = std::min(maxWord, startIndex + (this->wordCount - wordOffset));
 				for (int i = startIndex; i < maxWord; i++) {
-					this->words[i] = newWords[i];
+					this->words[wordOffset] = newWords[i];
+					wordOffset++;
 				}
 				this->updateLSW(0);
-				this->updateMSW(newWords.size()-1);
+				this->updateMSW(endIndex - startIndex + wordOffset + 1);
 				return;
 			}
 
 			// The first iterator is taken as the Least Significant Word (+ wordOffset)
 			// The second iterator is non-inclusive in the import
 			void importBits(std::vector<uint64_t>::iterator beginWords, std::vector<uint64_t>::iterator endWords, int wordOffset = 0) {
+				*this = 0;
 				int index = wordOffset;
 				while (beginWords != endWords) {
 					this->words[index] = *beginWords;
