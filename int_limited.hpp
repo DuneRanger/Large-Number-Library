@@ -516,10 +516,10 @@ namespace customBigInt {
 				int_limited dividend = *this;
 				*this = 0;
 				// Convert both numbers to positive, so that we can subtract the shifted rhs from the dividend
-				// We also don't need to worry about the asymmetry of integer limits, because the result is always zero for the minimum value
+				// We also don't need to worry about the asymmetry of two's complement integer limits
+				// because the result is always zero for the minimum value
 				bool negative = false;
 				if (dividend < 0) {
-					// We can afford to overwrite (dividend) because we will overwrite it later anyway
 					dividend = ~dividend + 1;
 					negative = !negative;
 				}
@@ -532,22 +532,24 @@ namespace customBigInt {
 					// returns zero
 					return *this;
 				}
+				int potentialLSW = dividend.LSW - rhs.MSW - 1;
+				int potentialMSW = dividend.MSW - rhs.MSW + 1;
 				int_limited shiftCounter = 1;
 				// Now rhs <= dividend, which means rhs.MSW <= dividend.MSW
-				if (rhs.MSW < dividend.MSW) {
-					// this make rhs.MSW = dividend.MSW - 1, if it was originally smaller
-					rhs <<= 64*(dividend.MSW - rhs.MSW);
-					shiftCounter <<= 64;
+				if (rhs.MSW+1 < dividend.MSW) {
+					// this will make rhs.MSW = dividend.MSW - 1
+					int wordShiftCount = dividend.MSW - rhs.MSW - 1;
+					shiftCounter <<= 64*wordShiftCount;
+					rhs <<= 64*wordShiftCount;
 				}
-				// Now either rhs == dividend, or rhs.MSW == dividend.MSW - 1
+				// Now continue shifting rhs, so that it is one shift larger than the dividend
 				while (rhs <= dividend && rhs > 0) {
 					rhs <<= 1;
 					shiftCounter <<= 1;
 				}
-				if (rhs < 0) {
-					rhs >>= 1;
-					shiftCounter >>= 1;
-				}
+				rhs >>= 1;
+				shiftCounter >>= 1;
+
 				while (shiftCounter > 0) {
 					if (rhs <= dividend) {
 						dividend -= rhs;
@@ -555,10 +557,12 @@ namespace customBigInt {
 					}
 					rhs >>= 1;
 					shiftCounter >>= 1;
+
 				}
-				this->updateLSW(0);
-				this->updateMSW(this->MSW);
+				this->updateLSW(potentialLSW);
+				this->updateMSW(potentialMSW);
 				if (negative) *this = ~(*this) + 1;
+				// std::cout << (uint64_t)(*this >> 128) << " " << (uint64_t)(*this >> 64) << " " << (uint64_t)(*this) << std::endl;
 				return *this;
 			}
 			int_limited operator/ (int_limited const& rhs) {
@@ -569,8 +573,9 @@ namespace customBigInt {
 			int_limited& operator%= (int_limited rhs) {
 				if (rhs == 0) throw std::domain_error("Divide by zero exception");
 				bool negative = false;
-				// Convert both numbers to positive, so that we can subtract the shifted rhs from the dividend
-				// We also don't need to worry about the asymmetry of integer limits, because the result is always zero for the minimum value
+				// Convert both numbers to positive, so that we can subtract the shifted rhs from (*this)
+				// We also don't need to worry about the asymmetry of two's complement integer limits
+				// because the result is always zero for the minimum value
 				if (*this < 0) {
 					// We can afford to overwrite (*this) because we will overwrite it later anyway
 					*this = ~*this + 1;
@@ -586,22 +591,23 @@ namespace customBigInt {
 					if (negative) *this = ~(*this) + 1;
 					return *this;
 				}
+				int potentialLSW = 0;
+				int potentialMSW = rhs.MSW;
 				int totalShifts = 1;
 				// Now rhs <= *this, which means rhs.MSW <= this->MSW
-				if (rhs.MSW < this->MSW) {
-					// this make rhs.MSW = this->MSW - 1, if it was originally smaller
-					rhs <<= 64*(this->MSW - rhs.MSW);
-					totalShifts += 64;
+				if (rhs.MSW+1 < this->MSW) {
+					// this make rhs.MSW = this->MSW - 1
+					int wordShiftCount = this->MSW - rhs.MSW - 1;
+					totalShifts += 64*wordShiftCount;
+					rhs <<= 64*wordShiftCount;
 				}
 				// Now either rhs == *this, or rhs.MSW == this->MSW - 1
 				while (rhs <= *this && rhs > 0) {
 					rhs <<= 1;
 					totalShifts += 1;
 				}
-				if (rhs < 0) {
-					rhs >>= 1;
-					totalShifts -= 1;
-				}
+				rhs >>= 1;
+				totalShifts -= 1;
 				while (totalShifts > 0) {
 					if (rhs <= *this) {
 						*this -= rhs;
@@ -609,8 +615,8 @@ namespace customBigInt {
 					rhs >>= 1;
 					totalShifts -= 1;
 				}
-				this->updateLSW(0);
-				this->updateMSW(this->MSW);
+				this->updateLSW(potentialLSW);
+				this->updateMSW(potentialMSW);
 				if (negative) *this = ~(*this) + 1;
 				return *this;
 			}
