@@ -6,7 +6,7 @@
 #include "./int128.hpp"
 
 
-namespace customBigInt {
+namespace largeNumberLibrary {
 
 	// Two's complement
 	// Constructs a vector of 64 bit unsigned integers, so that the specified bit size fits
@@ -352,7 +352,7 @@ namespace customBigInt {
 			#pragma region
 
 			static std::string className() {
-				return "customBigInt::int_limited<" + std::to_string(bitSize) + ">";
+				return "largeNumberLibrary::int_limited<" + std::to_string(bitSize) + ">";
 			}
 
 			// Returns a string of the current value converted to the desired base

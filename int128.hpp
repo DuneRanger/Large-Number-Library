@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace customBigInt {
+namespace largeNumberLibrary {
 	// equivalent to INT64_MAX
 	constexpr uint64_t UINT63_MAX = 0x7FFFFFFFFFFFFFFF;
 	// equivalent to INT64_MIN
@@ -109,7 +109,7 @@ namespace customBigInt {
 			#pragma region
 
 			static std::string className() {
-				return "customBigInt::int128";
+				return "largeNumberLibrary::int128";
 			}
 
 			// Returns a string of the current value converted to the desired base

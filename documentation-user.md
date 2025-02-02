@@ -40,7 +40,7 @@ When discussing time or space complexity, $N$ refers to the amount of bits the t
 Currently, each class is in its own separate `.hpp` files, so all that is required is downloading the files locally and including the desired header.
 I am aware that best practice states that header files should only contain declarations, however any further changes to the library structure will wait until a concrete plan is made.
 
-Every variable, types and classes are defined in the namespace `customBigInt`. \
+Every variable, types and classes are defined in the namespace `largeNumberLibrary`. \
 Currently, there exists 2 header files:
 - [int128.hpp](#int128hpp)
 - [int_limited.hpp](#int_limitedhpp)
@@ -79,7 +79,7 @@ Class construction can be implicit from 32 or 64 bit standard library integers (
 Examples:
 
 ```cpp
-using namespace customBigInt;
+using namespace largeNumberLibrary;
 
 int128 example1 = 0;
 int128 example2 = UINT64_MAX;
@@ -118,7 +118,7 @@ Direct insertion to an output stream is also allowed, simply converting the valu
 Examples:
 
 ```cpp
-using namespace customBigInt;
+using namespace largeNumberLibrary;
 
 int128 example4 = 0xDEADBEEF;
 // returns "3735928559"
@@ -177,7 +177,7 @@ Note that since implicit conversion from `int128` to `bool` is not allowed, usag
 #### className()
 
 Returns the namespace and the class name as a `std::string`.
-For this class, it will be `"customBigInt::int128"`.
+For this class, it will be `"largeNumberLibrary::int128"`.
 
 # int_limited.hpp
 
@@ -305,7 +305,7 @@ Direct insertion to an output stream is also allowed, simply converting the valu
 Examples:
 
 ```cpp
-using namespace customBigInt;
+using namespace largeNumberLibrary;
 
 int_limited<192> example = 0xDEADBEEF;
 // returns "3735928559"
@@ -364,7 +364,7 @@ Note that since implicit conversion from `int_limited` to `bool` is not allowed,
 #### className()
 
 Returns the namespace and the class name as a `std::string`.
-For this class, it will be `"customBigInt::int_limited<bitSize>"`, where `bitSize` represents the chosen template's bit size.
+For this class, it will be `"largeNumberLibrary::int_limited<bitSize>"`, where `bitSize` represents the chosen template's bit size.
 
 
 # PLACEHOLDER HEADER FOR BENCHMARKS

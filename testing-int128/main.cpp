@@ -9,7 +9,7 @@
 #include "../int128.hpp"
 
 typedef boost::multiprecision::int128_t boostInt128;
-typedef customBigInt::int128 int128;
+typedef largeNumberLibrary::int128 int128;
 
 // From https://www.reddit.com/r/C_Programming/comments/ozew2u/comment/h7zijm8
 uint64_t rnd64(uint64_t n)

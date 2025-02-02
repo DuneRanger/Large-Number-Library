@@ -39,7 +39,7 @@ When discussing time or space complexity, $N$ refers to the amount of bits the t
 
 # About the library
 
-All of the library content should be under the namespace `customBigInt` (name subject to change).
+All of the library content should be under the namespace `largeNumberLibrary` (name subject to change).
 
 The main envisioned use case of this library is the ability to use large bit numerical values (both integers and floating point), without having to download and install a large robust library containing other modules, like boost.
 
