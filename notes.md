@@ -2,13 +2,6 @@
 
 https://en.wikipedia.org/wiki/Template:Arithmetic_operations
 
-
-
-# Laptop info
-
-Procesor - 12th Gen Intel(R) Core(TM) i5-1240P   1.70 GHz
-RAM - 16GB DDR5
-
 # O0
 
 UNIQUE TEST NUMBERS PER BENCHMARK: 5000 (INCLUDING 0, 1, -1)
