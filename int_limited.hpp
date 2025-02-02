@@ -55,6 +55,7 @@ namespace customBigInt {
 
 			void updateLSW(int lowerBound) {
 				lowerBound = std::max(0, lowerBound);
+				lowerBound = std::min(lowerBound, this->wordCount - 1);
 				// Find the highest non-zero word
 				while (this->words[lowerBound] == 0) {
 					lowerBound++;
@@ -67,6 +68,7 @@ namespace customBigInt {
 
 			void updateMSW(int upperBound) {
 				upperBound = std::min(this->wordCount - 1, upperBound);
+				upperBound = std::max(upperBound, 0);
 				// Find the highest non-zero word
 				while (this->words[upperBound] == 0) {
 					upperBound--;
@@ -302,7 +304,7 @@ namespace customBigInt {
 				for (int i = maxWord; i < this->wordCount; i++) {
 					this->words[i] = 0;
 				}
-				this->updateLSW(0);
+				this->updateLSW(wordOffset);
 				this->updateMSW(endIndex - startIndex + wordOffset + 1);
 				return;
 			}
