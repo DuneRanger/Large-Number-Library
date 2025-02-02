@@ -150,7 +150,7 @@ Note that the behaviour of both division and modulo are equivalent to the C++ st
 
 All bit operations behave mostly equivalently to the C++ standard library (i.e. `~` is defined as bit NOT, so adding 1 is equivalent to getting the values two's complement).
 
-The only difference in behaviour is that bit-shifting by 128 bits or larger values is defined as setting every bit to zero, as compared to C++ undefined behaviour when bit-shifting by an integers size.
+The only two differences in behaviour is that bit-shifting by 128 bits or larger values is defined as setting every bit to zero, as compared to C++ undefined behaviour when bit-shifting by an integers size and C++ allows shifting by a negative value (with a warning), whereas `int128` does not support it.
 
 Note, that the boost multiprecision library overloads the bit-shift operators with arithmetic bit-shifting.
 
@@ -230,7 +230,7 @@ To otherwise assign the value of every bit, the use of member functions `importB
 #### Importing and exporting bits
 
 `ImportBits()` is a member function of every instance of `int_limited`.
-It allows rewriting of individual words of a class instance, starting from the least significant word.
+It allows overwriting of individual words of a class instance, starting from the least significant word.
 Any unmodified word will be set to zero (thus behaviour wise, this is equivalent to using the assignment operator).
 It has three possible overloads:
 
@@ -240,18 +240,21 @@ void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex, i
 void importBits(std::vector<uint64_t>::iterator beginWords, std::vector<uint64_t>::iterator endWords, int wordOffset = 0);
 ```
 
-The first overload will rewrite all words, starting from the least significant word, until either the end of `newWords` or the end of the class instances words.
+The first overload will overwrite all of the words of `*this`, starting from the least significant word, until either the end of `newWords` or the end of the class instances words.
 Any additional words in `newWords` will be ignored.
 If any words weren't modified, their value will be set to zero.
+Using this overload is the recommended way of casting a lower bit `int_limited` to a larger bit `int_limited`.
 
 The second overloads accepts 3 additional arguments: the `startIndex` for `newWords`, the `endIndex` for `newWords` and the `wordOffset` for the class instances words.
 
-In this case, the bits will start to be imported from `newWords[startIndex]` to `newWords[endIndex - 1]`. If `wordOffset` is omitted, then the rewrite will start from the least significant bit, otherwise it will start from `wordOffset`.
+In this case, the bits will start to be imported from `newWords[startIndex]` to `newWords[endIndex - 1]`. If `wordOffset` is omitted, then the overwrite will start from the least significant bit, otherwise it will start from `wordOffset`.
 Any non-modified words (even those before `wordOffset`) will be set to zero.
+A range error is thrown if any of the values are negative.
 
-The third overload accepts iterators over the presumed `newWords` vector, rewriting bits from first iterator to the (non-inclusive) second iterator.
+The third overload accepts iterators over the presumed `newWords` vector, overwriting bits from first iterator to the (non-inclusive) second iterator.
 Additionally, there is the option to set the `wordOffset`.
 Any non-modified words (even those before `wordOffset`) will be set to zero.
+A range error is thrown if `wordOffset` is negative.
 
 `exportBits()` is a member function that returns all of the words saved in the class instance, as a vector of unsigned 64 bit integers (least significant word first).
 
@@ -284,7 +287,7 @@ assert(truncatedNum == UINT64_MAX);
 
 Explicit casting is allowed from `int128` to `uint64_t`, `int64_t`, `unsigned int`, `int` and `char`.
 
-Note that since implicit conversion from `int_limited` to `bool` is not allowed, usage of a class instance by itself as a condition is not possible. The recommended method of checking if a number is non-zero is `example != 0` or `!!example`.
+Note that since implicit conversion from `int_limited` to `bool` is not allowed, usage of a class instance by itself as a condition is not possible. The recommended method of checking if a number is non-zero is `example != 0` or `!!example` if speed is required.
 
 
 #### Conversion to std::string
@@ -334,7 +337,7 @@ The behaviour of division and modulo are equivalent to the C++ standard library 
 
 All bit operations behave mostly equivalently to the C++ standard library (i.e. `~` is defined as bit NOT, so adding 1 is equivalent to getting the values two's complement).
 
-The only difference in behaviour is that bit-shifting by the bit size of a class is defined as setting every bit to zero, as compared to C++ undefined behaviour when bit-shifting by an integers size.
+The only two differences in behaviour is that bit-shifting by 128 bits or larger values is defined as setting every bit to zero, as compared to C++ undefined behaviour when bit-shifting by an integers size and C++ allows shifting by a negative value (with a warning), whereas `int_limited` does not support it.
 
 Note, that the boost multiprecision library overloads the bit-shift operators with arithmetic bit-shifting.
 
@@ -354,7 +357,7 @@ logical AND and OR return `true` if (AND/OR both values) are non-zero.
 
 Their complexity is equivalent to those of [relational operators](#relational-operators-1).
 
-Note that since implicit conversion from `int_limited` to `bool` is not allowed, usage of a class instance by itself as a condition is not possible. The recommended method of checking if a number is non-zero is `example != 0` or `!!example`.
+Note that since implicit conversion from `int_limited` to `bool` is not allowed, usage of a class instance by itself as a condition is not possible. The recommended method of checking if a number is non-zero is `example != 0` or `!!example` if speed is required.
 
 ### Static functions
 
@@ -365,4 +368,5 @@ For this class, it will be `"customBigInt::int_limited<bitSize>"`, where `bitSiz
 
 
 # PLACEHOLDER HEADER FOR BENCHMARKS
-Don't forget to ctrl+f and replace all instances
+
+Content will be added once benchmarking for `int_limited` is implemented.
