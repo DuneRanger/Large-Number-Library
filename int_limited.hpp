@@ -709,7 +709,7 @@ namespace customBigInt {
 			}
 
 			// Classic non-arithmetic bitshift
-			int_limited& operator<<= (int const& rhs) {
+			int_limited& operator<<= (unsigned int const& rhs) {
 				int wordshift = rhs / 64;
 				int bitshift = rhs % 64;
 				for (int i = this->MSW; i >= this->LSW; i--) {
@@ -721,13 +721,13 @@ namespace customBigInt {
 				return *this;
 			}
 			// Classic non-arithmetic bitshift
-			int_limited operator<< (int const& rhs) {
+			int_limited operator<< (unsigned int const& rhs) {
 				int_limited result = *this;
 				return result <<= rhs;
 			}
 
 			// Classic non-arithmetic bitshift
-			int_limited& operator>>= (int const& rhs) {
+			int_limited& operator>>= (unsigned int const& rhs) {
 				int wordshift = rhs / 64;
 				int bitshift = rhs % 64;
 				for (int i = this->LSW; i <= this->MSW; i++) {
@@ -739,7 +739,7 @@ namespace customBigInt {
 				return *this;
 			}
 			// Classic non-arithmetic bitshift
-			int_limited operator>> (int const& rhs) {
+			int_limited operator>> (unsigned int const& rhs) {
 				int_limited result = *this;
 				return result >>= rhs;
 			}

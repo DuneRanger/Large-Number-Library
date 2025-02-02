@@ -375,7 +375,7 @@ namespace customBigInt {
 			}
 
 			// Classic non-arithmetic bitshift
-			int128& operator<<= (int const& rhs) {
+			int128& operator<<= (unsigned int const& rhs) {
 				// Special case, because bitshifting by the bitsize of an integer is undefined (and inconsistent) behaviour
 				if (rhs == 0) return *this;
 
@@ -395,13 +395,13 @@ namespace customBigInt {
 				return *this;
 			}
 			// Classic non-arithmetic bitshift
-			int128 operator<< (int const& rhs) {
+			int128 operator<< (unsigned int const& rhs) {
 				int128 result(B1, B0);
 				return result <<= rhs;
 			}
 
 			// Classic non-arithmetic bitshift
-			int128& operator>>= (int const& rhs) {
+			int128& operator>>= (unsigned int const& rhs) {
 				// Special case, because bitshifting by the bitsize of an integer is undefined (and inconsistent) behaviour
 				if (rhs == 0) return *this;
 
@@ -421,7 +421,7 @@ namespace customBigInt {
 				return *this;
 			}
 			// Classic non-arithmetic bitshift
-			int128 operator>> (int const& rhs) {
+			int128 operator>> (unsigned int const& rhs) {
 				int128 result(B1, B0);
 				return result >>= rhs;
 			}
