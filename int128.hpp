@@ -108,27 +108,28 @@ namespace customBigInt {
 			*/
 			#pragma region
 
-			inline static std::string className() {
+			static std::string className() {
 				return "customBigInt::int128";
 			}
 
 			// Returns a string of the current value converted to the desired base
-			// '-' is appended to the start, if the number is negative, irregardless of the base
+			// '-' is appended to the start, if the number is negative, regardless of the numerical base
 			// Base is limited to a single unsigned 64 bit integer
-			inline std::string toString(uint64_t base = 10) {
+			std::string toString(uint64_t base = 10) {
 				if (base == 0) throw std::out_of_range("Unable to convert value to base 0");
-				// Approximate the largest number of possible words
+				// Calculate the bits each word in the numerical base will store
 				int binWordSize = 0;
 				uint64_t base_copy = base;
 				while (base_copy != 0) {
 					base_copy >>= 1;
 					binWordSize++;
 				}
+				// Approximate the largest number of possible words in the numerical base
 				// -1 to binWordSize to account for unfilled bits
 				// +1 at the end to act as a ceil() for cases like base-8 (requires 42.66... words)
 				int maxWordCount = 128/(binWordSize - 1) + 1;
 
-				// Convert this into a vector of word-size chunks (yes, it is a bit wasteful for low bases)
+				// Convert this int128 into a vector of base-word-size chunks (yes, it is a bit wasteful for low bases)
 				std::vector<uint64_t> words(maxWordCount, 0);
 				int128 num = *this;
 				bool sign = num < 0;
@@ -140,7 +141,7 @@ namespace customBigInt {
 					index--;
 				} while (num != 0);
 
-				// Convert the word-size chunks into the string
+				// Convert the word-size chunks into the output string
 				std::string output = "";
 				if (sign) output += '-';
 				for (uint64_t word : words) {
@@ -158,7 +159,7 @@ namespace customBigInt {
 				return output;
 			}
 
-			// Note: This overload doesn't take int128&, because it would throw an error when printing a complex expression
+			// Note: This overload doesn't take a reference int128&, because it would throw an error when printing a complex expression
 			// For example (a * -1)
 			// It also doesn't consider num as a const, because methods can't be called on consts (at least from my understanding of the error)
 			friend std::ostream& operator<<(std::ostream& os, int128 num) {
@@ -180,7 +181,6 @@ namespace customBigInt {
 			=============================================================
 			*/
 			#pragma region
-
 
 			int128& operator+=(int128 const& rhs) {
 				// flags for overflow condition

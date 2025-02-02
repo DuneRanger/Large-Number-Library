@@ -59,7 +59,7 @@ namespace customBigInt {
 				while (this->words[lowerBound] == 0) {
 					lowerBound++;
 				}
-				// If the number is zero
+				// if all values are zero
 				if (lowerBound >= this->wordCount) lowerBound = 0;
 				this->LSW = lowerBound;
 				return;
@@ -71,7 +71,7 @@ namespace customBigInt {
 				while (this->words[upperBound] == 0) {
 					upperBound--;
 				}
-				// If the number is zero
+				// stay within index range
 				if (upperBound < 0) upperBound = 0;
 				this->MSW = upperBound;
 				if (this->MSW == this->wordCount - 1) {
@@ -142,12 +142,6 @@ namespace customBigInt {
 						int128 multiplicand = A.words[a_i];
 						uint64_t multiplier = B.words[b_i];
 						while (multiplier != 0) {
-							// this slightly speeds up the loop
-							// if (multiplier%4 == 0) {
-							// 	multiplicand <<= 2;
-							// 	multiplier >>= 2;
-							// 	continue;
-							// }
 							if (multiplier%2 == 1) {
 								product += multiplicand;
 							}

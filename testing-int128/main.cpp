@@ -51,9 +51,6 @@ std::vector<uint64_t> genTwoUint64(uint64_t n) {
 	boostInt128 uses its own variable for signed magnitude and can represent values from 2^(128)-1 to -(2^(128)-1)
 	Additionally, it saves negative values int two's complement, if you imagine the signed magnitude as a hidden 129th bit
 	This also means that when bitshifting a negative value, it keeps the sign (so -1 >> 10 == -1) by filling the shifted area with 1's
-	
-	However, despite bitshifting not changing the sign, any other bit operation does, for reasons unknown to me (or the documentation)
-	Both & and | always change the sign to positive, only (~) uniquely can affect the sign bit and make it negative or positive (as one would expect)
 
 	Reminder: When changing the constants here, change them in generateMyInt128Numbers as well
 */
@@ -91,13 +88,10 @@ std::vector<myInt128> generateMyInt128Numbers(int count = 1000, uint64_t randSta
 	return myIntNumbers;
 } 
 
-// If comparing with a boost type, put it as the first argument
 template <typename T1, typename T2>
 bool twoInt128TypesEqual(T1 a, T2 b) {
-	// because boost doesn't want to cooperate when casting into uint64_t, or even int64_t
-	// Note, creating a specific overload to have a 100% correct multiplication by -1 is valid
-	// But if the overload is done by allowing multiplication by a different standard type, then be aware
-	// That the compiler might convert a larger type into a smaller type to make use of the overloaded multiplication
+	// Note that specifically setting one of the variables as one for testing is recommended instead of this
+	// Because that allows the use of getting the two's complement through bit NOT + 1
 	if (a < 0)  {
 		a *= -1;
 		b *= -1;
@@ -338,8 +332,8 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 	myInt128 myResult = 0;
 	
 	// I'm not sure how to improve the repetitiveness of these for loops without sacrificing some kind of time inaccuracy (a function with a switch statement)
-	// Printing out boostResult at the end seems to ward off O1 optimizing away the operations
-	// The empty loop only plays a role for compilation with O0
+	// Printing out boostResult at the end seems to ward off optimizing away the operations
+	// The empty loop only plays a significant role for compilation with O0 optimization
 	std::cout << "MEASURING EMPTY FOR LOOP OFFSET: ";
 	auto start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
