@@ -143,13 +143,7 @@ namespace largeNumberLibrary {
 						product += secondCarry;
 						int128 multiplicand = A.words[a_i];
 						uint64_t multiplier = B.words[b_i];
-						while (multiplier != 0) {
-							if (multiplier%2 == 1) {
-								product += multiplicand;
-							}
-							multiplicand <<= 1;
-							multiplier >>= 1;
-						}
+						product += multiplicand * multiplier;
 						char flag1 = (this->words[a_i + b_i] >= BIT64_ON) + ((uint64_t)product >= BIT64_ON);
 						this->words[a_i + b_i] += (uint64_t)product;
 						bool flag2 = this->words[a_i + b_i] < BIT64_ON;

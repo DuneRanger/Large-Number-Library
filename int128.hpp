@@ -221,18 +221,29 @@ namespace largeNumberLibrary {
 				// We ignore B1*rhs.B1, because it completely overflows anyway
 				B1 = multiplicand.B1 * rhs.B0;
 				B1 += multiplicand.B0 * rhs.B1;
-				B0 = 0;
-				multiplicand.B1 = 0;
-
-				int counter = 0;
-				while (rhs.B0 != 0) {
-					if (rhs.B0%2 == 1) {
-						*this += (multiplicand << counter);
-					}
-					counter++;
-					rhs.B0 >>= 1;
-				}
 				
+				// split multiplicand.B0 and rhs.B0 for Karatsuba's algorithm
+				uint64_t lowM = (multiplicand.B0 & UINT32_MAX);
+				uint64_t highM = (multiplicand.B0 >> 32);
+				uint64_t lowR = (rhs.B0 & UINT32_MAX);
+				uint64_t highR = (rhs.B0 >> 32);
+				
+				uint64_t sumM = lowM + highM;
+				uint64_t sumR = lowR + highR;
+
+				uint64_t z0 = lowM * lowR;
+				uint64_t z2 = highM * highR;
+				int128 z1 = (sumM & UINT32_MAX) * (sumR & UINT32_MAX);
+				z1 += (sumM >> 32) * (sumR << 32);
+				z1 += (sumR >> 32) * (sumM << 32);
+				z1.B1 += (sumM >> 32) * (sumR >> 32);
+				z1 -= z0;
+				z1 -= z2;
+
+				B1 += z2;
+				B0 = z0;
+				*this += (z1 << 32);
+
 				if (sign) *this = ~*this + 1;
 				return *this;
 			}
