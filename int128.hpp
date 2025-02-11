@@ -53,20 +53,18 @@ namespace largeNumberLibrary {
 			int128(int64_t a) {
 				if (a < 0) {
 					B1 = UINT64_MAX;
-					B0 = ~a + 1;
 				} else {
 					B1 = 0;
-					B0 = a;
 				}
+				B0 = a;
 			}
 			int128(int a) {
 				if (a < 0) {
 					B1 = UINT64_MAX;
-					B0 = ~a + 1;
 				} else {
 					B1 = 0;
-					B0 = a;
 				}
+				B0 = a;
 			}
 			int128(unsigned int a) {
 				B1 = 0;

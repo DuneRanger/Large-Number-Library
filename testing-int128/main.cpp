@@ -65,7 +65,7 @@ std::vector<boostInt128> generateBoost128Numbers(int count = 1000, uint64_t rand
 		boostInt128 boostNum;
 		boost::multiprecision::import_bits(boostNum, words.begin(), words.end());
 
-		if (words[0] & customBigInt::BIT64_ON) {
+		if (words[0] & largeNumberLibrary::BIT64_ON) {
 			boostNum ^= boostInt128Mask;
 			boostNum += 1;
 			boostNum *= -1;
@@ -92,6 +92,7 @@ template <typename T1, typename T2>
 bool twoInt128TypesEqual(T1 a, T2 b) {
 	// Note that specifically setting one of the variables as one for testing is recommended instead of this
 	// Because that allows the use of getting the two's complement through bit NOT + 1
+	// Which has a higher chance of working when multiplication hasn't been tested
 	if (a < 0)  {
 		a *= -1;
 		b *= -1;
