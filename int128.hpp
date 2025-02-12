@@ -351,7 +351,6 @@ namespace largeNumberLibrary {
 					// If the result is negative, add the divisor back once
 					if (borrow) {
 						std::cout << "her" << std::endl;
-						// continue;
 						q[j]--;
 						bool carry = false;
 						for (int curInd = 0; curInd <= vInd; curInd++) {
@@ -379,31 +378,127 @@ namespace largeNumberLibrary {
 			// The sign of the divisor doesn't affect anything
 			int128& operator%=(int128 divisor) {
 				if (divisor == 0) throw std::domain_error("Divide by zero exception");
-
 				int128 dividend(B1, B0);
 				// sets sign bit
-				bool sign = B1 >= BIT64_ON;
+				bool sign = (B1 >= BIT64_ON);
 				// convert all to positive
 				if (dividend < 0) dividend = ~dividend + 1;
 				if (divisor < 0) divisor = ~divisor + 1;
 
-				// shift divisor maximum to the left
-				int counter = 0;
-				// Also makes sure, that the divisor doesn't overflow 
-				while (divisor <= dividend && divisor.B1 < (BIT64_ON >> 1)) {
-					counter++;
-					divisor <<= 1;
-				};
-
-				while (counter > -1) {
-					if (divisor <= dividend) {
-						dividend -= divisor;
-					}
-					counter--;
-					divisor >>= 1;
+				if (divisor > dividend) {
+					*this = dividend;
+					if (sign) *this = ~(*this) + 1;
+					return *this;
 				}
-				// at this point divisor is its original size
-				*this = dividend;
+				B1 = 0;
+				// For the most part, this is all a copy of division
+				// where we take the remainder instead of the quotient
+				if (divisor.B1 == 0 && dividend.B1 == 0) {
+					B0 = dividend.B0 % divisor.B0;
+					if (sign) *this = ~(*this) + 1;
+					return *this;
+				}
+
+				// if the divisor only consists of one 32-bit word, then divide manually
+				if (divisor < 0x100000000) {
+					uint64_t div = divisor.B0;
+					// curWord contains the remainder from the preceding step in the first 32 bits
+					// and then the current word from the dividend in the last 32 bits
+					uint64_t curWord = (dividend.B1 >> 32);
+					curWord = ((curWord % div) << 32) | (dividend.B1 & UINT32_MAX);
+					curWord = ((curWord % div) << 32) | (dividend.B0 >> 32);
+					curWord = ((curWord % div) << 32) | (dividend.B0 & UINT32_MAX);
+					B0 = curWord % div;
+
+					if (sign) *this = ~(*this) + 1;
+					return *this;
+				}
+
+				// This is an implementation of the division algorithm described
+				// in pages 272-273 in Knuth's Art of Computer Programming - Volume 2
+				// u is the dividend, v is the divisor, the remainder will be in u at the end
+				std::vector<uint32_t> u = {uint32_t(dividend.B0 & UINT32_MAX), uint32_t(dividend.B0 >> 32), uint32_t(dividend.B1 & UINT32_MAX), uint32_t(dividend.B1 >> 32), 0};
+				std::vector<uint32_t> v = {uint32_t(divisor.B0 & UINT32_MAX), uint32_t(divisor.B0 >> 32), uint32_t(divisor.B1 & UINT32_MAX), uint32_t(divisor.B1 >> 32)};
+				int vInd = 3;
+				while (v[vInd] == 0) vInd--;
+				
+				// if v is less than 16 bits
+				// then shift u and v by 16 for a more accurate quotient estimate
+				// (this later requires at least 144 bit accuracy for u)
+				bool shifted = false;
+				if (v[vInd] < (1 << 16)) {
+					shifted = true;
+					// the original divisor is also shifted to help calculate the remainder faster
+					divisor <<= 16;
+					v[vInd] <<= 16;
+					for (int curInd = vInd; curInd > 0; curInd--) {
+						v[curInd] |= v[curInd - 1] >> 16;
+						v[curInd - 1] <<= 16;
+					}
+					for (int curInd = 4; curInd > 0; curInd--) {
+						u[curInd] |= u[curInd - 1] >> 16;
+						u[curInd - 1] <<= 16;
+					}
+				}
+				int uInd = 4;
+				while (u[uInd] == 0) uInd--;
+				
+				for (int j = uInd - vInd; j >= 0; j--) {
+					uint64_t curDigits = ((uint64_t(u[j + vInd + 1]) << 32) | u[j + vInd]);
+					if (uint64_t(v[vInd]) > curDigits) {
+						continue;
+					}
+					// quotient estimate and remainder
+					uint64_t qEst = curDigits / v[vInd];
+					uint64_t rem = curDigits - qEst * v[vInd];
+					if (qEst == (uint64_t(1) << 32) || 
+					(qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+						qEst--;
+						rem += v[vInd];
+						// repeat the test until it fails (rem > UINT32_MAX results in failure)
+						while (rem <= UINT32_MAX) {
+							if ((qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+								qEst--;
+								rem += v[vInd];
+							} else {
+								break;
+							}
+						}
+					}
+					
+					int128 difference = divisor * qEst;
+					// The first four 32 bit words are obtained from difference
+					// the fifth word is calculated by itself, since it is outside of 128 bit precision
+					std::vector<uint32_t> diff = {uint32_t(difference.B0 & UINT32_MAX), uint32_t(difference.B0 >> 32), uint32_t(difference.B1 & UINT32_MAX), uint32_t(difference.B1 >> 32), uint32_t(((divisor.B1 >> 32) *qEst) >> 32)};
+					// subtract difference with borrow
+					bool borrow = false;
+					for (int curInd = 0; curInd <= vInd + 1; curInd++) {
+						bool flag1 = diff[curInd] > u[j + curInd];
+						bool flag2 = (diff[curInd] == u[j + curInd]) && borrow;
+						u[j + curInd] -= diff[curInd] + borrow;
+						borrow = flag1 || flag2;
+					}
+					// If the result is negative, add the divisor back once
+					if (borrow) {
+						std::cout << "her" << std::endl;
+						bool carry = false;
+						for (int curInd = 0; curInd <= vInd; curInd++) {
+							// INT32_MIN in this context is BIT32_ON
+							char flag1 = (v[curInd] >= INT32_MIN) + (u[j + curInd] >= INT32_MIN);
+							u[j + curInd] += v[curInd] + carry;
+							bool flag2 = u[j + curInd] < INT32_MIN;
+							carry = (flag1 + flag2 > 1);
+						}
+						u[j + vInd + 1] += carry;
+					}
+				}
+				if (shifted) {
+					B1 = (uint64_t(u[4]) << 48) | (uint64_t(u[3]) << 16) | (uint64_t(u[2]) >> 16);
+					B0 = (uint64_t(u[2]) << 48) | (uint64_t(u[1]) << 16) | (uint64_t(u[0]) >> 16);
+				} else {
+					B1 = (uint64_t(u[3]) << 32) | u[2];
+					B0 = (uint64_t(u[1]) << 32) | u[0];
+				}
 				
 				if (sign) *this = ~*this + 1;
 				return *this;
