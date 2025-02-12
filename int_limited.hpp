@@ -525,9 +525,9 @@ namespace largeNumberLibrary {
 				if (rhs == 0) throw std::domain_error("Divide by zero exception");
 				int_limited dividend = *this;
 				*this = 0;
-				// Convert both numbers to positive, so that we can subtract the shifted rhs from the dividend
+				// Convert both numbers to positive
 				// We also don't need to worry about the asymmetry of two's complement integer limits
-				// because the result is always zero for the minimum value
+				// because the result is always zero for the asymmetrical value
 				bool negative = false;
 				if (dividend < 0) {
 					dividend = ~dividend + 1;
@@ -538,41 +538,113 @@ namespace largeNumberLibrary {
 					rhs = ~rhs + 1;
 					negative = !negative;
 				}
-				if (rhs > dividend) {
+				if (rhs > dividend || rhs < 0) {
 					// returns zero
 					return *this;
 				}
 				int potentialLSW = dividend.LSW - rhs.MSW - 1;
 				int potentialMSW = dividend.MSW - rhs.MSW + 1;
-				int_limited shiftCounter = 1;
-				// Now rhs <= dividend, which means rhs.MSW <= dividend.MSW
-				if (rhs.MSW+1 < dividend.MSW) {
-					// this will make rhs.MSW = dividend.MSW - 1
-					int wordShiftCount = dividend.MSW - rhs.MSW - 1;
-					shiftCounter <<= 64*wordShiftCount;
-					rhs <<= 64*wordShiftCount;
-				}
-				// Now continue shifting rhs, so that it is one shift larger than the dividend
-				while (rhs <= dividend && rhs > 0) {
-					rhs <<= 1;
-					shiftCounter <<= 1;
-				}
-				rhs >>= 1;
-				shiftCounter >>= 1;
-
-				while (shiftCounter > 0) {
-					if (rhs <= dividend) {
-						dividend -= rhs;
-						*this |= shiftCounter;
+				
+				// If the divisor only consists of one 64-bit word
+				// then divide manually and return
+				if (rhs.MSW == 0) {
+					int128 divWord = rhs.words[0];
+					uint64_t rem = 0;
+					for (int curInd = dividend.MSW; curInd >= std::max(dividend.LSW - 1, 0); curInd--) {
+						// curWord contains the remainder from the preceding step in the first 64 bits
+						// and then the current word from the dividend in the last 64bits
+						int128 curWord(rem, dividend.words[curInd]);
+						this->words[curInd] = uint64_t(curWord / divWord);
+						rem = uint64_t(curWord % divWord);
 					}
-					rhs >>= 1;
-					shiftCounter >>= 1;
-
+					this->updateLSW(potentialLSW);
+					this->updateMSW(potentialMSW);
+					if (negative) *this = ~(*this) + 1;
+					return *this;
 				}
+
+				// This is an implementation of the division algorithm described
+				// in pages 272-273 in Knuth's Art of Computer Programming - Volume 2
+				// u represents the dividend, v the divisor, q the quotient
+
+				// if the MSW in the divisor is less than 32 bits
+				// then shift both terms for a more accurate quotient estimate
+				// (this later requires an additional 32 bits of accuracy for the dividend)
+				uint64_t extraWord = 0;
+				if (rhs.words[rhs.MSW] < 0x100000000) {
+					rhs <<= 32;
+					dividend <<= 32;
+					// gets the most significant 32 bits, even if the bitSize isn't a multiple of 32
+					extraWord = uint64_t(dividend >> (bitSize - 32));
+				}
+				int uInd = dividend.MSW + (extraWord != 0);
+				int vInd = rhs.MSW;
+				
+
+				for (int j = uInd - vInd; j >= 0; j--) {
+					uint64_t upperHalf = extraWord;
+					if (j + vInd + 1 < dividend.wordCount) upperHalf = dividend.words[j + vInd + 1];
+					int128 curDigits(upperHalf, dividend.words[j + vInd]);
+					// simply continue, because all of the words are already set to zero
+					if (curDigits < rhs.words[vInd]) continue;
+					// quotient estimate and remainder
+					int128 qEst = curDigits / rhs.words[vInd];
+					int128 rem = curDigits - qEst * rhs.words[vInd];
+					if (qEst > UINT64_MAX ||
+					(qEst * rhs.words[vInd - 1]) > (rem*UINT64_MAX + dividend.words[j + vInd - 1])) {
+						qEst -= 1;
+						rem += rhs.words[vInd];
+						// repeat the test until it fails (rem > UINT64_MAX results in failure)
+						while (rem <= UINT64_MAX) {
+							if ((qEst * rhs.words[vInd - 1]) > (rem*UINT64_MAX + dividend.words[j + vInd - 1])) {
+								qEst -= 1;
+								rem += rhs.words[vInd];
+							} else {
+								break;
+							}
+						}
+					}
+					int_limited diff = rhs * uint64_t(qEst);
+					// gets the most significant 32 bits, even if the bitSize isn't a multiple of 32
+					uint64_t extraDiff = uint64_t((qEst * uint64_t(dividend >> (bitSize - 32))) >> 64);
+					// subtract diff manually, since the values have the same precision, but are offset
+					bool borrow = false;
+					for (int curInd = diff.LSW; curInd <= vInd; curInd++) {
+						bool flag1 = diff.words[curInd] > dividend.words[j + curInd];
+						bool flag2 = (diff.words[curInd] == dividend.words[j + curInd]) && borrow;
+						dividend.words[j + curInd] -= diff.words[curInd] + borrow;
+						borrow = flag1 || flag2;
+					}
+					// diff can have up to (vInd + 1) words of information
+					// so we need to check the boundaries as well
+					if (vInd + 1 <= diff.wordCount) {
+						uint64_t divWord = extraWord;
+						uint64_t diffWord = extraDiff;
+						if (j + vInd + 1 < dividend.wordCount) divWord = dividend.words[j + vInd + 1];
+						if (vInd + 1 < diff.wordCount) diffWord = diff.words[vInd + 1];
+						bool flag1 = diffWord > divWord;
+						bool flag2 = (diffWord == divWord) && borrow;
+						divWord -= diffWord + borrow;
+						borrow = flag1 || flag2;
+					}
+					this->words[j] = uint64_t(qEst);
+
+					// If the result is negative, add the divisor back once
+					if (borrow) {
+						this->words[j] -= 1;
+						// check overflow for most significant word
+						char flag1 = (dividend < 0) + (rhs < 0);
+						dividend += rhs;
+						bool flag2 = (dividend >= 0);
+						bool carry = (flag1 + flag2) > 1;
+						// Don't check for another carry, because it cancels out the borrow
+						extraWord += carry;
+					}
+				}
+
 				this->updateLSW(potentialLSW);
 				this->updateMSW(potentialMSW);
 				if (negative) *this = ~(*this) + 1;
-				// std::cout << (uint64_t)(*this >> 128) << " " << (uint64_t)(*this >> 64) << " " << (uint64_t)(*this) << std::endl;
 				return *this;
 			}
 			int_limited operator/ (int_limited const& rhs) {
