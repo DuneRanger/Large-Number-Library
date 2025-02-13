@@ -294,20 +294,31 @@ namespace largeNumberLibrary {
 				while (v[vInd] == 0) vInd--;
 				while (u[uInd] == 0) uInd--;
 				
-				// if v is less than 16 bits
-				// then shift u and v by 16 for a more accurate quotient estimate
-				// (this later requires at least 144 bit accuracy for u)
-				if (v[vInd] < (1 << 16)) {
-					// the original divisor is also shifted to help calculate the remainder faster
-					divisor <<= 16;
-					v[vInd] <<= 16;
+				// the most significant word of v has to be at least 31 bits
+				// the following code counts the number of leading zeros
+				// inspired by https://stackoverflow.com/revisions/66486689/4
+				uint64_t copyDiv = v[vInd];
+				int shiftCount = 32;
+				for (int curShift = 16; curShift > 1; curShift/=2) {
+					int y = copyDiv >> curShift;
+					if (y != 0) {
+						shiftCount -= curShift;
+						copyDiv = y;
+					}
+				}
+				if (copyDiv >> 1 != 0) shiftCount -= 2;
+				else shiftCount -= copyDiv;
+				// the original divisor is also shifted to help calculate the remainder faster
+				if (shiftCount > 0) {
+					divisor <<= shiftCount;
+					v[vInd] <<= shiftCount;
 					for (int curInd = vInd; curInd > 0; curInd--) {
-						v[curInd] |= v[curInd - 1] >> 16;
-						v[curInd - 1] <<= 16;
+						v[curInd] |= v[curInd - 1] >> (32 - shiftCount);
+						v[curInd - 1] <<= shiftCount;
 					}
 					for (int curInd = 4; curInd > 0; curInd--) {
-						u[curInd] |= u[curInd - 1] >> 16;
-						u[curInd - 1] <<= 16;
+						u[curInd] |= u[curInd - 1] >> (32 - shiftCount);
+						u[curInd - 1] <<= shiftCount;
 					}
 				}
 				// uInd shouldn't be updated after the shift
@@ -430,22 +441,31 @@ namespace largeNumberLibrary {
 				while (u[uInd] == 0) uInd--;
 				while (v[vInd] == 0) vInd--;
 				
-				// if v is less than 16 bits
-				// then shift u and v by 16 for a more accurate quotient estimate
-				// (this later requires at least 144 bit accuracy for u)
-				bool shifted = false;
-				if (v[vInd] < (1 << 16)) {
-					shifted = true;
-					// the original divisor is also shifted to help calculate the remainder faster
-					divisor <<= 16;
-					v[vInd] <<= 16;
+				// the most significant word of v has to be at least 31 bits
+				// the following code counts the number of leading zeros
+				// inspired by https://stackoverflow.com/revisions/66486689/4
+				uint64_t copyDiv = v[vInd];
+				int shiftCount = 32;
+				for (int curShift = 16; curShift > 1; curShift/=2) {
+					int y = copyDiv >> curShift;
+					if (y != 0) {
+						shiftCount -= curShift;
+						copyDiv = y;
+					}
+				}
+				if (copyDiv >> 1 != 0) shiftCount -= 2;
+				else shiftCount -= copyDiv;
+				// the original divisor is also shifted to help calculate the remainder faster
+				if (shiftCount > 0) {
+					divisor <<= shiftCount;
+					v[vInd] <<= shiftCount;
 					for (int curInd = vInd; curInd > 0; curInd--) {
-						v[curInd] |= v[curInd - 1] >> 16;
-						v[curInd - 1] <<= 16;
+						v[curInd] |= v[curInd - 1] >> (32 - shiftCount);
+						v[curInd - 1] <<= shiftCount;
 					}
 					for (int curInd = 4; curInd > 0; curInd--) {
-						u[curInd] |= u[curInd - 1] >> 16;
-						u[curInd - 1] <<= 16;
+						u[curInd] |= u[curInd - 1] >> (32 - shiftCount);
+						u[curInd - 1] <<= shiftCount;
 					}
 				}
 				// uInd shouldn't be updated after the shift
@@ -499,12 +519,11 @@ namespace largeNumberLibrary {
 						u[j + vInd + 1] += carry;
 					}
 				}
-				if (shifted) {
-					B1 = (uint64_t(u[4]) << 48) | (uint64_t(u[3]) << 16) | (uint64_t(u[2]) >> 16);
-					B0 = (uint64_t(u[2]) << 48) | (uint64_t(u[1]) << 16) | (uint64_t(u[0]) >> 16);
-				} else {
-					B1 = (uint64_t(u[3]) << 32) | u[2];
-					B0 = (uint64_t(u[1]) << 32) | u[0];
+				B1 = (uint64_t(u[3]) << 32) | u[2];
+				B0 = (uint64_t(u[1]) << 32) | u[0];
+				if (shiftCount != 0) {
+					*this >>= shiftCount;
+					B1 |= uint64_t(u[4]) << (64 - shiftCount);
 				}
 				
 				if (sign) *this = ~*this + 1;
