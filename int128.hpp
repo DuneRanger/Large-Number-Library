@@ -322,13 +322,14 @@ namespace largeNumberLibrary {
 					// quotient estimate and remainder
 					uint64_t qEst = curDigits / v[vInd];
 					uint64_t rem = curDigits - qEst * v[vInd];
-					if (qEst >= UINT32_MAX || 
+					if (qEst > UINT32_MAX || 
 					(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 						qEst--;
 						rem += v[vInd];
 						// repeat the test until it fails (rem > UINT32_MAX results in failure)
 						while (rem <= UINT32_MAX) {
-							if ((qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
+							if (qEst > UINT32_MAX ||
+							(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 								qEst--;
 								rem += v[vInd];
 							} else {
@@ -352,6 +353,10 @@ namespace largeNumberLibrary {
 					q[j] = qEst;
 					// If the result is negative, add the divisor back once
 					if (borrow) {
+						// 32-bit complement
+						for (int curInd = 0; curInd <= vInd + 1; curInd++) {
+							u[j + curInd] = UINT32_MAX - diff[curInd];
+						}
 						q[j]--;
 						bool carry = false;
 						for (int curInd = 0; curInd <= vInd; curInd++) {
