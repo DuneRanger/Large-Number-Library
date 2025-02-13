@@ -289,10 +289,10 @@ namespace largeNumberLibrary {
 				std::vector<uint32_t> u = {uint32_t(dividend.B0 & UINT32_MAX), uint32_t(dividend.B0 >> 32), uint32_t(dividend.B1 & UINT32_MAX), uint32_t(dividend.B1 >> 32), 0};
 				std::vector<uint32_t> v = {uint32_t(divisor.B0 & UINT32_MAX), uint32_t(divisor.B0 >> 32), uint32_t(divisor.B1 & UINT32_MAX), uint32_t(divisor.B1 >> 32)};
 				std::vector<uint32_t> q = {0, 0, 0, 0};
-				int vInd = 3;
 				int uInd = 4;
-				while (v[vInd] == 0) vInd--;
+				int vInd = 3;
 				while (u[uInd] == 0) uInd--;
+				while (v[vInd] == 0) vInd--;
 				
 				// the most significant word of v has to be at least 31 bits
 				// the following code counts the number of leading zeros
@@ -309,7 +309,7 @@ namespace largeNumberLibrary {
 				if (copyDiv >> 1 != 0) shiftCount -= 2;
 				else shiftCount -= copyDiv;
 				// the original divisor is also shifted to help calculate the remainder faster
-				if (shiftCount > 0) {
+				if (shiftCount != 0) {
 					divisor <<= shiftCount;
 					v[vInd] <<= shiftCount;
 					for (int curInd = vInd; curInd > 0; curInd--) {
@@ -339,8 +339,7 @@ namespace largeNumberLibrary {
 						rem += v[vInd];
 						// repeat the test until it fails (rem > UINT32_MAX results in failure)
 						while (rem <= UINT32_MAX) {
-							if (qEst > UINT32_MAX ||
-							(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
+							if ((qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 								qEst--;
 								rem += v[vInd];
 							} else {
@@ -366,7 +365,7 @@ namespace largeNumberLibrary {
 					if (borrow) {
 						// 32-bit complement
 						for (int curInd = 0; curInd <= vInd + 1; curInd++) {
-							u[j + curInd] = UINT32_MAX - diff[curInd];
+							u[j + curInd] = UINT32_MAX - u[j + curInd];
 						}
 						q[j]--;
 						bool carry = false;
@@ -473,9 +472,7 @@ namespace largeNumberLibrary {
 				
 				for (int j = uInd - vInd; j >= 0; j--) {
 					uint64_t curDigits = ((uint64_t(u[j + vInd + 1]) << 32) | u[j + vInd]);
-					if (uint64_t(v[vInd]) > curDigits) {
-						continue;
-					}
+					if (uint64_t(v[vInd]) > curDigits) continue;
 					// quotient estimate and remainder
 					uint64_t qEst = curDigits / v[vInd];
 					uint64_t rem = curDigits - qEst * v[vInd];
@@ -485,7 +482,8 @@ namespace largeNumberLibrary {
 						rem += v[vInd];
 						// repeat the test until it fails (rem > UINT32_MAX results in failure)
 						while (rem <= UINT32_MAX) {
-							if ((qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
+							if (qEst > UINT32_MAX ||
+							(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 								qEst--;
 								rem += v[vInd];
 							} else {
@@ -508,13 +506,17 @@ namespace largeNumberLibrary {
 					}
 					// If the result is negative, add the divisor back once
 					if (borrow) {
+						// 32-bit complement
+						for (int curInd = 0; curInd <= vInd + 1; curInd++) {
+							u[j + curInd] = UINT32_MAX - u[j + curInd];
+						}
 						bool carry = false;
 						for (int curInd = 0; curInd <= vInd; curInd++) {
 							// INT32_MIN in this context is BIT32_ON
 							char flag1 = (v[curInd] >= INT32_MIN) + (u[j + curInd] >= INT32_MIN);
 							u[j + curInd] += v[curInd] + carry;
 							bool flag2 = u[j + curInd] < INT32_MIN;
-							carry = (flag1 + flag2 > 1);
+							carry = (flag1 + flag2) > 1;
 						}
 						u[j + vInd + 1] += carry;
 					}
@@ -523,7 +525,6 @@ namespace largeNumberLibrary {
 				B0 = (uint64_t(u[1]) << 32) | u[0];
 				if (shiftCount != 0) {
 					*this >>= shiftCount;
-					B1 |= uint64_t(u[4]) << (64 - shiftCount);
 				}
 				
 				if (sign) *this = ~*this + 1;
