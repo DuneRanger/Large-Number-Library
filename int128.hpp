@@ -290,7 +290,9 @@ namespace largeNumberLibrary {
 				std::vector<uint32_t> v = {uint32_t(divisor.B0 & UINT32_MAX), uint32_t(divisor.B0 >> 32), uint32_t(divisor.B1 & UINT32_MAX), uint32_t(divisor.B1 >> 32)};
 				std::vector<uint32_t> q = {0, 0, 0, 0};
 				int vInd = 3;
+				int uInd = 4;
 				while (v[vInd] == 0) vInd--;
+				while (u[uInd] == 0) uInd--;
 				
 				// if v is less than 16 bits
 				// then shift u and v by 16 for a more accurate quotient estimate
@@ -308,9 +310,9 @@ namespace largeNumberLibrary {
 						u[curInd - 1] <<= 16;
 					}
 				}
-				int uInd = 4;
-				while (u[uInd] == 0) uInd--;
-				
+				// uInd shouldn't be updated after the shift
+				// Because the original value is required for j
+
 				for (int j = uInd - vInd; j >= 0; j--) {
 					uint64_t curDigits = ((uint64_t(u[j + vInd + 1]) << 32) | u[j + vInd]);
 					if (uint64_t(v[vInd]) > curDigits) {
@@ -320,13 +322,13 @@ namespace largeNumberLibrary {
 					// quotient estimate and remainder
 					uint64_t qEst = curDigits / v[vInd];
 					uint64_t rem = curDigits - qEst * v[vInd];
-					if (qEst == (uint64_t(1) << 32) || 
-					(qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+					if (qEst >= UINT32_MAX || 
+					(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 						qEst--;
 						rem += v[vInd];
 						// repeat the test until it fails (rem > UINT32_MAX results in failure)
 						while (rem <= UINT32_MAX) {
-							if ((qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+							if ((qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 								qEst--;
 								rem += v[vInd];
 							} else {
@@ -350,7 +352,6 @@ namespace largeNumberLibrary {
 					q[j] = qEst;
 					// If the result is negative, add the divisor back once
 					if (borrow) {
-						std::cout << "her" << std::endl;
 						q[j]--;
 						bool carry = false;
 						for (int curInd = 0; curInd <= vInd; curInd++) {
@@ -358,7 +359,7 @@ namespace largeNumberLibrary {
 							char flag1 = (v[curInd] >= INT32_MIN) + (u[j + curInd] >= INT32_MIN);
 							u[j + curInd] += v[curInd] + carry;
 							bool flag2 = u[j + curInd] < INT32_MIN;
-							carry = (flag1 + flag2 > 1);
+							carry = (flag1 + flag2) > 1;
 						}
 						u[j + vInd + 1] += carry;
 					}
@@ -419,7 +420,9 @@ namespace largeNumberLibrary {
 				// u is the dividend, v is the divisor, the remainder will be in u at the end
 				std::vector<uint32_t> u = {uint32_t(dividend.B0 & UINT32_MAX), uint32_t(dividend.B0 >> 32), uint32_t(dividend.B1 & UINT32_MAX), uint32_t(dividend.B1 >> 32), 0};
 				std::vector<uint32_t> v = {uint32_t(divisor.B0 & UINT32_MAX), uint32_t(divisor.B0 >> 32), uint32_t(divisor.B1 & UINT32_MAX), uint32_t(divisor.B1 >> 32)};
+				int uInd = 4;
 				int vInd = 3;
+				while (u[uInd] == 0) uInd--;
 				while (v[vInd] == 0) vInd--;
 				
 				// if v is less than 16 bits
@@ -440,8 +443,8 @@ namespace largeNumberLibrary {
 						u[curInd - 1] <<= 16;
 					}
 				}
-				int uInd = 4;
-				while (u[uInd] == 0) uInd--;
+				// uInd shouldn't be updated after the shift
+				// Because the original value is required for j
 				
 				for (int j = uInd - vInd; j >= 0; j--) {
 					uint64_t curDigits = ((uint64_t(u[j + vInd + 1]) << 32) | u[j + vInd]);
@@ -451,13 +454,13 @@ namespace largeNumberLibrary {
 					// quotient estimate and remainder
 					uint64_t qEst = curDigits / v[vInd];
 					uint64_t rem = curDigits - qEst * v[vInd];
-					if (qEst == (uint64_t(1) << 32) || 
-					(qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+					if (qEst > UINT32_MAX || 
+					(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 						qEst--;
 						rem += v[vInd];
 						// repeat the test until it fails (rem > UINT32_MAX results in failure)
 						while (rem <= UINT32_MAX) {
-							if ((qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+							if ((qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 								qEst--;
 								rem += v[vInd];
 							} else {
@@ -480,7 +483,6 @@ namespace largeNumberLibrary {
 					}
 					// If the result is negative, add the divisor back once
 					if (borrow) {
-						std::cout << "her" << std::endl;
 						bool carry = false;
 						for (int curInd = 0; curInd <= vInd; curInd++) {
 							// INT32_MIN in this context is BIT32_ON
