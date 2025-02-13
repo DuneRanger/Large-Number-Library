@@ -211,6 +211,8 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 1000, uint64_t randState 
 			myInt128 myResult = testNumbersMyInt[i] % testNumbersMyInt[j];
 			if (!twoInt128TypesEqual<boostInt128, myInt128>(boostResult, myResult)) {
 				std::cout << "FAILED: " << testNumbersBoost[i] << " % " << testNumbersBoost[j] << std::endl;
+				printInt128Words<myInt128>(testNumbersMyInt[i]);
+				printInt128Words<myInt128>(testNumbersMyInt[j]);
 				printInt128Words<boostInt128>(boostResult);
 				printInt128Words<myInt128>(myResult);
 				return false;
@@ -227,7 +229,7 @@ bool verifyCorrectnessOfMyInt128(int testNumberCount = 1000, uint64_t randState 
 std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t randState = 1) {
 	std::cout << std::endl;
 	// std::cout << "====================================================================================================" << std::endl;
-	std::cout << "BENCHMARKING Boost Int128 ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "BENCHMARKING Boost Int128 ON " << uint64_t(testNumberCount)*testNumberCount << " CASES" << std::endl;
 	// std::cout << "====================================================================================================" << std::endl;
 
 	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
@@ -243,7 +245,7 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 	auto start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
-
+			if (boostResult == 1) std::cout << boostResult << std::endl;
 		}
 	}
 	auto end_time = std::chrono::steady_clock::now();
@@ -262,7 +264,7 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
 	results.push_back(duration.count() - emptyLoop.count());
 
-	std::cout << "MEASURING SUBSTRACTION: ";
+	std::cout << "MEASURING SUBTRACTION: ";
 	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
@@ -323,7 +325,7 @@ std::vector<double> speedBenchmarkBoost(int testNumberCount = 3000, uint64_t ran
 template <typename myInt128>
 std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t randState = 1) {
 	// std::cout << "====================================================================================================" << std::endl;
-	std::cout << "BENCHMARKING " << myInt128::className() << " ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "BENCHMARKING " << myInt128::className() << " ON " << uint64_t(testNumberCount)*testNumberCount << " CASES" << std::endl;
 	// std::cout << "====================================================================================================" << std::endl;
 
 	std::cout << "GENERATING TEST NUMBERS..." << std::endl;
@@ -339,7 +341,7 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 	auto start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
-
+			if (myResult == 1) std::cout << myResult << std::endl;
 		}
 	}
 	auto end_time = std::chrono::steady_clock::now();
@@ -358,7 +360,7 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 	std::cout << duration.count() - emptyLoop.count() << " seconds" << std::endl;
 	results.push_back(duration.count() - emptyLoop.count());
 
-	std::cout << "MEASURING SUBSTRACTION: ";
+	std::cout << "MEASURING SUBTRACTION: ";
 	start_time = std::chrono::steady_clock::now();
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
@@ -417,7 +419,7 @@ std::vector<double> speedBenchmarkMyInt(int testNumberCount = 3000, uint64_t ran
 
 std::vector<double> averageBenchmarkBoost(int testNumberCount = 3000, int iterations = 5) {
 	std::cout << "====================================================================================================" << std::endl;
-	std::cout << "CONDUCTING " << iterations << " BENCHMARKS OF Boost Int128 ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "CONDUCTING " << iterations << " BENCHMARKS OF Boost Int128 ON " << uint64_t(testNumberCount)*testNumberCount << " CASES" << std::endl;
 	std::cout << "====================================================================================================" << std::endl;
 	
 	uint64_t randState = 1;
@@ -431,7 +433,7 @@ std::vector<double> averageBenchmarkBoost(int testNumberCount = 3000, int iterat
 		for (int j = 0; j < results.size(); j++) {
 			operationTimes[j] += results[j];
 		}
-		randState += testNumberCount*testNumberCount + 1;
+		randState += uint64_t(testNumberCount)*testNumberCount + 1;
 	}
 	for (int i = 0; i < operationTimes.size(); i++) {
 		operationTimes[i] /= iterations;
@@ -443,7 +445,7 @@ std::vector<double> averageBenchmarkBoost(int testNumberCount = 3000, int iterat
 template <typename myInt128>
 std::vector<double> averageBenchmarkMyInt128(int testNumberCount = 3000, int iterations = 5) {
 	std::cout << "====================================================================================================" << std::endl;
-	std::cout << "CONDUCTING " << iterations << " BENCHMARKS OF " << myInt128::className() << " ON " << testNumberCount*testNumberCount << " CASES" << std::endl;
+	std::cout << "CONDUCTING " << iterations << " BENCHMARKS OF " << myInt128::className() << " ON " << uint64_t(testNumberCount)*testNumberCount << " CASES" << std::endl;
 	std::cout << "====================================================================================================" << std::endl;
 	
 	uint64_t randState = 1;
@@ -457,7 +459,7 @@ std::vector<double> averageBenchmarkMyInt128(int testNumberCount = 3000, int ite
 		for (int j = 0; j < results.size(); j++) {
 			operationTimes[j] += results[j];
 		}
-		randState += testNumberCount*testNumberCount + 1;
+		randState += uint64_t(testNumberCount)*testNumberCount + 1;
 	}
 	std::cout << std::endl;
 	for (int i = 0; i < operationTimes.size(); i++) {
