@@ -3,6 +3,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <bitset>
+#include <boost/multiprecision/cpp_int.hpp>
+typedef boost::multiprecision::cpp_int boostInt;
 #include "./int128.hpp"
 
 
@@ -592,8 +595,10 @@ namespace largeNumberLibrary {
 				}
 				if (copyDiv >> 1 != 0) shiftCount -= 2;
 				else shiftCount -= copyDiv;
+				if (shiftCount == 0) shiftCount = 64;
+				else shiftCount -= 1;
 				// Reduce the shift to the minimum threshold, so as to not have negative values due to overflow
-				shiftCount = std::max(0, shiftCount - 1);
+				// shiftCount = std::max(0, shiftCount - 1);
 				// the original divisor is also shifted to help calculate the remainder faster
 				if (shiftCount != 0) {
 					divisor <<= shiftCount;
@@ -602,9 +607,40 @@ namespace largeNumberLibrary {
 				
 				for (int j = m; j >= 0; j--) {
 					int128 curDigits(dividend.words[j + vInd + 1], dividend.words[j + vInd]);
+					// if (curDigits < divisor.words[vInd]) {
+					// 	std::cout << curDigits << std::endl;
+					// 	std::cout << divisor.words[vInd] << std::endl;
+					// 	continue;
+					// };
 					// quotient estimate and remainder
+					boostInt a = dividend.words[j + vInd + 1];
+					a <<= 64;
+					a += dividend.words[j + vInd];
+					if (curDigits < 0) {
+						curDigits >>= 1;
+						a >>= 1;
+					}
 					int128 qEst = curDigits / divisor.words[vInd];
+					a /= divisor.words[vInd];
+					if (uint64_t(a) != uint64_t(qEst) || uint64_t(a >> 64) != uint64_t(qEst >> 64)) {
+						std::cout << "tTAG j: " << j << "/" << m << std::endl;
+						std::cout << a << std::endl;
+						std::cout << qEst << std::endl;
+						std::cout << uint64_t(a >> 64) << " " << uint64_t(a) << std::endl;
+						std::cout << uint64_t(qEst >> 64) << " " << uint64_t(qEst) << std::endl;
+						std::cout << curDigits << std::endl;
+						std::cout << uint64_t(curDigits >> 64) << " " << uint64_t(curDigits) << std::endl;
+						std::cout << std::bitset<64>(divisor.words[vInd]) << std::endl;
+					}
+					// if (dividend.words[j + vInd + 1] >= divisor.words[vInd]) qEst = UINT64_MAX;
 					int128 rem = curDigits - qEst * divisor.words[vInd];
+					if (qEst > UINT64_MAX) {
+						std::cout << "qEst > UINT64_MAX: " << std::endl;
+						std::cout << uint64_t(qEst >> 64) << " " << uint64_t(qEst) << std::endl;
+						std::cout << uint64_t(curDigits >> 64) << " " << uint64_t(curDigits) << std::endl;
+						std::cout << divisor.words[vInd] << std::endl;
+					}
+					// qEst should be at most (UINT64_MAX + 1)
 					if (qEst > UINT64_MAX ||
 					(qEst * divisor.words[vInd - 1]) > ((rem << 64) | dividend.words[j + vInd - 1])) {
 						qEst -= 1;
@@ -620,8 +656,12 @@ namespace largeNumberLibrary {
 							}
 						}
 					}
+					// std::cout << qEst << std::endl;
+					// std::cout << rem << std::endl;
+					// std::cout << divisor.MSW << " " << (divisor.wordCount - 1) << std::endl;
 					int_limited<bitSize + 64> diff = divisor * uint64_t(qEst);
-					// subtract diff manually, since the values have the same precision, but are offset
+					// std::cout << "div: " << divisor.words[2] << " " << divisor.words[1] << " " << divisor.words[0] << std::endl;
+					// std::cout << "diff: " << diff.words[2] << " " << diff.words[1] << " " << diff.words[0] << std::endl;
 					// Subtract diff manually, since the values have the same precision, but are offset
 					// Also because we aren't supposed to propagate the borrow all the way to the left
 					bool borrow = false;
@@ -658,11 +698,17 @@ namespace largeNumberLibrary {
 						dividend.updateMSW(std::max(dividend.MSW, vInd + 1));
 						dividend.updateLSW(std::min(dividend.LSW, divisor.LSW));
 					}
+					// if (dividend.words[j + vInd + 1] != 0) {
+					// 	std::cout << "sdfsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss";
+					// 	std::cout << std::endl << dividend.words[j + vInd + 1] << std::endl;
+					// }
+					// std::cout << std::endl;
 				}
 
 				this->updateLSW(potentialLSW);
 				this->updateMSW(potentialMSW);
 				if (negative) *this = ~(*this) + 1;
+				// std::cout << std::endl;
 				return *this;
 			}
 			int_limited operator/ (int_limited const& rhs) {
