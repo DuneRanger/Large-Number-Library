@@ -46,7 +46,7 @@ namespace largeNumberLibrary {
 			Simple Multiplication DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Helper
 
 			void truncateExtraBits() {
 				int bitsInMSW = bitSize % 64;
@@ -170,7 +170,7 @@ namespace largeNumberLibrary {
 				this->updateMSW(A.MSW + B.MSW + 1);
 				return *this;
 			}
-			#pragma endregion
+			#pragma endregion Helper
 
 		public:
 			/*
@@ -196,7 +196,7 @@ namespace largeNumberLibrary {
 			exportBits DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Construction
 
 			// Accepts conversions from individual standard int types (doesn't change MSW and LSW)
 			// To convert multiple integers of a type into an int_limited
@@ -335,7 +335,7 @@ namespace largeNumberLibrary {
 			std::vector<uint64_t> exportBits() {
 				return this->words;
 			}
-			#pragma endregion
+			#pragma endregion Construction
 
 
 			/*
@@ -346,7 +346,7 @@ namespace largeNumberLibrary {
 			<< (insertion to stream) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Printing
 
 			static std::string className() {
 				return "largeNumberLibrary::int_limited<" + std::to_string(bitSize) + ">";
@@ -405,7 +405,7 @@ namespace largeNumberLibrary {
 				os << num.toString();
 				return os;
 			}
-			#pragma endregion
+			#pragma endregion Printing
 
 
 			/*
@@ -419,7 +419,7 @@ namespace largeNumberLibrary {
 			respective compound operators (+=, -=, *=, /=, %=) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Arithmetic
 			
 			int_limited& operator+= (int_limited const& rhs) {
 				bool carry = false;
@@ -560,10 +560,6 @@ namespace largeNumberLibrary {
 					rhs <<= 1;
 					shiftCounter <<= 1;
 				}
-<<<<<<< Updated upstream
-				rhs >>= 1;
-				shiftCounter >>= 1;
-=======
 				if (copyDiv >> 1 != 0) shiftCount -= 2;
 				else shiftCount -= copyDiv;
 				if (shiftCount == 0) shiftCount = 64;
@@ -645,34 +641,24 @@ namespace largeNumberLibrary {
 					dividend.updateMSW(dividend.MSW);
 					dividend.updateMSW(std::min(dividend.LSW, diff.LSW));
 					this->words[j] = uint64_t(qEst);
->>>>>>> Stashed changes
 
 				while (shiftCounter > 0) {
 					if (rhs <= dividend) {
 						dividend -= rhs;
 						*this |= shiftCounter;
 					}
-<<<<<<< Updated upstream
-					rhs >>= 1;
-					shiftCounter >>= 1;
-=======
 					// if (dividend.words[j + vInd + 1] != 0) {
 					// 	std::cout << "sdfsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss";
 					// 	std::cout << std::endl << dividend.words[j + vInd + 1] << std::endl;
 					// }
 					// std::cout << std::endl;
 				}
->>>>>>> Stashed changes
 
 				}
 				this->updateLSW(potentialLSW);
 				this->updateMSW(potentialMSW);
 				if (negative) *this = ~(*this) + 1;
-<<<<<<< Updated upstream
-				// std::cout << (uint64_t)(*this >> 128) << " " << (uint64_t)(*this >> 64) << " " << (uint64_t)(*this) << std::endl;
-=======
 				// std::cout << std::endl;
->>>>>>> Stashed changes
 				return *this;
 			}
 			int_limited operator/ (int_limited const& rhs) {
@@ -734,7 +720,7 @@ namespace largeNumberLibrary {
 				int_limited result = *this;
 				return result %= rhs;
 			}
-			#pragma endregion
+			#pragma endregion Arithmetic
 
 			/*
 			SECTION: BITWISE OPERATORS
@@ -748,7 +734,7 @@ namespace largeNumberLibrary {
 			respective compound operators (^=, |=, &=, <<=, >>=) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Bitwise
 
 			int_limited& operator^= (int_limited const& rhs) {
 				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
@@ -837,7 +823,7 @@ namespace largeNumberLibrary {
 				int_limited result = *this;
 				return result >>= rhs;
 			}
-			#pragma endregion
+			#pragma endregion Bitwise
 
 
 			/*
@@ -851,7 +837,7 @@ namespace largeNumberLibrary {
 			<= (less-than-or-equal-to) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Relational
 
 			bool operator== (int_limited const& rhs) {
 				// If they don't have 1's in the same words, return false
@@ -903,7 +889,7 @@ namespace largeNumberLibrary {
 			bool operator<= (int_limited const& rhs) {
 				return !(*this > rhs);
 			}
-			#pragma endregion
+			#pragma endregion Relational
 
 			/*
 			SECTION: LOGICAL OPERATORS
@@ -916,7 +902,7 @@ namespace largeNumberLibrary {
 			For most cases it only compares MSW and LSW (or subsequently also word[0])
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Logical
 			// returns *this == 0
 			bool operator! () {
 				if (!!this->MSW) return false;
@@ -930,7 +916,7 @@ namespace largeNumberLibrary {
 				// if *this or rhs are non-zero
 				return (!!(*this)) || (!!(rhs));
 			}
-			#pragma endregion
+			#pragma endregion Logical
 	};
 
 	typedef int_limited<256> int256;
