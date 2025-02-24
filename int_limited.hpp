@@ -43,7 +43,7 @@ namespace largeNumberLibrary {
 			Simple Multiplication DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Helper
 
 			void truncateExtraBits() {
 				int bitsInMSW = bitSize % 64;
@@ -167,7 +167,7 @@ namespace largeNumberLibrary {
 				this->updateMSW(A.MSW + B.MSW + 1);
 				return *this;
 			}
-			#pragma endregion
+			#pragma endregion Helper
 
 		public:
 			/*
@@ -193,7 +193,7 @@ namespace largeNumberLibrary {
 			exportBits DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Construction
 
 			// Accepts conversions from individual standard int types (doesn't change MSW and LSW)
 			// To convert multiple integers of a type into an int_limited
@@ -332,7 +332,7 @@ namespace largeNumberLibrary {
 			std::vector<uint64_t> exportBits() {
 				return this->words;
 			}
-			#pragma endregion
+			#pragma endregion Construction
 
 
 			/*
@@ -343,7 +343,7 @@ namespace largeNumberLibrary {
 			<< (insertion to stream) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Printing
 
 			static std::string className() {
 				return "largeNumberLibrary::int_limited<" + std::to_string(bitSize) + ">";
@@ -402,7 +402,7 @@ namespace largeNumberLibrary {
 				os << num.toString();
 				return os;
 			}
-			#pragma endregion
+			#pragma endregion Printing
 
 
 			/*
@@ -416,7 +416,7 @@ namespace largeNumberLibrary {
 			respective compound operators (+=, -=, *=, /=, %=) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Arithmetic
 			
 			int_limited& operator+= (int_limited const& rhs) {
 				bool carry = false;
@@ -634,7 +634,7 @@ namespace largeNumberLibrary {
 				int_limited result = *this;
 				return result %= rhs;
 			}
-			#pragma endregion
+			#pragma endregion Arithmetic
 
 			/*
 			SECTION: BITWISE OPERATORS
@@ -648,7 +648,7 @@ namespace largeNumberLibrary {
 			respective compound operators (^=, |=, &=, <<=, >>=) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Bitwise
 
 			int_limited& operator^= (int_limited const& rhs) {
 				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
@@ -737,7 +737,7 @@ namespace largeNumberLibrary {
 				int_limited result = *this;
 				return result >>= rhs;
 			}
-			#pragma endregion
+			#pragma endregion Bitwise
 
 
 			/*
@@ -751,7 +751,7 @@ namespace largeNumberLibrary {
 			<= (less-than-or-equal-to) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Relational
 
 			bool operator== (int_limited const& rhs) {
 				// If they don't have 1's in the same words, return false
@@ -803,7 +803,7 @@ namespace largeNumberLibrary {
 			bool operator<= (int_limited const& rhs) {
 				return !(*this > rhs);
 			}
-			#pragma endregion
+			#pragma endregion Relational
 
 			/*
 			SECTION: LOGICAL OPERATORS
@@ -816,7 +816,7 @@ namespace largeNumberLibrary {
 			For most cases it only compares MSW and LSW (or subsequently also word[0])
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Logical
 			// returns *this == 0
 			bool operator! () {
 				if (!!this->MSW) return false;
@@ -830,7 +830,7 @@ namespace largeNumberLibrary {
 				// if *this or rhs are non-zero
 				return (!!(*this)) || (!!(rhs));
 			}
-			#pragma endregion
+			#pragma endregion Logical
 	};
 
 	typedef int_limited<256> int256;
