@@ -7,10 +7,12 @@
 
 
 namespace largeNumberLibrary {
+	// equivalent to INT32_MIN
+	constexpr uint32_t BIT32_ON = 0x80000000;
 
 	// Two's complement
 	// Constructs a vector of 64 bit unsigned integers, so that the specified bit size fits
-	// If the bitSize isn't a multiple of 64, operations will still be processed for all 64 bits of the most significant word
+	// If the bitSize isn't a multiple of 32, operations will still be processed for all 32 bits of the most significant word
 	// However overflow will still occur if the value were to surpass the bitSize
 	// Comparisons will also ignore any extra bits above the bitSize
 	// No further optimizations are made on the most significant word (even if the instance only has 1 word)
@@ -18,11 +20,11 @@ namespace largeNumberLibrary {
 	template <int bitSize>
 	class int_limited {
 		private:
-			const int wordCount = bitSize/64 + (bitSize%64 > 0);
+			const int wordCount = bitSize/32 + (bitSize%32 > 0);
 
 			// LSb first
 			// The most significant word is the last one
-			std::vector<uint64_t> words = std::vector<uint64_t>(wordCount, 0);
+			std::vector<uint32_t> words = std::vector<uint32_t>(wordCount, 0);
 
 			// Most and Least Significant Word containing a non-zero bit
 			// Used for a optimization for arithmetic operations
