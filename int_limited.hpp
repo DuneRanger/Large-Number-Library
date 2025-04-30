@@ -48,9 +48,9 @@ namespace largeNumberLibrary {
 			#pragma region Helper
 
 			void truncateExtraBits() {
-				int bitsInMSW = bitSize % 64;
+				int bitsInMSW = bitSize % 32;
 				if (bitsInMSW == 0) return;
-				this->words[this->wordCount-1] &= UINT64_MAX >> (64 - bitsInMSW);
+				this->words[this->wordCount-1] &= UINT32_MAX >> (32 - bitsInMSW);
 				if (this->words[this->wordCount-1] == 0 && this->wordCount > 1) this->updateMSW(this->MSW);
 				return;
 			}
@@ -108,7 +108,7 @@ namespace largeNumberLibrary {
 			void bitShiftLeft(int wordIndex, int shift) {
 				if (shift == 0) return;
 				if (wordIndex + 1 < this->wordCount) {
-					this->words[wordIndex + 1] |= this->words[wordIndex] >> (64 - shift);
+					this->words[wordIndex + 1] |= this->words[wordIndex] >> (32 - shift);
 				}
 				this->words[wordIndex] <<= shift;
 				return;
@@ -118,7 +118,7 @@ namespace largeNumberLibrary {
 			void bitShiftRight(int wordIndex, int shift) {
 				if (shift == 0) return;
 				if (wordIndex - 1 > -1) {
-					this->words[wordIndex - 1] |= this->words[wordIndex] << (64 - shift);
+					this->words[wordIndex - 1] |= this->words[wordIndex] << (32 - shift);
 				}
 				this->words[wordIndex] >>= shift;
 				return;
@@ -127,7 +127,7 @@ namespace largeNumberLibrary {
 			int_limited& basicMult(int_limited const& A, int_limited const& B) {
 				*this = 0;
 				for (int b_i = B.LSW; b_i <= B.MSW; b_i++) {
-					uint64_t carry = 0;
+					uint32_t carry = 0;
 					bool secondCarry = false;
 					for (int a_i = A.LSW; a_i <= A.MSW; a_i++) {
 						// If the result is outside of precision, continue
@@ -141,24 +141,24 @@ namespace largeNumberLibrary {
 							continue;
 						}
 						// product cannot overflow, unless carry = (UINT64_MAX << 1) + 1
-						int128 product = carry;
+						uint64_t product = carry;
 						product += secondCarry;
-						int128 multiplicand = A.words[a_i];
-						uint64_t multiplier = B.words[b_i];
+						uint64_t multiplicand = A.words[a_i];
+						uint32_t multiplier = B.words[b_i];
 						product += multiplicand * multiplier;
-						char flag1 = (this->words[a_i + b_i] >= BIT64_ON) + ((uint64_t)product >= BIT64_ON);
-						this->words[a_i + b_i] += (uint64_t)product;
-						bool flag2 = this->words[a_i + b_i] < BIT64_ON;
+						char flag1 = (this->words[a_i + b_i] >= BIT32_ON) + (product >= BIT32_ON);
+						this->words[a_i + b_i] += (uint32_t)product;
+						bool flag2 = this->words[a_i + b_i] < BIT32_ON;
 						// The maximum value of (product >> 64) is UINT64_MAX, which means that
 						// by itself, it can fit in the carry, but (flag1 && flag2) doesn't have to
 						// That is why we separate them
-						carry = (uint64_t)(product >> 64);
+						carry = (uint32_t)(product >> 32);
 						secondCarry = (flag1 + flag2) > 1;
 					}
 
 					if (b_i + A.MSW + 1 < this->wordCount) {
 						// if (carry + secondCarry) overflows and will fit into precision, then overflow
-						if (secondCarry && (carry == UINT64_MAX) && ((b_i + A.MSW + 2) < this->wordCount)) this->words[b_i + A.MSW + 2] = 1;
+						if (secondCarry && (carry == UINT32_MAX) && ((b_i + A.MSW + 2) < this->wordCount)) this->words[b_i + A.MSW + 2] = 1;
 						// Otherwise simply add regardless of overflow/precision
 						else this->words[b_i + A.MSW + 1] = carry + secondCarry;
 					}
@@ -207,29 +207,33 @@ namespace largeNumberLibrary {
 			}
 			int_limited(uint64_t a) {
 				static_assert(bitSize > 1, "Invalid int_limited size");
-				this->words[0] = a;
+				this->words[0] = a & UINT32_MAX;
+				if (wordCount > 1) this->words[1] = a >> 32;
+				this->updateMSW(1);
 				this->truncateExtraBits();
 			}
 			int_limited(int64_t a) {
 				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
-					for (int i = 1; i < this->wordCount; i++) {
-						this->words[i] = UINT64_MAX;
+					for (int i = 2; i < this->wordCount; i++) {
+						this->words[i] = UINT32_MAX;
 					}
 					this->updateMSW(this->wordCount - 1);
 				}
-				this->words[0] = a;
+				this->words[0] = a & UINT32_MAX;
+				if (wordCount > 1) this->words[1] = a >> 32;
+				if (a > 0) this->updateMSW(1);
 				this->truncateExtraBits();
 			}
 			int_limited(int a) {
 				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
 					for (int i = 1; i < this->wordCount; i++) {
-						this->words[i] = UINT64_MAX;
+						this->words[i] = UINT32_MAX;
 					}
 					this->updateMSW(this->wordCount - 1);
 				}
-				this->words[0] = (int64_t)a;
+				this->words[0] = a;
 				this->truncateExtraBits();
 			}
 			int_limited(unsigned int a) {
@@ -241,17 +245,19 @@ namespace largeNumberLibrary {
 			// All explicit conversions simply returns the bits for the given bit amount
 			// For example the minimum value (in two's complement) converted to a int64_t will simply return 0
 			explicit operator uint64_t() const {
-				return this->words[0];
+				if (wordCount < 2) return this->words[0];
+				return (uint64_t(this->words[1]) << 32) | this->words[0];
 			}
 			// Simply returns LSB to allow for easier bit manipulation
 			explicit operator int64_t() const {
-				return (int64_t)this->words[0];
+				if (wordCount < 2) return int64_t(this->words[0]);
+				return (int64_t(this->words[1]) << 32) | this->words[0];
 			}
 			explicit operator int() const {
 				return (int)this->words[0];
 			}
 			explicit operator unsigned int() const {
-				return (unsigned int)this->words[0];
+				return this->words[0];
 			}
 			explicit operator char() const {
 				return (char)this->words[0];
@@ -268,8 +274,8 @@ namespace largeNumberLibrary {
 			}
 
 			// For simplicity's sake this function only accepts
-			// a vector of unsigned 64 bit integers from the standard library
-			void importBits(std::vector<uint64_t>& newWords) {
+			// a vector of unsigned 32 bit integers from the standard library
+			void importBits(std::vector<uint32_t>& newWords) {
 				for (int i = 0; i < this->wordCount && i < newWords.size(); i++) {
 					this->words[i] = newWords[i];
 				}
@@ -283,7 +289,7 @@ namespace largeNumberLibrary {
 
 			// Starts importing from newWords[startIndex] (inclusive) to newWords[endIndex - 1]
 			// Import into the destinations words, starting from wordOffset
-			void importBits(std::vector<uint64_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
+			void importBits(std::vector<uint32_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
 				if (startIndex < 0 || endIndex < 0 || wordCount < 0) {
 					throw std::range_error("Invalid argument for importBits");
 				}
@@ -307,7 +313,7 @@ namespace largeNumberLibrary {
 
 			// The first iterator is taken as the Least Significant Word (+ wordOffset)
 			// The second iterator is non-inclusive in the import
-			void importBits(std::vector<uint64_t>::iterator beginWords, std::vector<uint64_t>::iterator endWords, int wordOffset = 0) {
+			void importBits(std::vector<uint32_t>::iterator beginWords, std::vector<uint32_t>::iterator endWords, int wordOffset = 0) {
 				if (wordCount < 0) {
 					throw std::range_error("Invalid wordOffset for importBits");
 				}
@@ -329,9 +335,9 @@ namespace largeNumberLibrary {
 			}
 
 			// For simplicity's sake this function only returns
-			// a vector of unsigned 64 bit integers from the standard library
+			// a vector of unsigned 32 bit integers from the standard library
 			// Currently returns *all* words, even those higher than the Most Significant Word
-			std::vector<uint64_t> exportBits() {
+			std::vector<uint32_t> exportBits() {
 				return this->words;
 			}
 			#pragma endregion Construction
