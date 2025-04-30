@@ -359,12 +359,12 @@ namespace largeNumberLibrary {
 
 			// Returns a string of the current value converted to the desired base
 			// '-' is appended to the start, if the number is negative, irregardless of the base
-			// Base is limited to a single unsigned 64 bit integer
-			std::string toString(uint64_t base = 10) {
+			// Base is limited to a single unsigned 32 bit integer
+			std::string toString(uint32_t base = 10) {
 				if (base == 0) throw std::out_of_range("Unable to convert value to base 0");
 				// Approximate of the largest number of possible words in the chosen base
 				int binWordSize = 0;
-				uint64_t base_copy = base;
+				uint32_t base_copy = base;
 				while (base_copy != 0) {
 					base_copy >>= 1;
 					binWordSize++;
@@ -374,21 +374,21 @@ namespace largeNumberLibrary {
 				int maxWordCount = bitSize/(binWordSize - 1) + 1;
 
 				// Convert this into a vector of uin64_t chunks (a bit wasteful for low bases)
-				std::vector<uint64_t> baseWords(maxWordCount, 0);
+				std::vector<uint32_t> baseWords(maxWordCount, 0);
 				int_limited num = *this;
 				bool sign = num < 0;
 				if (sign) num = ~num+1;
 				// baseWords will be in MSb first, for ease of conversion to a string
 				int index = maxWordCount-1;
 				do {
-					baseWords[index] = (uint64_t)(num%base);
+					baseWords[index] = (uint32_t)(num%base);
 					num /= base;
 					index--;
 				} while (num != 0);
 				// Convert the word-size chunks into the string
 				std::string output = "";
 				if (sign) output += '-';
-				for (uint64_t word : baseWords) {
+				for (uint32_t word : baseWords) {
 					if (output.size() <= sign && word == 0) continue;
 					if (base < 10) {
 						output += '0' + (char)word;
@@ -430,18 +430,15 @@ namespace largeNumberLibrary {
 				bool carry = false;
 				// Cycle from the lowest word in rhs with a non-zero value
 				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
-					char flag1 = (this->words[i] >= BIT64_ON) + (rhs.words[i] >= BIT64_ON);
-					this->words[i] += rhs.words[i];
-					this->words[i] += carry;
-					bool flag2 = this->words[i] < BIT64_ON;
-					// carry = (either both had BIT64_ON), or (only one had it on and the sum didn't)
-					carry = (flag1 + flag2 > 1);
+					uint64_t sum = this->words[i] + rhs.words[i] + carry;
+					this->words[i] = sum & UINT32_MAX;
+					carry = sum > UINT32_MAX;
 				}
-				// Finish off adding the carry to other words in *this
+				// Propagate the carry to other words in *this
 				for (int i = rhs.MSW + 1; i < this->wordCount; i++) {
-					bool flag1 = this->words[i] >= BIT64_ON;
+					bool flag1 = this->words[i] >= BIT32_ON;
 					this->words[i] += carry;
-					bool flag2 = this->words[i] < BIT64_ON;
+					bool flag2 = this->words[i] < BIT32_ON;
 					
 					if (flag1 && flag2) carry = true;
 					else break;
@@ -483,7 +480,7 @@ namespace largeNumberLibrary {
 					A = *this;
 					B = rhs;
 				}
-				if (B.MSW <= 8) {
+				if (B.MSW <= 16) {
 					*this = this->basicMult(A, B);
 					return *this;
 				}
@@ -495,7 +492,7 @@ namespace largeNumberLibrary {
 				highA.importBits(A.words, splitWordIndex, maxWordAmount + 1);
 
 				if (splitWordIndex >= B.MSW) {
-					*this = ((highA * B) << (64*splitWordIndex)) + (lowA * B);
+					*this = ((highA * B) << (32*splitWordIndex)) + (lowA * B);
 					return *this;
 				}
 
@@ -509,9 +506,9 @@ namespace largeNumberLibrary {
 				int_limited z1 = (lowA + highA) * (highB + lowB) - z0 - z2;
 
 				*this = z2;
-				*this <<= 64*splitWordIndex;
+				*this <<= 32*splitWordIndex;
 				*this += z1;
-				*this <<= 64*splitWordIndex;
+				*this <<= 32*splitWordIndex;
 				*this += z0;
 				this->updateLSW(A.LSW);
 				this->updateMSW(A.MSW + B.MSW + 1);
@@ -522,10 +519,6 @@ namespace largeNumberLibrary {
 				return result *= rhs;
 			}
 
-			// Any sort of optimized division algorithm depend on optimized multiplication algorithms
-			// And frankly I don't completely believe that the constant of my multiplication implementation
-			// are good enough for my implementation of a simple division optimization (Newton-Raphson method)
-			// to be significantly faster than a "O(n^2)" implementationdone with MSW, LSW and bitshifts
 
 			// Considering the implementation of bitshifting, negation and addition with MSW, LSW
 			// This division should have a complexity of O(bitSize + (rhs.MSW - rhs.LSW)^2)
@@ -557,8 +550,8 @@ namespace largeNumberLibrary {
 				if (rhs.MSW+1 < dividend.MSW) {
 					// this will make rhs.MSW = dividend.MSW - 1
 					int wordShiftCount = dividend.MSW - rhs.MSW - 1;
-					shiftCounter <<= 64*wordShiftCount;
-					rhs <<= 64*wordShiftCount;
+					shiftCounter <<= 32*wordShiftCount;
+					rhs <<= 32*wordShiftCount;
 				}
 				// Now continue shifting rhs, so that it is one shift larger than the dividend
 				while (rhs <= dividend && rhs > 0) {
@@ -580,7 +573,6 @@ namespace largeNumberLibrary {
 				this->updateLSW(potentialLSW);
 				this->updateMSW(potentialMSW);
 				if (negative) *this = ~(*this) + 1;
-				// std::cout << (uint64_t)(*this >> 128) << " " << (uint64_t)(*this >> 64) << " " << (uint64_t)(*this) << std::endl;
 				return *this;
 			}
 			int_limited operator/ (int_limited const& rhs) {
@@ -616,8 +608,8 @@ namespace largeNumberLibrary {
 				if (rhs.MSW+1 < this->MSW) {
 					// this make rhs.MSW = this->MSW - 1
 					int wordShiftCount = this->MSW - rhs.MSW - 1;
-					totalShifts += 64*wordShiftCount;
-					rhs <<= 64*wordShiftCount;
+					totalShifts += 32*wordShiftCount;
+					rhs <<= 32*wordShiftCount;
 				}
 				// Now either rhs == *this, or rhs.MSW == this->MSW - 1
 				while (rhs <= *this && rhs > 0) {
@@ -712,8 +704,8 @@ namespace largeNumberLibrary {
 
 			// Classic non-arithmetic bitshift
 			int_limited& operator<<= (unsigned int const& rhs) {
-				int wordshift = rhs / 64;
-				int bitshift = rhs % 64;
+				int wordshift = rhs / 32;
+				int bitshift = rhs % 32;
 				for (int i = this->MSW; i >= this->LSW; i--) {
 					this->wordShiftLeft(i, wordshift);
 					this->bitShiftLeft(i, bitshift);
@@ -730,8 +722,8 @@ namespace largeNumberLibrary {
 
 			// Classic non-arithmetic bitshift
 			int_limited& operator>>= (unsigned int const& rhs) {
-				int wordshift = rhs / 64;
-				int bitshift = rhs % 64;
+				int wordshift = rhs / 32;
+				int bitshift = rhs % 32;
 				for (int i = this->LSW; i <= this->MSW; i++) {
 					this->wordShiftRight(i, wordshift);
 					this->bitShiftRight(i, bitshift);
@@ -774,9 +766,9 @@ namespace largeNumberLibrary {
 				return !(*this == rhs);
 			}
 			bool operator> (int_limited const& rhs) {
-				uint64_t MSb = BIT64_ON;
-				if (bitSize%64 != 0) {
-					MSb >>= 64 - (bitSize%64);
+				uint32_t MSb = BIT32_ON;
+				if (bitSize%32 != 0) {
+					MSb >>= 32 - (bitSize%32);
 				}
 				// if different signs, then false if *this is negative, true if rhs is negative
 				if ((this->words[this->wordCount-1] & MSb) != (rhs.words[rhs.wordCount-1] & MSb)) return this->words[wordCount-1] < rhs.words[rhs.wordCount-1];
@@ -789,9 +781,9 @@ namespace largeNumberLibrary {
 				return false;
 			}
 			bool operator< (int_limited const& rhs) {
-				uint64_t MSb = BIT64_ON;
-				if (bitSize%64 != 0) {
-					MSb >>= 64 - (bitSize%64);
+				uint32_t MSb = BIT32_ON;
+				if (bitSize%32 != 0) {
+					MSb >>= 32 - (bitSize%32);
 				}
 				// if different signs, then false if *this is negative, true if rhs is negative
 				if ((this->words[this->wordCount-1] & MSb) != (rhs.words[rhs.wordCount-1] & MSb)) return this->words[wordCount-1] > rhs.words[rhs.wordCount-1];
