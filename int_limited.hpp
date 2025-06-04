@@ -132,24 +132,26 @@ namespace largeNumberLibrary {
 					for (int a_i = A.LSW; a_i <= A.MSW; a_i++) {
 						// If the result is outside of precision, continue
 						if (a_i + b_i >= this->wordCount) continue;
-						// If some of the lower 64 bits of the result fit into the integer
-						// Then multiply with only 64 bit precision (and additional bits for the carry)
+
+						// If some of the lower 32 bits of the result fit into the integer
+						// Then multiply with only 32 bit precision
 						if (a_i + b_i + 1 == this->wordCount) {
-						// std::cout << std::bitset<64>(this->words[2]) << std::endl;
 							this->words[a_i + b_i] +=  A.words[a_i] * B.words[b_i] + carry + secondCarry;
 							// No need to set carry, because it will be out of precision next iteration
 							continue;
 						}
-						// product cannot overflow, unless carry = (UINT64_MAX << 1) + 1
+						
+
+						// product cannot overflow, unless carry = (UINT32_MAX << 1) + 1
 						uint64_t product = carry;
 						product += secondCarry;
 						uint64_t multiplicand = A.words[a_i];
 						uint32_t multiplier = B.words[b_i];
 						product += multiplicand * multiplier;
-						char flag1 = (this->words[a_i + b_i] >= BIT32_ON) + (product >= BIT32_ON);
+						char flag1 = (this->words[a_i + b_i] >= BIT32_ON) + ((uint32_t)product >= BIT32_ON);
 						this->words[a_i + b_i] += (uint32_t)product;
 						bool flag2 = this->words[a_i + b_i] < BIT32_ON;
-						// The maximum value of (product >> 64) is UINT64_MAX, which means that
+						// The maximum value of (product >> 32) is UINT32_MAX, which means that
 						// by itself, it can fit in the carry, but (flag1 && flag2) doesn't have to
 						// That is why we separate them
 						carry = (uint32_t)(product >> 32);
