@@ -3,7 +3,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "./int128.hpp"
 
 
 namespace largeNumberLibrary {
@@ -432,18 +431,15 @@ namespace largeNumberLibrary {
 				bool carry = false;
 				// Cycle from the lowest word in rhs with a non-zero value
 				for (int i = rhs.LSW; i <= rhs.MSW; i++) {
-					uint64_t sum = this->words[i] + rhs.words[i] + carry;
+					uint64_t sum = uint64_t(this->words[i]) + rhs.words[i] + carry;
 					this->words[i] = sum & UINT32_MAX;
 					carry = sum > UINT32_MAX;
 				}
 				// Propagate the carry to other words in *this
 				for (int i = rhs.MSW + 1; i < this->wordCount; i++) {
-					bool flag1 = this->words[i] >= BIT32_ON;
 					this->words[i] += carry;
-					bool flag2 = this->words[i] < BIT32_ON;
 					
-					if (flag1 && flag2) carry = true;
-					else break;
+					if (this->words[i] != 0) break;
 				}
 
 				this->updateLSW(std::min(this->LSW, rhs.LSW));
@@ -483,8 +479,7 @@ namespace largeNumberLibrary {
 					B = rhs;
 				}
 				if (B.MSW <= 16) {
-					*this = this->basicMult(A, B);
-					return *this;
+					return this->basicMult(A, B);
 				}
 				int maxWordAmount = A.MSW;
 				int splitWordIndex  = maxWordAmount / 2 + 1;
