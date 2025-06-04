@@ -37,7 +37,7 @@ namespace largeNumberLibrary {
 			= (assignment operator) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Construction
 
 
 			int128() { B1 = 0; B0 = 0; }
@@ -94,7 +94,7 @@ namespace largeNumberLibrary {
 				B0 = rhs.B0;
 				return *this;
 			}
-			#pragma endregion
+			#pragma endregion Construction
 
 			/*
 			SECTION: PRINTING
@@ -104,7 +104,7 @@ namespace largeNumberLibrary {
 			<< (insertion to stream) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Printing
 
 			static std::string className() {
 				return "largeNumberLibrary::int128";
@@ -164,7 +164,7 @@ namespace largeNumberLibrary {
 				os << num.toString();
 				return os;
 			}
-			#pragma endregion
+			#pragma endregion Printing
 
 
 			/*
@@ -178,7 +178,7 @@ namespace largeNumberLibrary {
 			respective compound operators (+=, -=, *=, /=, %=) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Arithmetic
 
 			int128& operator+=(int128 const& rhs) {
 				// flags for overflow condition
@@ -534,7 +534,7 @@ namespace largeNumberLibrary {
 				int128 result(B1, B0);
 				return result %= rhs;
 			}
-			#pragma endregion
+			#pragma endregion Arithmetic
 
 			/*
 			SECTION: BITWISE OPERATORS
@@ -548,7 +548,7 @@ namespace largeNumberLibrary {
 			respective compound operators (^=, |=, &=, <<=, >>=) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Bitwise
 
 			int128& operator^= (int128 const& rhs) {
 				B1 ^= rhs.B1;
@@ -637,7 +637,7 @@ namespace largeNumberLibrary {
 				int128 result(B1, B0);
 				return result >>= rhs;
 			}
-			#pragma endregion
+			#pragma endregion Bitwise
 
 			/*
 			SECTION: RELATIONAL OPERATORS
@@ -650,7 +650,7 @@ namespace largeNumberLibrary {
 			<= (less-than-or-equal-to) DONE
 			=============================================================
 			*/
-			#pragma region
+			#pragma region Relational
 
 			bool operator== (int128 const& rhs) {
 				return (B0 == rhs.B0 && B1 == rhs.B1);
@@ -690,7 +690,7 @@ namespace largeNumberLibrary {
 				}
 				return B1 <= rhs.B1;
 			}
-			#pragma endregion
+			#pragma endregion Relational
 
 			/*
 			SECTION: LOGICAL OPERATORS
@@ -704,6 +704,7 @@ namespace largeNumberLibrary {
 			> This shouldn't be a problem here, since the overload itself makes use of normal boolean && and ||
 			=============================================================
 			*/
+			#pragma region Logical
 			bool operator! () {
 				return (B1 == 0 && B0 == 0);
 			}
@@ -713,5 +714,6 @@ namespace largeNumberLibrary {
 			bool operator|| (int128 const& rhs) {
 				return (B1 != 0 || B0 != 0 || rhs.B1 != 0 || rhs.B0 != 0);
 			}
+			#pragma endregion Logical
 	};
 }

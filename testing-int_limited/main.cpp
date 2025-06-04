@@ -27,18 +27,18 @@ uint64_t rnd64(uint64_t n)
     return n;
 }
 
-std::vector<uint64_t> genMultipleUint64(uint64_t seed, int count) {
-	std::vector<uint64_t> output(count, 0);
+std::vector<uint32_t> genMultipleUint32(uint64_t seed, int count) {
+	std::vector<uint32_t> output(count, 0);
 	for (int i = 0; i < count; i++) {
-		uint64_t num = rnd64(seed);
+		uint32_t num = uint32_t(rnd64(seed));
 		if ((seed + num) % 8 < 5) {
 			num <<= (seed + num)%8;
 		}
 		if ((seed + num) % 7 < 3) {
-			num <<= 16;
+			num <<= 8;
 		}
 		if ((seed + num) % 6 > 3) {
-			num <<= 32;
+			num <<= 16;
 		}
 		output[i] = num;
 		seed++;
@@ -53,7 +53,7 @@ std::vector<boostInt> generateBoostIntegers(int count = 1000, int bitSize = 1024
 	bitLimiter <<= bitSize;
 
 	for (int i = values.size(); i < count; i++) {
-		int curNumWords = bitSize/64 + (bitSize%64 > 0);
+		int curNumWords = bitSize/32 + (bitSize%32 > 0);
 		if (curNumWords > 1 && randState % 8 < 5) {
 			curNumWords -= randState%8;
 			curNumWords = std::max(curNumWords, 1);
@@ -64,7 +64,7 @@ std::vector<boostInt> generateBoostIntegers(int count = 1000, int bitSize = 1024
 		if (curNumWords > 5 && randState % 6 > 3) {
 			curNumWords /= 3;
 		}
-		std::vector<uint64_t> words = genMultipleUint64(randState, curNumWords);
+		std::vector<uint32_t> words = genMultipleUint32(randState, curNumWords);
 		std::reverse(words.begin(), words.end());
 
 		boostInt boostNum;
@@ -86,7 +86,7 @@ std::vector<int_limited<bitSize>> generateInt_limited(int count = 1000, uint64_t
 	std::vector<int_limited<bitSize>> values = {0, 1, -1, 2, -2, 17, -17};
 
 	for (int i = values.size(); i < count; i++) {
-		int curNumWords = bitSize/64 + (bitSize%64 > 0);
+		int curNumWords = bitSize/32 + (bitSize%32 > 0);
 		if (curNumWords > 1 && randState % 8 < 5) {
 			curNumWords -= randState%8;
 			curNumWords = std::max(curNumWords, 1);
@@ -97,7 +97,7 @@ std::vector<int_limited<bitSize>> generateInt_limited(int count = 1000, uint64_t
 		if (curNumWords > 5 && randState % 6 > 3) {
 			curNumWords /= 3;
 		}
-		std::vector<uint64_t> words = genMultipleUint64(randState, curNumWords);
+		std::vector<uint32_t> words = genMultipleUint32(randState, curNumWords);
 
 		int_limited<bitSize> curValue = 0;
 		curValue.importBits(words);
@@ -117,23 +117,23 @@ bool int_limitedEqualBoost(int_limited<bitSize> a, boostInt b) {
 		a = ~a + 1;
 		b *= -1;
 	}
-	int rem = bitSize%64;
-	int wordCount = bitSize / 64 + (rem > 0);
+	int rem = bitSize%32;
+	int wordCount = bitSize / 32 + (rem > 0);
 	for (int i = 0; i < wordCount; i++) {
-		uint64_t boostTrunc = (uint64_t)(b & UINT64_MAX);
-		if (i == wordCount -1 && rem > 0) {
-			boostTrunc &= UINT64_MAX >> (64 - rem);
+		uint32_t boostTrunc = (uint32_t)(b & UINT32_MAX);
+		if (i == wordCount-1 && rem > 0) {
+			boostTrunc &= UINT32_MAX >> (32 - rem);
 		}
-		if ((uint64_t)a != boostTrunc) return false;
-		a >>= 64;
-		b >>= 64;
+		if ((uint32_t)a != boostTrunc) return false;
+		a >>= 32;
+		b >>= 32;
 	}
 	return true;
 }
 
 template <typename T>
 void printIntWords(T a, bool mult = true) {
-	std::vector<uint64_t> words;
+	std::vector<uint32_t> words;
 	char sign = ' ';
 	// Because of boost integers and their casting
 	if (a < 0) {
@@ -142,8 +142,8 @@ void printIntWords(T a, bool mult = true) {
 		else a = ~a + 1;
 	}
 	do {
-		words.push_back((uint64_t)a);
-		a >>= 64;
+		words.push_back((uint32_t)a);
+		a >>= 32;
 	} while (a != 0);
 	std::cout << sign << "1 * ";
 	for (int i = words.size()-1; i > -1; i--) {
@@ -153,7 +153,7 @@ void printIntWords(T a, bool mult = true) {
 }
 
 // Prints a vector of boostInt and int_limited<bitSize> alternating for easy comparison
-// Has an option to either print each 64 bit word individually, or as a whole string in base 10 (default)
+// Has an option to either print each 32 bit word individually, or as a whole string in base 10 (default)
 template <int bitSize>
 void printGeneratedNumbers(std::vector<boostInt>& testNumbersBoost, std::vector<int_limited<bitSize>>& testNumbersInt_limited, bool printAsWords = false) {
 	if (printAsWords) {
@@ -279,38 +279,37 @@ int main() {
 	int testCaseAmount = 1000;
 	uint64_t randState = 1;
 
-
 	// Tests multiples of 64 and different offsets
 	verifyCorrectnessOfInt_limited<16>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*1>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*1 + 1>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*2>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*2 + 2>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*2>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*2 + 1>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*4>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*4 + 2>(testCaseAmount, randState);
 	testCaseAmount = 500;
-	verifyCorrectnessOfInt_limited<64*3>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*3 + 3>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*4>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*4 + 6>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*6>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*6 + 3>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*8>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*8 + 6>(testCaseAmount, randState);
 	testCaseAmount = 300;
-	verifyCorrectnessOfInt_limited<64*10>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*10 + 17>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*16>(testCaseAmount, randState); // 1024
-	verifyCorrectnessOfInt_limited<64*16 + 31>(testCaseAmount, randState); // 1051
+	verifyCorrectnessOfInt_limited<32*20>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*20 + 17>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*32>(testCaseAmount, randState); // 1024
+	verifyCorrectnessOfInt_limited<32*32 + 31>(testCaseAmount, randState); // 1051
 	testCaseAmount = 200;
-	verifyCorrectnessOfInt_limited<64*21>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*21 + 32>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<64*32>(testCaseAmount, randState); // 2048
-	verifyCorrectnessOfInt_limited<64*32 + 59>(testCaseAmount, randState, true); // 2107, also tests conversion to string
+	verifyCorrectnessOfInt_limited<32*42>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*42 + 32>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*64>(testCaseAmount, randState); // 2048
+	verifyCorrectnessOfInt_limited<32*64 + 59>(testCaseAmount, randState, true); // 2107, also tests conversion to string
 	testCaseAmount = 100;
-	verifyCorrectnessOfInt_limited<64*64>(testCaseAmount, randState); // 4096
-	verifyCorrectnessOfInt_limited<64*64 + 63>(testCaseAmount, randState); // 4159
+	verifyCorrectnessOfInt_limited<32*128>(testCaseAmount, randState); // 4096
+	verifyCorrectnessOfInt_limited<32*128 + 63>(testCaseAmount, randState); // 4159
 
 	testCaseAmount = 50;
-	verifyCorrectnessOfInt_limited<64*256>(testCaseAmount, randState); // 16384
-	verifyCorrectnessOfInt_limited<64*512>(testCaseAmount, randState); // 32768
+	verifyCorrectnessOfInt_limited<32*512>(testCaseAmount, randState); // 16384
+	verifyCorrectnessOfInt_limited<32*1024>(testCaseAmount, randState); // 32768
 	testCaseAmount = 25;
-	verifyCorrectnessOfInt_limited<64*1024>(testCaseAmount, randState); // 65536
+	verifyCorrectnessOfInt_limited<32*2048>(testCaseAmount, randState); // 65536
 
 	return 0;
 }
