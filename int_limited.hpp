@@ -31,8 +31,8 @@ namespace largeNumberLibrary {
 			int MSW = 0;
 			int LSW = 0;
 
-			// required to simplify division
-			friend class int_limited<bitSize - 64>;
+			// required to simplify division (extra precision)
+			template <int exPr> friend class int_limited;
 
 			/*
 			SECTION: HELPER FUNCTIONS
@@ -48,6 +48,10 @@ namespace largeNumberLibrary {
 			=============================================================
 			*/
 			#pragma region Helper
+
+			static uint64_t concatTo64Bit(uint32_t A, uint32_t B) {
+				return (uint64_t(A) << 32) | B;
+			}
 
 			void truncateExtraBits() {
 				int bitsInMSW = bitSize % 32;
@@ -377,7 +381,7 @@ namespace largeNumberLibrary {
 				// +1 at the end to act as a ceil() for special cases
 				int maxWordCount = bitSize/(binWordSize - 1) + 1;
 
-				// Convert this into a vector of uin64_t chunks (a bit wasteful for low bases)
+				// Convert this into a vector of uint64_t chunks (a bit wasteful for low bases)
 				std::vector<uint32_t> baseWords(maxWordCount, 0);
 				int_limited num = *this;
 				bool sign = num < 0;
@@ -523,43 +527,45 @@ namespace largeNumberLibrary {
 			// Considering the implementation of bitshifting, negation and addition with MSW, LSW
 			// This division should have a complexity of O(bitSize + (rhs.MSW - rhs.LSW)^2)
 			int_limited& operator/= (int_limited rhs) {
-				// Create the dividend and divisor with an extra word of accuracy for indexing in the algorithm
-				int_limited<bitSize + 64> dividend;
-				dividend.importBits(this->words);
-				int_limited<bitSize + 64> divisor;
-				divisor.importBits(rhs.words);
-				if (divisor == 0) throw std::domain_error("Divide by zero exception");
+				if (rhs == 0) throw std::domain_error("Divide by zero exception");
 
-				// Convert both of the ORIGINAL value to positive
+				// Create the dividend and divisor with at least an extra word of accuracy for indexing in the algorithm
+				const int extraPrecision = 32 + 32-bitSize%32;
+				int_limited<bitSize + extraPrecision> dividend;
+				int_limited<bitSize + extraPrecision> divisor;
+				dividend.importBits(this->words);
+				divisor.importBits(rhs.words);
+				
+				// Convert both of the *original* values to positive
 				// We don't need to worry about the asymmetry of two's complement integer limits
 				// because of the extra precision
 				bool negative = false;
 				if (*this < 0) {
-					// Done like this to accommodate non-64 multiples of bits
-					dividend = (~(dividend << 64) + 1) >> 64;
+					dividend = ((~dividend + 1) << extraPrecision) >> extraPrecision;
 					negative = !negative;
 				}
 				if (rhs < 0) {
-					// Done like this to accommodate non-64 multiples of bits
-					divisor = (~(divisor << 64) + 1) >> 64;
+					divisor = ((~divisor + 1) << extraPrecision) >> extraPrecision;
 					negative = !negative;
 				}
+
 				*this = 0;
 				if (divisor > dividend) {
 					return *this;
 				}
+
 				int potentialLSW = dividend.LSW - divisor.MSW - 1;
 				int potentialMSW = dividend.MSW - divisor.MSW + 1;
 				
-				// If the divisor only consists of one 64-bit word
+				// If the divisor only consists of one 32-bit word
 				// then divide manually and return
 				if (divisor.MSW == 0) {
-					int128 divWord = divisor.words[0];
-					uint64_t rem = 0;
+					uint32_t divWord = divisor.words[0];
+					uint32_t rem = 0;
 					for (int curInd = dividend.MSW; curInd >= 0; curInd--) {
-						int128 curWord(rem, dividend.words[curInd]);
-						this->words[curInd] = uint64_t(curWord / divWord);
-						rem = uint64_t(curWord % divWord);
+						uint64_t curWord = concatTo64Bit(rem, dividend.words[curInd]);
+						this->words[curInd] = curWord / divWord;
+						rem = curWord % divWord;
 					}
 					this->updateLSW(potentialLSW);
 					this->updateMSW(potentialMSW);
@@ -576,24 +582,22 @@ namespace largeNumberLibrary {
 				// Specifically requires pre-shift values, so that m + vInd + 1 is within bounds
 				int m = dividend.MSW - vInd;
 
-				// the most significant word of v has to be at least 63 bits
+				// the most significant word of v has to be at least 31 bits
 				// the following code counts the number of leading zeros
 				// inspired by https://stackoverflow.com/revisions/66486689/4
-				uint64_t copyDiv = divisor.words[vInd];
-				int shiftCount = 64;
-				for (int curShift = 32; curShift > 1; curShift/=2) {
-					int y = copyDiv >> curShift;
+				uint32_t copyDiv = divisor.words[vInd];
+				int shiftCount = 32;
+				for (int curShift = 16; curShift > 1; curShift/=2) {
+					uint32_t y = copyDiv >> curShift;
 					if (y != 0) {
 						shiftCount -= curShift;
 						copyDiv = y;
 					}
 				}
-				if (copyDiv >> 1 != 0) shiftCount -= 2;
-				else shiftCount -= copyDiv;
-				if (shiftCount == 0) shiftCount = 64;
+				if (copyDiv >> 1 != 0) shiftCount -= 1;
+				if (shiftCount == 0) shiftCount = 16;
 				else shiftCount -= 1;
-				// Reduce the shift to the minimum threshold, so as to not have negative values due to overflow
-				// shiftCount = std::max(0, shiftCount - 1);
+
 				// the original divisor is also shifted to help calculate the remainder faster
 				if (shiftCount != 0) {
 					divisor <<= shiftCount;
@@ -601,49 +605,20 @@ namespace largeNumberLibrary {
 				}
 				
 				for (int j = m; j >= 0; j--) {
-					int128 curDigits(dividend.words[j + vInd + 1], dividend.words[j + vInd]);
-					// if (curDigits < divisor.words[vInd]) {
-					// 	std::cout << curDigits << std::endl;
-					// 	std::cout << divisor.words[vInd] << std::endl;
-					// 	continue;
-					// };
+					uint64_t curDigits = concatTo64Bit(dividend.words[j + vInd + 1], dividend.words[j + vInd]);
+
 					// quotient estimate and remainder
-					boostInt a = dividend.words[j + vInd + 1];
-					a <<= 64;
-					a += dividend.words[j + vInd];
-					if (curDigits < 0) {
-						curDigits >>= 1;
-						a >>= 1;
-					}
-					int128 qEst = curDigits / divisor.words[vInd];
-					a /= divisor.words[vInd];
-					if (uint64_t(a) != uint64_t(qEst) || uint64_t(a >> 64) != uint64_t(qEst >> 64)) {
-						std::cout << "tTAG j: " << j << "/" << m << std::endl;
-						std::cout << a << std::endl;
-						std::cout << qEst << std::endl;
-						std::cout << uint64_t(a >> 64) << " " << uint64_t(a) << std::endl;
-						std::cout << uint64_t(qEst >> 64) << " " << uint64_t(qEst) << std::endl;
-						std::cout << curDigits << std::endl;
-						std::cout << uint64_t(curDigits >> 64) << " " << uint64_t(curDigits) << std::endl;
-						std::cout << std::bitset<64>(divisor.words[vInd]) << std::endl;
-					}
-					// if (dividend.words[j + vInd + 1] >= divisor.words[vInd]) qEst = UINT64_MAX;
-					int128 rem = curDigits - qEst * divisor.words[vInd];
-					if (qEst > UINT64_MAX) {
-						std::cout << "qEst > UINT64_MAX: " << std::endl;
-						std::cout << uint64_t(qEst >> 64) << " " << uint64_t(qEst) << std::endl;
-						std::cout << uint64_t(curDigits >> 64) << " " << uint64_t(curDigits) << std::endl;
-						std::cout << divisor.words[vInd] << std::endl;
-					}
-					// qEst should be at most (UINT64_MAX + 1)
-					if (qEst > UINT64_MAX ||
-					(qEst * divisor.words[vInd - 1]) > ((rem << 64) | dividend.words[j + vInd - 1])) {
+					uint64_t qEst = curDigits / divisor.words[vInd];
+					uint64_t rem = curDigits - qEst * divisor.words[vInd];
+					// qEst should be at most (UINT32_MAX + 1)
+					if (qEst > UINT32_MAX ||
+					(qEst * divisor.words[vInd - 1]) > concatTo64Bit(rem, dividend.words[j + vInd - 1])) {
 						qEst -= 1;
 						rem += divisor.words[vInd];
 						// repeat the test until it fails
-						// (rem > UINT64_MAX results in failure, but is also out of precision)
-						while (rem <= UINT64_MAX) {
-							if ((qEst * divisor.words[vInd - 1]) > ((rem << 64) | dividend.words[j + vInd - 1])) {
+						// (rem > UINT32_MAX results in failure, but is also out of precision)
+						while (rem <= UINT32_MAX) {
+							if ((qEst * divisor.words[vInd - 1]) > concatTo64Bit(rem, dividend.words[j + vInd - 1])) {
 								qEst -= 1;
 								rem += divisor.words[vInd];
 							} else {
@@ -651,12 +626,8 @@ namespace largeNumberLibrary {
 							}
 						}
 					}
-					// std::cout << qEst << std::endl;
-					// std::cout << rem << std::endl;
-					// std::cout << divisor.MSW << " " << (divisor.wordCount - 1) << std::endl;
-					int_limited<bitSize + 64> diff = divisor * uint64_t(qEst);
-					// std::cout << "div: " << divisor.words[2] << " " << divisor.words[1] << " " << divisor.words[0] << std::endl;
-					// std::cout << "diff: " << diff.words[2] << " " << diff.words[1] << " " << diff.words[0] << std::endl;
+					int_limited<bitSize + extraPrecision> diff = divisor * qEst;
+
 					// Subtract diff manually, since the values have the same precision, but are offset
 					// Also because we aren't supposed to propagate the borrow all the way to the left
 					bool borrow = false;
@@ -668,36 +639,24 @@ namespace largeNumberLibrary {
 					}
 					dividend.updateMSW(dividend.MSW);
 					dividend.updateMSW(std::min(dividend.LSW, diff.LSW));
-					this->words[j] = uint64_t(qEst);
+					this->words[j] = uint32_t(qEst);
 
 					// If the result is negative, add the divisor back once
 					if (borrow) {
-						// 64-bit complement
-						for (int curInd = 0; curInd <= vInd + 1; curInd++) {
-							dividend.words[j + curInd] = UINT64_MAX - dividend.words[j + curInd];
-						}
-						dividend.updateMSW(std::max(vInd + 1, dividend.MSW));
-						dividend.updateLSW(0);
-						// std::cout << "here" << std::endl;
 						this->words[j] -= 1;
 						// add the divisor back manually, because of the offset
 						// This is where extending the divisor's precision by one word helps
 						bool carry = false;
 						for (int curInd = divisor.LSW; curInd <= vInd + 1; curInd++) {
-							char flag1 = (divisor.words[curInd] >= BIT64_ON) + (dividend.words[j + curInd] >= BIT64_ON);
+							char flag1 = (divisor.words[curInd] >= BIT32_ON) + (dividend.words[j + curInd] >= BIT32_ON);
 							dividend.words[j + curInd] += divisor.words[curInd] + carry;
-							bool flag2 = dividend.words[j + curInd] < BIT64_ON;
+							bool flag2 = dividend.words[j + curInd] < BIT32_ON;
 							carry = (flag1 + flag2) > 1;
 						}
 						// The last carry here cancels out the last borrow from before
 						dividend.updateMSW(std::max(dividend.MSW, vInd + 1));
 						dividend.updateLSW(std::min(dividend.LSW, divisor.LSW));
 					}
-					// if (dividend.words[j + vInd + 1] != 0) {
-					// 	std::cout << "sdfsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss";
-					// 	std::cout << std::endl << dividend.words[j + vInd + 1] << std::endl;
-					// }
-					// std::cout << std::endl;
 				}
 
 				this->updateLSW(potentialLSW);
