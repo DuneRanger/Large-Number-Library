@@ -838,7 +838,7 @@ namespace largeNumberLibrary {
 				int bitshift = rhs % 32;
 				for (int i = this->MSW; i >= this->LSW; i--) {
 					this->wordShiftLeft(i, wordshift);
-					this->bitShiftLeft(i, bitshift);
+					this->bitShiftLeft(i + wordshift, bitshift);
 				}
 				this->updateLSW(this->LSW + wordshift - 1);
 				this->updateMSW(this->MSW + wordshift + 1);
@@ -856,7 +856,7 @@ namespace largeNumberLibrary {
 				int bitshift = rhs % 32;
 				for (int i = this->LSW; i <= this->MSW; i++) {
 					this->wordShiftRight(i, wordshift);
-					this->bitShiftRight(i, bitshift);
+					this->bitShiftRight(i - wordshift, bitshift);
 				}
 				this->updateLSW(this->LSW - wordshift - 1);
 				this->updateMSW(this->MSW - wordshift + 1);
