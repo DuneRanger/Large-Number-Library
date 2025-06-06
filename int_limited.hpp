@@ -109,7 +109,7 @@ namespace largeNumberLibrary {
 				if (wordIndex + 1 < this->wordCount) {
 					this->words[wordIndex + 1] |= this->words[wordIndex] >> (32 - shift);
 				}
-				this->words[wordIndex] <<= shift;
+				if (wordIndex < this->wordCount) this->words[wordIndex] <<= shift;
 				return;
 			}
 
@@ -119,7 +119,7 @@ namespace largeNumberLibrary {
 				if (wordIndex - 1 > -1) {
 					this->words[wordIndex - 1] |= this->words[wordIndex] << (32 - shift);
 				}
-				this->words[wordIndex] >>= shift;
+				if (wordIndex > -1) this->words[wordIndex] >>= shift;
 				return;
 			}
 
@@ -363,6 +363,8 @@ namespace largeNumberLibrary {
 			// Base is limited to a single unsigned 32 bit integer
 			std::string toString(uint32_t base = 10) {
 				if (base == 0) throw std::out_of_range("Unable to convert value to base 0");
+				// special case, because it requires special attention
+				if (*this == 0) return "0";
 				// Approximate of the largest number of possible words in the chosen base
 				int binWordSize = 0;
 				uint32_t base_copy = base;
@@ -374,7 +376,7 @@ namespace largeNumberLibrary {
 				// +1 at the end to act as a ceil() for special cases
 				int maxWordCount = bitSize/(binWordSize - 1) + 1;
 
-				// Convert this into a vector of uin64_t chunks (a bit wasteful for low bases)
+				// Convert this into a vector of uin32_t chunks (a bit wasteful for low bases)
 				std::vector<uint32_t> baseWords(maxWordCount, 0);
 				int_limited num = *this;
 				bool sign = num < 0;
@@ -390,8 +392,9 @@ namespace largeNumberLibrary {
 				std::string output = "";
 				if (sign) output += '-';
 				for (uint32_t word : baseWords) {
+					// skip leading zeroes
 					if (output.size() <= sign && word == 0) continue;
-					if (base < 10) {
+					if (base <= 10) {
 						output += '0' + (char)word;
 					} else if (base < 37) { // the whole alphabet
 						char charWord = '0' + (char)word;
