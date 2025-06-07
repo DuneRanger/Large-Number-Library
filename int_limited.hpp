@@ -831,6 +831,67 @@ namespace largeNumberLibrary {
 				return (!!(*this)) || (!!(rhs));
 			}
 			#pragma endregion Logical
+
+			/*
+			SECTION: MATHEMATICAL FUNCTIONS
+			=============================================================
+			ilog2() (integer binary log - floored)
+			pow(e) (power)
+			isqrt() (integer square root - floored)
+
+			For now, every function returns the floor value, instead of a rounded value
+			=============================================================
+			*/
+			#pragma region Math
+			// returns a signed integer of the floored value
+			int ilog2() {
+				if (*this <= 0) throw std::domain_error("Logarithm of invalid value exception");
+				int result = this->MSW * 32;
+				
+				int leadingZeroes = 32;
+				uint32_t copyMSW = this->words[this->MSW];
+				for (int shift = 16; shift > 1; shift/=2) {
+					uint32_t y = copyMSW >> shift;
+					if (y != 0) {
+						leadingZeroes -= shift;
+						copyMSW = y;
+					}
+				}
+				if (copyMSW != 0) leadingZeroes -= 1 + (copyMSW > 1);
+				return result + 32-leadingZeroes;
+			}
+
+			// only accepts *positive* exponents
+			int_limited pow(uint32_t exp) {
+				if (exp == 0) return 1;
+				int_limited result;
+				if (exp == 1) {
+					result = *this;
+				} else {
+					result = this->pow(exp/2) * this->pow(exp/2);
+					if (exp%2) result *= *this;
+				}
+				return result;
+			}
+
+			// returns the floored value of integer square root
+			int_limited isqrt() {
+				if (*this < 0) throw std::domain_error("Sqrt of negative value exception");
+				if (this->MSW == 0 && this->words[0] < 4) return (this->words[0] > 0);
+				int sigBits = this->ilog2();
+				int_limited low = (*this >> (sigBits/2 + 1));
+				int_limited high = (*this >> (sigBits/2 - 1));
+				int_limited mid = (low + high) >> 1;
+				while (mid != low) {
+					if (mid.pow(2) > *this) high = mid;
+					else if (mid.pow(2) < *this) low = mid;
+					else break;
+					mid = (low + high) >> 1;
+				}
+				return mid;
+			}
+
+			#pragma endregion Math
 	};
 
 	typedef int_limited<256> int256;
