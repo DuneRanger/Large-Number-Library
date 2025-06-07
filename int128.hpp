@@ -289,28 +289,41 @@ namespace largeNumberLibrary {
 				std::vector<uint32_t> u = {uint32_t(dividend.B0 & UINT32_MAX), uint32_t(dividend.B0 >> 32), uint32_t(dividend.B1 & UINT32_MAX), uint32_t(dividend.B1 >> 32), 0};
 				std::vector<uint32_t> v = {uint32_t(divisor.B0 & UINT32_MAX), uint32_t(divisor.B0 >> 32), uint32_t(divisor.B1 & UINT32_MAX), uint32_t(divisor.B1 >> 32)};
 				std::vector<uint32_t> q = {0, 0, 0, 0};
+				int uInd = 4;
 				int vInd = 3;
+				while (u[uInd] == 0) uInd--;
 				while (v[vInd] == 0) vInd--;
 				
-				// if v is less than 16 bits
-				// then shift u and v by 16 for a more accurate quotient estimate
-				// (this later requires at least 144 bit accuracy for u)
-				if (v[vInd] < (1 << 16)) {
-					// the original divisor is also shifted to help calculate the remainder faster
-					divisor <<= 16;
-					v[vInd] <<= 16;
-					for (int curInd = vInd; curInd > 0; curInd--) {
-						v[curInd] |= v[curInd - 1] >> 16;
-						v[curInd - 1] <<= 16;
-					}
-					for (int curInd = 4; curInd > 0; curInd--) {
-						u[curInd] |= u[curInd - 1] >> 16;
-						u[curInd - 1] <<= 16;
+				// the most significant word of v has to be at least 31 bits
+				// the following code counts the number of leading zeros
+				// inspired by https://stackoverflow.com/revisions/66486689/4
+				uint64_t copyDiv = v[vInd];
+				int shiftCount = 32;
+				for (int curShift = 16; curShift > 1; curShift/=2) {
+					int y = copyDiv >> curShift;
+					if (y != 0) {
+						shiftCount -= curShift;
+						copyDiv = y;
 					}
 				}
-				int uInd = 4;
-				while (u[uInd] == 0) uInd--;
-				
+				if (copyDiv >> 1 != 0) shiftCount -= 2;
+				else shiftCount -= copyDiv;
+				// the original divisor is also shifted to help calculate the remainder faster
+				if (shiftCount != 0) {
+					divisor <<= shiftCount;
+					v[vInd] <<= shiftCount;
+					for (int curInd = vInd; curInd > 0; curInd--) {
+						v[curInd] |= v[curInd - 1] >> (32 - shiftCount);
+						v[curInd - 1] <<= shiftCount;
+					}
+					for (int curInd = 4; curInd > 0; curInd--) {
+						u[curInd] |= u[curInd - 1] >> (32 - shiftCount);
+						u[curInd - 1] <<= shiftCount;
+					}
+				}
+				// uInd shouldn't be updated after the shift
+				// Because the original value is required for j
+
 				for (int j = uInd - vInd; j >= 0; j--) {
 					uint64_t curDigits = ((uint64_t(u[j + vInd + 1]) << 32) | u[j + vInd]);
 					if (uint64_t(v[vInd]) > curDigits) {
@@ -320,13 +333,13 @@ namespace largeNumberLibrary {
 					// quotient estimate and remainder
 					uint64_t qEst = curDigits / v[vInd];
 					uint64_t rem = curDigits - qEst * v[vInd];
-					if (qEst == (uint64_t(1) << 32) || 
-					(qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+					if (qEst > UINT32_MAX || 
+					(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 						qEst--;
 						rem += v[vInd];
 						// repeat the test until it fails (rem > UINT32_MAX results in failure)
 						while (rem <= UINT32_MAX) {
-							if ((qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+							if ((qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 								qEst--;
 								rem += v[vInd];
 							} else {
@@ -350,6 +363,10 @@ namespace largeNumberLibrary {
 					q[j] = qEst;
 					// If the result is negative, add the divisor back once
 					if (borrow) {
+						// 32-bit complement
+						for (int curInd = 0; curInd <= vInd + 1; curInd++) {
+							u[j + curInd] = UINT32_MAX - u[j + curInd];
+						}
 						q[j]--;
 						bool carry = false;
 						for (int curInd = 0; curInd <= vInd; curInd++) {
@@ -357,7 +374,7 @@ namespace largeNumberLibrary {
 							char flag1 = (v[curInd] >= INT32_MIN) + (u[j + curInd] >= INT32_MIN);
 							u[j + curInd] += v[curInd] + carry;
 							bool flag2 = u[j + curInd] < INT32_MIN;
-							carry = (flag1 + flag2 > 1);
+							carry = (flag1 + flag2) > 1;
 						}
 						u[j + vInd + 1] += carry;
 					}
@@ -418,45 +435,55 @@ namespace largeNumberLibrary {
 				// u is the dividend, v is the divisor, the remainder will be in u at the end
 				std::vector<uint32_t> u = {uint32_t(dividend.B0 & UINT32_MAX), uint32_t(dividend.B0 >> 32), uint32_t(dividend.B1 & UINT32_MAX), uint32_t(dividend.B1 >> 32), 0};
 				std::vector<uint32_t> v = {uint32_t(divisor.B0 & UINT32_MAX), uint32_t(divisor.B0 >> 32), uint32_t(divisor.B1 & UINT32_MAX), uint32_t(divisor.B1 >> 32)};
+				int uInd = 4;
 				int vInd = 3;
+				while (u[uInd] == 0) uInd--;
 				while (v[vInd] == 0) vInd--;
 				
-				// if v is less than 16 bits
-				// then shift u and v by 16 for a more accurate quotient estimate
-				// (this later requires at least 144 bit accuracy for u)
-				bool shifted = false;
-				if (v[vInd] < (1 << 16)) {
-					shifted = true;
-					// the original divisor is also shifted to help calculate the remainder faster
-					divisor <<= 16;
-					v[vInd] <<= 16;
-					for (int curInd = vInd; curInd > 0; curInd--) {
-						v[curInd] |= v[curInd - 1] >> 16;
-						v[curInd - 1] <<= 16;
-					}
-					for (int curInd = 4; curInd > 0; curInd--) {
-						u[curInd] |= u[curInd - 1] >> 16;
-						u[curInd - 1] <<= 16;
+				// the most significant word of v has to be at least 31 bits
+				// the following code counts the number of leading zeros
+				// inspired by https://stackoverflow.com/revisions/66486689/4
+				uint64_t copyDiv = v[vInd];
+				int shiftCount = 32;
+				for (int curShift = 16; curShift > 1; curShift/=2) {
+					int y = copyDiv >> curShift;
+					if (y != 0) {
+						shiftCount -= curShift;
+						copyDiv = y;
 					}
 				}
-				int uInd = 4;
-				while (u[uInd] == 0) uInd--;
+				if (copyDiv >> 1 != 0) shiftCount -= 2;
+				else shiftCount -= copyDiv;
+				// the original divisor is also shifted to help calculate the remainder faster
+				if (shiftCount > 0) {
+					divisor <<= shiftCount;
+					v[vInd] <<= shiftCount;
+					for (int curInd = vInd; curInd > 0; curInd--) {
+						v[curInd] |= v[curInd - 1] >> (32 - shiftCount);
+						v[curInd - 1] <<= shiftCount;
+					}
+					for (int curInd = 4; curInd > 0; curInd--) {
+						u[curInd] |= u[curInd - 1] >> (32 - shiftCount);
+						u[curInd - 1] <<= shiftCount;
+					}
+				}
+				// uInd shouldn't be updated after the shift
+				// Because the original value is required for j
 				
 				for (int j = uInd - vInd; j >= 0; j--) {
 					uint64_t curDigits = ((uint64_t(u[j + vInd + 1]) << 32) | u[j + vInd]);
-					if (uint64_t(v[vInd]) > curDigits) {
-						continue;
-					}
+					if (uint64_t(v[vInd]) > curDigits) continue;
 					// quotient estimate and remainder
 					uint64_t qEst = curDigits / v[vInd];
 					uint64_t rem = curDigits - qEst * v[vInd];
-					if (qEst == (uint64_t(1) << 32) || 
-					(qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+					if (qEst > UINT32_MAX || 
+					(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 						qEst--;
 						rem += v[vInd];
 						// repeat the test until it fails (rem > UINT32_MAX results in failure)
 						while (rem <= UINT32_MAX) {
-							if ((qEst * v[vInd - 1]) > (rem*UINT32_MAX + u[j + vInd - 1])) {
+							if (qEst > UINT32_MAX ||
+							(qEst * v[vInd - 1]) > ((rem << 32) | u[j + vInd - 1])) {
 								qEst--;
 								rem += v[vInd];
 							} else {
@@ -479,23 +506,25 @@ namespace largeNumberLibrary {
 					}
 					// If the result is negative, add the divisor back once
 					if (borrow) {
+						// 32-bit complement
+						for (int curInd = 0; curInd <= vInd + 1; curInd++) {
+							u[j + curInd] = UINT32_MAX - u[j + curInd];
+						}
 						bool carry = false;
 						for (int curInd = 0; curInd <= vInd; curInd++) {
 							// INT32_MIN in this context is BIT32_ON
 							char flag1 = (v[curInd] >= INT32_MIN) + (u[j + curInd] >= INT32_MIN);
 							u[j + curInd] += v[curInd] + carry;
 							bool flag2 = u[j + curInd] < INT32_MIN;
-							carry = (flag1 + flag2 > 1);
+							carry = (flag1 + flag2) > 1;
 						}
 						u[j + vInd + 1] += carry;
 					}
 				}
-				if (shifted) {
-					B1 = (uint64_t(u[4]) << 48) | (uint64_t(u[3]) << 16) | (uint64_t(u[2]) >> 16);
-					B0 = (uint64_t(u[2]) << 48) | (uint64_t(u[1]) << 16) | (uint64_t(u[0]) >> 16);
-				} else {
-					B1 = (uint64_t(u[3]) << 32) | u[2];
-					B0 = (uint64_t(u[1]) << 32) | u[0];
+				B1 = (uint64_t(u[3]) << 32) | u[2];
+				B0 = (uint64_t(u[1]) << 32) | u[0];
+				if (shiftCount != 0) {
+					*this >>= shiftCount;
 				}
 				
 				if (sign) *this = ~*this + 1;

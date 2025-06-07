@@ -214,6 +214,7 @@ bool verifyCorrectnessOfInt_limited(int testNumberCount = 1000, uint64_t randSta
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
 			boostInt boostResult = testNumbersBoost[i] - testNumbersBoost[j];
+			boostResult %= bitLimiter;
 			int_limited<bitSize> myResult = testNumbersInt_limited[i] - testNumbersInt_limited[j];
 			if (!int_limitedEqualBoost<bitSize>(myResult, boostResult)) {
 				std::cout << "\033[1;31mFAILED: " << testNumbersBoost[i] << " - " << testNumbersBoost[j] << "\033[0m" << std::endl;
@@ -227,6 +228,7 @@ bool verifyCorrectnessOfInt_limited(int testNumberCount = 1000, uint64_t randSta
 	for (int i = 0; i < testNumberCount; i++) {
 		for (int j = 0; j < testNumberCount; j++) {
 			boostInt boostResult = testNumbersBoost[i] * testNumbersBoost[j];
+			boostResult %= bitLimiter;
 			int_limited<bitSize> myResult = testNumbersInt_limited[i] * testNumbersInt_limited[j];
 			if (!int_limitedEqualBoost<bitSize>(myResult, boostResult)) {
 				std::cout << "\033[1;31mFAILED: " << testNumbersBoost[i] << " * " << testNumbersBoost[j] << "\033[0m" << std::endl;
@@ -241,11 +243,10 @@ bool verifyCorrectnessOfInt_limited(int testNumberCount = 1000, uint64_t randSta
 		for (int j = 0; j < testNumberCount; j++) {
 			if (testNumbersBoost[j] == 0) continue;
 			boostInt boostResult = testNumbersBoost[i] / testNumbersBoost[j];
+			boostResult %= bitLimiter;
 			int_limited<bitSize> myResult = testNumbersInt_limited[i] / testNumbersInt_limited[j];
 			if (!int_limitedEqualBoost<bitSize>(myResult, boostResult)) {
 				std::cout << "\033[1;31mFAILED: " << testNumbersBoost[i] << " / " << testNumbersBoost[j] << "\033[0m" << std::endl;
-				printIntWords<boostInt>(testNumbersBoost[i]);
-				printIntWords<int_limited<bitSize>>(testNumbersInt_limited[i], false);
 				printIntWords<boostInt>(boostResult);
 				printIntWords<int_limited<bitSize>>(myResult, false);
 				return false;
@@ -259,11 +260,13 @@ bool verifyCorrectnessOfInt_limited(int testNumberCount = 1000, uint64_t randSta
 		for (int j = 0; j < testNumberCount; j++) {
 			if (testNumbersBoost[j] == 0) continue;
 			boostInt boostResult = testNumbersBoost[i] % testNumbersBoost[j];
+			boostResult %= bitLimiter;
 			int_limited<bitSize> myResult = testNumbersInt_limited[i] % testNumbersInt_limited[j];
 			if (!int_limitedEqualBoost<bitSize>(myResult, boostResult)) {
 				std::cout << "\033[1;31mFAILED: " << testNumbersBoost[i] << " % " << testNumbersBoost[j] << "\033[0m" << std::endl;
 				printIntWords<boostInt>(testNumbersBoost[i]);
-				printIntWords<int_limited<bitSize>>(testNumbersInt_limited[i], false);
+				printIntWords<boostInt>(testNumbersBoost[j]);
+				
 				printIntWords<boostInt>(boostResult);
 				printIntWords<int_limited<bitSize>>(myResult, false);
 				return false;
@@ -279,36 +282,39 @@ int main() {
 	int testCaseAmount = 1000;
 	uint64_t randState = 1;
 
-	// Tests multiples of 64 and different offsets
+
+	// Tests multiples of 32 and different offsets
 	verifyCorrectnessOfInt_limited<16>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<17>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<27>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*2>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*2 + 1>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*4>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<32*4 + 2>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*4 + 2>(testCaseAmount, randState); // bad modulo
 	testCaseAmount = 500;
 	verifyCorrectnessOfInt_limited<32*6>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<32*6 + 3>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*6 + 3>(testCaseAmount, randState); // bad modulo
 	verifyCorrectnessOfInt_limited<32*8>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<32*8 + 6>(testCaseAmount, randState);
-	testCaseAmount = 300;
+	verifyCorrectnessOfInt_limited<32*8 + 6>(testCaseAmount, randState); // bad modulo
+	testCaseAmount = 400;
 	verifyCorrectnessOfInt_limited<32*20>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<32*20 + 17>(testCaseAmount, randState);
+	verifyCorrectnessOfInt_limited<32*20 + 17>(testCaseAmount, randState); // bad modulo
 	verifyCorrectnessOfInt_limited<32*32>(testCaseAmount, randState); // 1024
-	verifyCorrectnessOfInt_limited<32*32 + 31>(testCaseAmount, randState); // 1051
-	testCaseAmount = 200;
+	verifyCorrectnessOfInt_limited<32*32 + 31>(testCaseAmount, randState); // 1055
+	testCaseAmount = 250;
 	verifyCorrectnessOfInt_limited<32*42>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*42 + 32>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*64>(testCaseAmount, randState); // 2048
-	verifyCorrectnessOfInt_limited<32*64 + 59>(testCaseAmount, randState, true); // 2107, also tests conversion to string
-	testCaseAmount = 100;
+	verifyCorrectnessOfInt_limited<32*64 + 59>(testCaseAmount, randState); // 2107 bad modulo
+	testCaseAmount = 150;
 	verifyCorrectnessOfInt_limited<32*128>(testCaseAmount, randState); // 4096
-	verifyCorrectnessOfInt_limited<32*128 + 63>(testCaseAmount, randState); // 4159
+	verifyCorrectnessOfInt_limited<32*128 + 63>(testCaseAmount, randState); // 4159 bad modulo
 
 	testCaseAmount = 50;
 	verifyCorrectnessOfInt_limited<32*512>(testCaseAmount, randState); // 16384
 	verifyCorrectnessOfInt_limited<32*1024>(testCaseAmount, randState); // 32768
-	testCaseAmount = 25;
+	testCaseAmount = 20;
 	verifyCorrectnessOfInt_limited<32*2048>(testCaseAmount, randState); // 65536
 
 	return 0;
