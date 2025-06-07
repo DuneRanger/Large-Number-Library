@@ -899,6 +899,8 @@ namespace largeNumberLibrary {
 
 			// Classic non-arithmetic bitshift
 			int_limited& operator<<= (unsigned int const& rhs) {
+				if (rhs < 0) throw std::domain_error("Negative bitshift value exception");
+				if (rhs == 0) return *this;
 				int wordshift = rhs / 32;
 				int bitshift = rhs % 32;
 				for (int i = this->MSW; i >= this->LSW; i--) {
@@ -917,6 +919,8 @@ namespace largeNumberLibrary {
 
 			// Classic non-arithmetic bitshift
 			int_limited& operator>>= (unsigned int const& rhs) {
+				if (rhs < 0) throw std::domain_error("Negative bitshift value exception");
+				if (rhs == 0) return *this;
 				int wordshift = rhs / 32;
 				int bitshift = rhs % 32;
 				for (int i = this->LSW; i <= this->MSW; i++) {
