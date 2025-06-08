@@ -215,7 +215,7 @@ namespace largeNumberLibrary {
 			}
 			int_limited(uint64_t a) {
 				static_assert(bitSize > 1, "Invalid int_limited size");
-				this->words[0] = a & UINT32_MAX;
+				this->words[0] = uint32_t(a);
 				if (wordCount > 1) this->words[1] = a >> 32;
 				this->updateMSW(1);
 				this->truncateExtraBits();
@@ -223,20 +223,22 @@ namespace largeNumberLibrary {
 			int_limited(int64_t a) {
 				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
-					for (int i = 2; i < this->wordCount; i++) {
+					// iterates from i=0 to stop warning from compiling with g++ -O2 or higher
+					for (int i = 0; i < this->wordCount; i++) {
 						this->words[i] = UINT32_MAX;
 					}
-					this->updateMSW(this->wordCount - 1);
 				}
 				this->words[0] = a & UINT32_MAX;
 				if (wordCount > 1) this->words[1] = a >> 32;
 				if (a > 0) this->updateMSW(1);
+				else this->updateMSW(this->wordCount - 1);
 				this->truncateExtraBits();
 			}
 			int_limited(int a) {
 				static_assert(bitSize > 1, "Invalid int_limited size");
 				if (a < 0) {
-					for (int i = 1; i < this->wordCount; i++) {
+					// iterates from i=0 to stop warning from compiling with g++ -O2 or higher
+					for (int i = 0; i < this->wordCount; i++) {
 						this->words[i] = UINT32_MAX;
 					}
 					this->updateMSW(this->wordCount - 1);
@@ -257,7 +259,7 @@ namespace largeNumberLibrary {
 				}
 				while (*s != '\0') {
 					const char c = *s;
-					if (c < '0' || c > '9') throw std::domain_error("String to int_limited conversion - invalid base exception");
+					if (c < '0' || c > '9') throw std::domain_error("String to int_limited conversion exception");
 					// multiply by ten
 					*this = ((*this << 2) + *this) << 1;
 					*this += (c-'0');
@@ -274,7 +276,7 @@ namespace largeNumberLibrary {
 				}
 				for (; i < s.size(); i++) {
 					char c = s[i];
-					if (c < '0' || c > '9') throw std::domain_error("String to int_limited conversion - invalid base exception");
+					if (c < '0' || c > '9') throw std::domain_error("String to int_limited conversion exception");
 					*this += (c-'0');
 					// multiply by ten
 					*this = ((*this << 2) + *this) << 1;
