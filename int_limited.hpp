@@ -431,7 +431,12 @@ namespace largeNumberLibrary {
 				std::vector<uint32_t> baseWords(maxWordCount, 0);
 				int_limited num = *this;
 				bool sign = num < 0;
-				if (sign) num = ~num+1;
+				bool add = false;
+				if (sign) {
+					add = num == int_limited::MIN_VALUE();
+					if (add) num += 1;
+					num = ~num+1;
+				}
 				// baseWords will be in MSb first, for ease of conversion to a string
 				int index = maxWordCount-1;
 				do {
@@ -455,6 +460,7 @@ namespace largeNumberLibrary {
 						output += std::to_string(word) + "_"; // + word divider for clarity
 					}
 				}
+				if (add) output[output.size()-1] = char(output[output.size()-1] + 1);
 				return output;
 			}
 
