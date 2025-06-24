@@ -201,6 +201,8 @@ namespace largeNumberLibrary {
 			importBits (vector, startIndex, endIndex, wordOffset) DONE
 			importBits (iterator to iterator) DONE
 			exportBits DONE
+			MAX value DONE
+			MIN value DONE
 			=============================================================
 			*/
 			#pragma region Construction
@@ -381,6 +383,14 @@ namespace largeNumberLibrary {
 			// Currently returns *all* words, even those higher than the Most Significant Word
 			std::vector<uint32_t> exportBits() {
 				return this->words;
+			}
+
+			static int_limited MAX_VALUE() {
+				return int_limited(-1) >> 1;
+			}
+
+			static int_limited MIN_VALUE() {
+				return int_limited(1) << (bitSize-1);
 			}
 			#pragma endregion Construction
 
