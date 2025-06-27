@@ -1060,7 +1060,7 @@ namespace largeNumberLibrary {
 			=============================================================
 			*/
 			#pragma region Math
-			// returns a signed integer of the floored value
+			// returns a signed integer of the floored binary log
 			int ilog2() {
 				if (*this <= 0) throw std::domain_error("Logarithm of invalid value exception");
 				int result = this->MSW * 32;
@@ -1110,8 +1110,4 @@ namespace largeNumberLibrary {
 
 			#pragma endregion Math
 	};
-
-	typedef int_limited<256> int256;
-	typedef int_limited<512> int512;
-	typedef int_limited<1024> int1024;
 }
