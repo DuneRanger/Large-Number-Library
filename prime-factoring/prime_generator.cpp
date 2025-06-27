@@ -3,8 +3,8 @@
 #include <string>
 #include <cstdint>
 
-constexpr uint64_t max_val = 10000000 + 1;
-const std::string out_path = "./primes.txt";
+constexpr uint64_t max_val = 1000000 + 1;
+const std::string out_path = "./src/primes.txt";
 
 int main() {
 	std::array<bool, max_val+1>* sieve = new std::array<bool, max_val+1>;
