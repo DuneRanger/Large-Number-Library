@@ -2,14 +2,15 @@
 #include "headers.hpp"
 
 // Finds all factors less than or equal to 999983
-std::vector<uint32_t> trial_division(qs_int value) {
-	std::vector<uint32_t> factors;
+std::vector<uint64_t> trial_division(qs_int value) {
+	std::vector<uint64_t> factors;
 	std::ifstream primes("./src/primes.txt");
 	int prime;
-	qs_int max = value.isqrt();
+	qs_int max = value.isqrt()+1;
 	while (primes >> prime) {
 		if (max < prime) {
-			factors.push_back(prime);
+			std::cout << max << " " << prime << " " << value << std::endl;
+			factors.push_back(uint64_t(value));
 			break;
 		}
 		while (!(value % prime)) {

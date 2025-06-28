@@ -7,8 +7,8 @@ class Factoriser {
 	public:
 		static std::vector<qs_int> factorise(qs_int value) {
 			std::vector<qs_int> factors;
-			std::vector<uint32_t> small_factors = trial_division(value);
-			for (uint32_t prime : small_factors) {
+			std::vector<uint64_t> small_factors = trial_division(value);
+			for (uint64_t prime : small_factors) {
 				value /= prime;
 				factors.push_back(prime);
 			}

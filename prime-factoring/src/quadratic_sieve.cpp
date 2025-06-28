@@ -47,7 +47,7 @@ namespace QS {
 	
 	// The following is a rudimentary implementation of the quadratic sieve algorithm, based on my limited understanding of how it works
 	class QuadraticSieve {
-		typedef uint32_t ui32;
+		typedef uint64_t ui64;
 		// polynomials used for QS
 		// if this was Multi-Polynomial QS, then they would be in the form of Q(x) = Ax^2 + Bx + C
 		// However since this is a simple single-polynomial version, then we have
@@ -68,8 +68,8 @@ namespace QS {
 		public:
 			qs_int N; // what we're trying to factorise
 			qs_int kN; // what we work with (modulo this)
-			ui32 B; // smoothness bound
-			std::vector<ui32> factor_base;
+			ui64 B; // smoothness bound
+			std::vector<ui64> factor_base;
 			std::vector<qs_int> factors;
 			std::vector<QS_poly> polynomials;
 	
@@ -78,16 +78,16 @@ namespace QS {
 	
 			#pragma region Helper
 			// Finding you this had to be modulo to not overflow took way too long
-			ui32 pow_mod(ui32 n, ui32 exp, ui32 p) {
+			ui64 pow_mod(ui64 n, ui64 exp, ui64 p) {
 				if (exp == 0) return 1;
 				if (exp % 2) return (pow_mod(n, exp-1, p) * n) % p;
 				n = pow_mod(n, exp/2, p);
 				return (n * n) % p;
 			}
 
-			int calc_Jacobi_symbol(ui32 x, ui32 p) {
+			int calc_Jacobi_symbol(ui64 x, ui64 p) {
 				if (p%2 == 0) throw std::domain_error("Error: Even denominator used when calculating Jacobi symbol");
-				ui32 a = x%p;
+				ui64 a = x%p;
 				int symbol = 1;
 				// until we reach the base case (p will be 1 if they are coprime)
 				while (a != 0) {
@@ -109,7 +109,7 @@ namespace QS {
 					// so (a | p) = (-1)^((a-1)/2*(p-1)/2) / (p | a)
 					// and (-1)^((a-1)/2*(p-1)/2) is -1 when the following applies
 					if (a%4 == 3 && p%4 == 3) symbol = -symbol;
-					ui32 t = a;
+					ui64 t = a;
 					a = p % a;
 					p = t;
 				}
@@ -119,20 +119,20 @@ namespace QS {
 			}
 	
 			// Assumes N != 0 (mod p)
-			bool is_quadratic_residue(qs_int& N, ui32 p) {
+			bool is_quadratic_residue(qs_int& N, ui64 p) {
 				if (p == 2) return true;
-				return calc_Jacobi_symbol(ui32(N%p), p) == 1;
+				return calc_Jacobi_symbol(ui64(N%p), p) == 1;
 			}
 			// Assumes N != 0 (mod p)
-			bool is_quadratic_residue(ui32 N, ui32 p) {
+			bool is_quadratic_residue(ui64 N, ui64 p) {
 				if (p == 2) return true;
 				return calc_Jacobi_symbol(N%p, p) == 1;
 			}
 
-			ui32 count_bits(ui32 val) {
-				ui32 bits = 0;
-				for (ui32 i = 16; i > 0; i >>= 1) {
-					ui32 t = val >> i;
+			ui64 count_bits(ui64 val) {
+				ui64 bits = 0;
+				for (ui64 i = 16; i > 0; i >>= 1) {
+					ui64 t = val >> i;
 					if (t) { val = t; bits += i; }
 				}
 				if (val) bits += 1;
@@ -141,27 +141,27 @@ namespace QS {
 
 			// Mostly just implements the pseudo code from:
 			// https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm#The_algorithm
-			ui32 Tonelli_Shanks(QS_poly poly, ui32 prime) {
+			ui64 Tonelli_Shanks(QS_poly poly, ui64 prime) {
 				// We're solving (A + x)^2 = -C (mod p)
 				// Tonelli_Shanks algorithm finds R such, that R^2 = N (mod p)
-				ui32 N = ui32((-poly.C)%prime);
+				ui64 N = ui64((-poly.C)%prime);
 				if (prime == 2) return poly.A%2 != N%2;
 				// because n^((p-1)/2) = 1 (mod p), we find Q,S such that Q*2^S = p-1
-				ui32 Q = prime-1, S = 0;
+				ui64 Q = prime-1, S = 0;
 				while (Q%2 == 0) { Q /= 2; S++; }
 				// Next we find a quadratic non-residue (where z^((p-1)/2) = -1 (mod p))
-				ui32 z = 2;
+				ui64 z = 2;
 				while (is_quadratic_residue(z, prime)) z++;
-				ui32 M = S;
-				ui32 c = pow_mod(z, Q, prime);
-				ui32 t = pow_mod(N, Q, prime);
-				ui32 R = pow_mod(N, (Q+1)/2, prime);
+				ui64 M = S;
+				ui64 c = pow_mod(z, Q, prime);
+				ui64 t = pow_mod(N, Q, prime);
+				ui64 R = pow_mod(N, (Q+1)/2, prime);
 				while (t > 1) {
-					ui32 t_exp = (t*t) % prime;
-					ui32 i = 1;
+					ui64 t_exp = (t*t) % prime;
+					ui64 i = 1;
 					while (t_exp != 1 && i < M) { t_exp = (t_exp*t_exp)%prime; i++; }
 					if (i == M) throw std::domain_error("Error: " + kN.toString() + " (kN) isn't a quadratic residue modulo " + std::to_string(prime));
-					ui32 b = pow_mod(c, 1 << (M-i-1), prime);
+					ui64 b = pow_mod(c, 1 << (M-i-1), prime);
 					M = i;
 					c = (b*b)%prime;
 					t = (t*c)%prime;
@@ -195,8 +195,8 @@ namespace QS {
 	
 			// Requires B to be defined
 			void prepare_factor_base() {
-				std::vector<ui32> potential_primes = find_small_primes<ui32>(B);
-				for (ui32 prime : potential_primes) {
+				std::vector<ui64> potential_primes = find_small_primes<ui64>(B);
+				for (ui64 prime : potential_primes) {
 					if (is_quadratic_residue(kN, prime)) factor_base.push_back(prime);
 				}
 				// for (int i = 0; i < factor_base.size(); i++) {
@@ -219,25 +219,25 @@ namespace QS {
 				std::cout << std::endl;
 			}
 
-			std::vector<qs_int> find_relation_candidates(ui32 max, QS_poly poly) {
+			std::vector<qs_int> find_relation_candidates(ui64 max, QS_poly poly) {
 				std::vector<qs_int> values(max);
-				std::vector<ui32> log_thresholds(max);
+				std::vector<ui64> log_thresholds(max);
 				for (int i = 0; i < max; i++) {
 					values[i] = poly(i);
 					log_thresholds[i] = values[i].ilog2() >> 10;
 				}
-				std::vector<ui32> log_primes(factor_base.size());
+				std::vector<ui64> log_primes(factor_base.size());
 				for (int i = 0; i < factor_base.size(); i++) log_primes[i] = count_bits(factor_base[i]);
-				std::vector<ui32> log_counts(max, 0);
+				std::vector<ui64> log_counts(max, 0);
 
 				for (int i = 0; i < factor_base.size(); i++) {
-					ui32 prime = factor_base[i];
-					ui32 raw_root = Tonelli_Shanks(poly, prime);
+					ui64 prime = factor_base[i];
+					ui64 raw_root = Tonelli_Shanks(poly, prime);
 					// since the raw_root is (A + x), then we need to get x1 and x2
 					// x_1 = raw_root - A (mod p)	x_2 = (p - raw_root) - A (mod p)
 					// We'll add extra "padding" of `prime + ` to not underflow
-					ui32 A = ui32(poly.A%prime);
-					ui32 x_1, x_2;
+					ui64 A = ui64(poly.A%prime);
+					ui64 x_1, x_2;
 					x_1 = prime + raw_root - A;
 					if (x_1 > prime) x_1 -= prime;
 					x_2 = prime + prime - raw_root - A;
@@ -258,7 +258,7 @@ namespace QS {
 				std::vector<qs_int> verified;
 				for (int i = 0; i < candidates.size(); i++) {
 					qs_int value = candidates[i];
-					for (ui32 prime : factor_base) {
+					for (ui64 prime : factor_base) {
 						while (value % prime == 0) value /= prime;
 					}
 					if (value == 1) verified.push_back(candidates[i]);
@@ -269,6 +269,7 @@ namespace QS {
 
 			// sieves from [min, max), returns the raw values found from sieving
 			std::vector<qs_int> sieve(ui32 max, QS_poly poly) {
+			std::vector<qs_int> sieve(ui64 max, QS_poly poly) {
 				std::cout << "Sieving from 0 to " << max << '\n';
 				std::vector<qs_int> candidates = find_relation_candidates(max, poly);
 				return verify_candidates(candidates);
@@ -277,12 +278,12 @@ namespace QS {
 			// Should only be called after enough relations have been gathered
 			void create_matrix() {
 				std::cout << "Creating matrix mod 2 of size " << relations.size() << " x " << factor_base.size() << std::endl;
-				ui32 row_size = factor_base.size();
+				ui64 row_size = factor_base.size();
 				for (int i = 0; i < relations.size(); i++) {
 					matrix_mod2.push_back(CustomBitset(row_size));
 					qs_int value = relations[i];
 					for (int j = 0; j < factor_base.size(); j++) {
-						ui32 prime = factor_base[j];
+						ui64 prime = factor_base[j];
 						while (value % prime == 0) {
 							value /= prime;
 							matrix_mod2[i].flip_bit(j);
@@ -311,9 +312,10 @@ namespace QS {
 				}
  				polynomials.clear();
 				create_matrix();
-				// factor_base.clear();
-				// solve_matrix();
-				// matrix_mod2.clear();
+				factor_base.clear();
+				solve_matrix();
+				matrix_mod2.clear();
+				relations.clear();
 				return factors;
 			}
 			// std::vector<qs_int> factorise(std::string value) {
