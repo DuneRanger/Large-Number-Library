@@ -62,8 +62,8 @@ namespace QS {
 				B = b;
 				C = c;
 			}
-			qs_int operator()(const qs_int& x) { return (A+x)*(A+x) - C; }
-			qs_int quad(const qs_int& x) { return (A+x)*(A+x); }
+			qs_int operator()(const qs_int& x) const { return (A+x)*(A+x) - C; }
+			qs_int quad(const qs_int& x) const { return (A+x)*(A+x); }
 		};
 		public:
 			qs_int N; // what we're trying to factorise
@@ -78,14 +78,14 @@ namespace QS {
 	
 			#pragma region Helper
 			// Finding you this had to be modulo to not overflow took way too long
-			ui64 pow_mod(ui64 n, ui64 exp, ui64 p) {
+			ui64 pow_mod(ui64 n, ui64 exp, ui64 p) const {
 				if (exp == 0) return 1;
 				if (exp % 2) return (pow_mod(n, exp-1, p) * n) % p;
 				n = pow_mod(n, exp/2, p);
 				return (n * n) % p;
 			}
 
-			int calc_Jacobi_symbol(ui64 x, ui64 p) {
+			int calc_Jacobi_symbol(ui64 x, ui64 p) const {
 				if (p%2 == 0) throw std::domain_error("Error: Even denominator used when calculating Jacobi symbol");
 				ui64 a = x%p;
 				int symbol = 1;
@@ -119,17 +119,17 @@ namespace QS {
 			}
 	
 			// Assumes N != 0 (mod p)
-			bool is_quadratic_residue(qs_int& N, ui64 p) {
+			bool is_quadratic_residue(qs_int const& N, ui64 p) const {
 				if (p == 2) return true;
 				return calc_Jacobi_symbol(ui64(N%p), p) == 1;
 			}
 			// Assumes N != 0 (mod p)
-			bool is_quadratic_residue(ui64 N, ui64 p) {
+			bool is_quadratic_residue(ui64 N, ui64 p) const {
 				if (p == 2) return true;
 				return calc_Jacobi_symbol(N%p, p) == 1;
 			}
 
-			ui64 count_bits(ui64 val) {
+			ui64 count_bits(ui64 val) const {
 				ui64 bits = 0;
 				for (ui64 i = 16; i > 0; i >>= 1) {
 					ui64 t = val >> i;
@@ -141,7 +141,7 @@ namespace QS {
 
 			// Mostly just implements the pseudo code from:
 			// https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm#The_algorithm
-			ui64 Tonelli_Shanks(QS_poly poly, ui64 prime) {
+			ui64 Tonelli_Shanks(QS_poly const& poly, ui64 prime) const {
 				// We're solving (A + x)^2 = -C (mod p)
 				// Tonelli_Shanks algorithm finds R such, that R^2 = N (mod p)
 				ui64 N = ui64((-poly.C)%prime);
@@ -214,7 +214,7 @@ namespace QS {
 				std::cout << '\n';
 			}
 
-			std::vector<qs_int> find_relation_candidates(ui64 max, QS_poly poly) {
+			std::vector<qs_int> find_relation_candidates(ui64 max, QS_poly const& poly) const {
 				std::vector<qs_int> values(max);
 				std::vector<ui64> log_thresholds(max);
 				for (int i = 0; i < max; i++) {
@@ -255,8 +255,8 @@ namespace QS {
 				return candidates;
 			}
 
-			std::vector<qs_int> verify_candidates(std::vector<qs_int>& candidates) {
 				std::vector<qs_int> verified;
+			std::vector<qs_int> verify_candidates(std::vector<qs_int> const& candidates) const {
 				for (int i = 0; i < candidates.size(); i++) {
 					qs_int value = candidates[i];
 					for (ui64 prime : factor_base) {
@@ -269,7 +269,7 @@ namespace QS {
 			}
 
 			// sieves from [min, max), returns the raw values found from sieving
-			std::vector<qs_int> sieve(ui64 max, QS_poly poly) {
+			std::vector<qs_int> sieve(ui64 max, QS_poly const& poly) const {
 				std::cout << "Sieving from 0 to " << max << " | ";
 				std::vector<qs_int> candidates = find_relation_candidates(max, poly);
 				return verify_candidates(candidates);
