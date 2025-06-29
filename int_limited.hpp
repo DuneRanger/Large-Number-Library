@@ -316,7 +316,7 @@ namespace largeNumberLibrary {
 
 			// For simplicity's sake this function only accepts
 			// a vector of unsigned 32 bit integers from the standard library
-			void importBits(std::vector<uint32_t>& newWords) {
+			void importBits(std::vector<uint32_t> const& newWords) {
 				for (int i = 0; i < this->wordCount && i < newWords.size(); i++) {
 					this->words[i] = newWords[i];
 				}
@@ -330,7 +330,7 @@ namespace largeNumberLibrary {
 
 			// Starts importing from newWords[startIndex] (inclusive) to newWords[endIndex - 1]
 			// Import into the destinations words, starting from wordOffset
-			void importBits(std::vector<uint32_t>& newWords, int startIndex, int endIndex, int wordOffset = 0) {
+			void importBits(std::vector<uint32_t> const& newWords, int startIndex, int endIndex, int wordOffset = 0) {
 				if (startIndex < 0 || endIndex < 0 || wordCount < 0) {
 					throw std::range_error("Invalid argument for importBits");
 				}
@@ -513,10 +513,10 @@ namespace largeNumberLibrary {
 				return result += rhs;
 			}
 
-			int_limited& operator-= (int_limited rhs) {
+			int_limited& operator-= (int_limited const& rhs) {
 				return *this += (~rhs + 1);
 			}
-			int_limited operator- (int_limited rhs) const {
+			int_limited operator- (int_limited const& rhs) const {
 				int_limited result = *this;
 				return result += (~rhs + 1);
 			}
@@ -581,7 +581,7 @@ namespace largeNumberLibrary {
 
 			// Considering the implementation of bitshifting, negation and addition with MSW, LSW
 			// This division should have a complexity of O(bitSize + (rhs.MSW - rhs.LSW)^2)
-			int_limited& operator/= (int_limited rhs) {
+			int_limited& operator/= (int_limited const& rhs) {
 				if (rhs == 0) throw std::domain_error("Divide by zero exception");
 
 				// Create the dividend and divisor with at least an extra word of accuracy for indexing in the algorithm
@@ -716,7 +716,7 @@ namespace largeNumberLibrary {
 			}
 
 			// the sign of the divisor *does not* affect the result
-			int_limited& operator%= (int_limited rhs) {
+			int_limited& operator%= (int_limited const& rhs) {
 				if (rhs == 0) throw std::domain_error("Modulo by zero exception");
 
 				// Create the dividend and divisor with at least an extra word of accuracy for indexing in the algorithm
