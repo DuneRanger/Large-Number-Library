@@ -177,8 +177,7 @@ namespace QS {
 			void prepare_kN() {
 				// Since I don't understand why most implementations increase kN to at least 115 bits, I'll just leave it be for now
 				kN = N;
-				std::cout << "N = " << N  << '\n';
-				std::cout << "kN = " << kN << '\n';
+				std::cout << "N = " << N  << "\t|\tkN = " << kN << '\n';
 			}
 	
 			// Requires kN to be defined
@@ -190,7 +189,7 @@ namespace QS {
 							(kN.ilog2()) * std::log(kN.ilog2())
 						)
 					));
-				std::cout << "B = " << B << '\n';
+				std::cout << "B = " << B << " | ";
 			}
 	
 			// Requires B to be defined
@@ -199,11 +198,7 @@ namespace QS {
 				for (ui64 prime : potential_primes) {
 					if (is_quadratic_residue(kN, prime)) factor_base.push_back(prime);
 				}
-				// for (int i = 0; i < factor_base.size(); i++) {
-				// 	std::cout << factor_base[i] << ", ";
-				// }
-				// std::cout << std::endl;
-				std::cout << "Factor base size is " << factor_base.size() << std::endl;
+				std::cout << "Factor base size = " << factor_base.size() << '\n';
 			}
 
 			// requires kN to be defined
@@ -216,15 +211,19 @@ namespace QS {
 				for (int i = 0; i < polynomials.size(); i++) {
 					std::cout << "(" << polynomials[i].A << " + x)^2 " << polynomials[i].C << " | ";
 				}
-				std::cout << std::endl;
+				std::cout << '\n';
 			}
 
 			std::vector<qs_int> find_relation_candidates(ui64 max, QS_poly poly) {
 				std::vector<qs_int> values(max);
 				std::vector<ui64> log_thresholds(max);
 				for (int i = 0; i < max; i++) {
-					values[i] = poly(i);
-					log_thresholds[i] = values[i].ilog2() >> 10;
+					values[i] = poly(i)%kN;
+					// experimentally confirmed that log() >> 1 gets pretty much as many verifications as log() >> 2
+					// Whilst also reducing estimated candidates by 2 - 6 times
+					// simply just log() seems to work quite well, but with the current sieving interval, a few N get only half the required relations
+					// even if the threshold is set to 0
+					log_thresholds[i] = values[i].ilog2() >> 1;
 				}
 				std::vector<ui64> log_primes(factor_base.size());
 				for (int i = 0; i < factor_base.size(); i++) log_primes[i] = count_bits(factor_base[i]);
@@ -248,9 +247,11 @@ namespace QS {
 
 				std::vector<qs_int> candidates;
 				for (int i = 0; i < max; i++) {
-					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(values[i]%kN);
+					if (log_counts[i] >= log_thresholds[i]) {
+						candidates.push_back(values[i]);
+					}
 				}
-				std::cout << "Found " << candidates.size() << " candidates out of " << max << " values" << std::endl;
+				std::cout << candidates.size() << " candidates | ";
 				return candidates;
 			}
 
@@ -263,21 +264,20 @@ namespace QS {
 					}
 					if (value == 1) verified.push_back(candidates[i]);
 				}
-				std::cout << "Verified " << verified.size() << " candidates out of " << candidates.size() << " candidates" << std::endl;
+				std::cout << verified.size() << " verified\n";
 				return verified;
 			}
 
 			// sieves from [min, max), returns the raw values found from sieving
-			std::vector<qs_int> sieve(ui32 max, QS_poly poly) {
 			std::vector<qs_int> sieve(ui64 max, QS_poly poly) {
-				std::cout << "Sieving from 0 to " << max << '\n';
+				std::cout << "Sieving from 0 to " << max << " | ";
 				std::vector<qs_int> candidates = find_relation_candidates(max, poly);
 				return verify_candidates(candidates);
 			}
 	
 			// Should only be called after enough relations have been gathered
 			void create_matrix() {
-				std::cout << "Creating matrix mod 2 of size " << relations.size() << " x " << factor_base.size() << std::endl;
+				std::cout << "Creating matrix mod 2 of size " << relations.size() << " x " << factor_base.size() << '\n';
 				ui64 row_size = factor_base.size();
 				for (int i = 0; i < relations.size(); i++) {
 					matrix_mod2.push_back(CustomBitset(row_size));
@@ -301,6 +301,14 @@ namespace QS {
 			bool debug = false;
 
 			std::vector<qs_int> factorise(qs_int value) {
+				std::cout << "VALUE : " << value << std::endl;
+				std::vector<ui64> small_factors = trial_division(value);
+				for (ui64 prime : small_factors) {
+					// std::cout << prime << ", ";
+					value /= prime;
+					factors.push_back(prime);
+				}
+				if (value == 1) return factors;
 				N = value;
 				prepare_kN();
 				prepare_B();
