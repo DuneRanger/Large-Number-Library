@@ -381,7 +381,7 @@ namespace largeNumberLibrary {
 			// For simplicity's sake this function only returns
 			// a vector of unsigned 32 bit integers from the standard library
 			// Currently returns *all* words, even those higher than the Most Significant Word
-			std::vector<uint32_t> exportBits() {
+			std::vector<uint32_t> exportBits() const {
 				return this->words;
 			}
 
@@ -412,7 +412,7 @@ namespace largeNumberLibrary {
 			// Returns a string of the current value converted to the desired base
 			// '-' is appended to the start, if the number is negative, irregardless of the base
 			// Base is limited to a single unsigned 32 bit integer
-			std::string toString(uint32_t base = 10) {
+			std::string toString(uint32_t base = 10) const {
 				if (base == 0) throw std::out_of_range("Unable to convert value to base 0");
 				// special case, because it requires special attention
 				if (*this == 0) return "0";
@@ -467,7 +467,7 @@ namespace largeNumberLibrary {
 			// Note: This overload doesn't take a reference, because it would throw an error when printing a complex expression
 			// For example (a * -1)
 			// It also doesn't consider num as a const, because methods can't be called on consts (at least from my understanding of the error)
-			friend std::ostream& operator<<(std::ostream& os, int_limited num) {
+			friend std::ostream& operator<<(std::ostream& os, int_limited const& num) {
 				os << num.toString();
 				return os;
 			}
@@ -506,7 +506,7 @@ namespace largeNumberLibrary {
 				this->updateMSW(std::max(this->MSW, rhs.MSW) + 1); // +1 for potential carry
 				return *this;
 			}
-			int_limited operator+ (int_limited const& rhs) {
+			int_limited operator+ (int_limited const& rhs) const {
 				int_limited result = *this;
 				return result += rhs;
 			}
@@ -514,12 +514,12 @@ namespace largeNumberLibrary {
 			int_limited& operator-= (int_limited rhs) {
 				return *this += (~rhs + 1);
 			}
-			int_limited operator- (int_limited rhs) {
+			int_limited operator- (int_limited rhs) const {
 				int_limited result = *this;
 				return result += (~rhs + 1);
 			}
 			// negates value
-			int_limited operator- () {
+			int_limited operator- () const {
 				int_limited result = *this;
 				return (~result + 1);
 			}
@@ -571,7 +571,7 @@ namespace largeNumberLibrary {
 				this->updateMSW(A.MSW + B.MSW + 1);
 				return *this;
 			}
-			int_limited operator* (int_limited const& rhs) {
+			int_limited operator* (int_limited const& rhs) const {
 				int_limited result = *this;
 				return result *= rhs;
 			}
@@ -708,7 +708,7 @@ namespace largeNumberLibrary {
 				if (negative) *this = ~(*this) + 1;
 				return *this;
 			}
-			int_limited operator/ (int_limited const& rhs) {
+			int_limited operator/ (int_limited const& rhs) const {
 				int_limited result = *this;
 				return result /= rhs;
 			}
@@ -843,7 +843,7 @@ namespace largeNumberLibrary {
 				if (negative) *this = ~(*this) + 1;
 				return *this;
 			}
-			int_limited operator% (int_limited const& rhs) {
+			int_limited operator% (int_limited const& rhs) const {
 				int_limited result = *this;
 				return result %= rhs;
 			}
@@ -871,7 +871,7 @@ namespace largeNumberLibrary {
 				this->updateMSW(std::max(this->MSW, rhs.MSW));
 				return *this;
 			}
-			int_limited operator^ (int_limited const& rhs) {
+			int_limited operator^ (int_limited const& rhs) const {
 				int_limited result = *this;
 				return result ^= rhs;
 			}
@@ -886,7 +886,7 @@ namespace largeNumberLibrary {
 				this->updateMSW(std::max(this->MSW, rhs.MSW));
 				return *this;
 			}
-			int_limited operator| (int_limited const& rhs) {
+			int_limited operator| (int_limited const& rhs) const {
 				int_limited result = *this;
 				return result |= rhs;
 			}
@@ -899,13 +899,13 @@ namespace largeNumberLibrary {
 				this->updateMSW(std::min(this->MSW, rhs.MSW));
 				return *this;
 			}
-			int_limited operator& (int_limited const& rhs) {
+			int_limited operator& (int_limited const& rhs) const {
 				int_limited result = *this;
 				return result &= rhs;
 			}
 
 			// Returns the bit NOT, so adding 1 gets the two's complement
-			int_limited operator~ () {
+			int_limited operator~ () const {
 				int_limited result = 0;
 				for (int i = 0; i < this->wordCount; i++) {
 					result.words[i] = ~this->words[i];
@@ -930,7 +930,7 @@ namespace largeNumberLibrary {
 				return *this;
 			}
 			// Classic non-arithmetic bitshift
-			int_limited operator<< (unsigned int const& rhs) {
+			int_limited operator<< (unsigned int const& rhs) const {
 				int_limited result = *this;
 				return result <<= rhs;
 			}
@@ -950,7 +950,7 @@ namespace largeNumberLibrary {
 				return *this;
 			}
 			// Classic non-arithmetic bitshift
-			int_limited operator>> (unsigned int const& rhs) {
+			int_limited operator>> (unsigned int const& rhs) const {
 				int_limited result = *this;
 				return result >>= rhs;
 			}
@@ -970,7 +970,7 @@ namespace largeNumberLibrary {
 			*/
 			#pragma region Relational
 
-			bool operator== (int_limited const& rhs) {
+			bool operator== (int_limited const& rhs) const {
 				// If they don't have 1's in the same words, return false
 				if (this->LSW != rhs.LSW || this->MSW != rhs.MSW) return false;
 				// Since they have the same word range, then just check the equality of those
@@ -979,10 +979,10 @@ namespace largeNumberLibrary {
 				}
 				return true;
 			}
-			bool operator!= (int_limited const& rhs) {
+			bool operator!= (int_limited const& rhs) const {
 				return !(*this == rhs);
 			}
-			bool operator> (int_limited const& rhs) {
+			bool operator> (int_limited const& rhs) const {
 				uint32_t MSb = BIT32_ON;
 				if (bitSize%32 != 0) {
 					MSb >>= 32 - (bitSize%32);
@@ -997,7 +997,7 @@ namespace largeNumberLibrary {
 				// if they have been equal up to here then they are either equal or rhs.LSW < this->LSW (*this < rhs)
 				return false;
 			}
-			bool operator< (int_limited const& rhs) {
+			bool operator< (int_limited const& rhs) const {
 				uint32_t MSb = BIT32_ON;
 				if (bitSize%32 != 0) {
 					MSb >>= 32 - (bitSize%32);
@@ -1014,10 +1014,10 @@ namespace largeNumberLibrary {
 				// if they have been equal up to here then they are either equal or rhs.LSW < this->LSW (*this < rhs)
 				return rhs.LSW < this->LSW;
 			}
-			bool operator>= (int_limited const& rhs) {
+			bool operator>= (int_limited const& rhs) const {
 				return !(*this < rhs);
 			}
-			bool operator<= (int_limited const& rhs) {
+			bool operator<= (int_limited const& rhs) const {
 				return !(*this > rhs);
 			}
 			#pragma endregion Relational
@@ -1035,15 +1035,15 @@ namespace largeNumberLibrary {
 			*/
 			#pragma region Logical
 			// returns *this == 0
-			bool operator! () {
+			bool operator! () const {
 				if (!!this->MSW) return false;
 				return this->words[0] == 0;
 			}
-			bool operator&& (int_limited const& rhs) {
+			bool operator&& (int_limited const& rhs) const {
 				// if *this and rhs are non-zero
 				return (!!(*this)) && (!!(rhs));
 			}
-			bool operator|| (int_limited const& rhs) {
+			bool operator|| (int_limited const& rhs) const {
 				// if *this or rhs are non-zero
 				return (!!(*this)) || (!!(rhs));
 			}
@@ -1061,7 +1061,7 @@ namespace largeNumberLibrary {
 			*/
 			#pragma region Math
 			// returns a signed integer of the floored binary log
-			int ilog2() {
+			int ilog2() const {
 				if (*this <= 0) throw std::domain_error("Logarithm of invalid value exception");
 				int result = this->MSW * 32;
 				
@@ -1079,7 +1079,7 @@ namespace largeNumberLibrary {
 			}
 
 			// only accepts *positive* exponents
-			int_limited pow(uint32_t exp) {
+			int_limited pow(uint32_t exp) const {
 				if (exp == 0) return 1;
 				int_limited result;
 				if (exp == 1) {
@@ -1092,7 +1092,7 @@ namespace largeNumberLibrary {
 			}
 
 			// returns the floored value of integer square root
-			int_limited isqrt() {
+			int_limited isqrt() const {
 				if (*this < 0) throw std::domain_error("Sqrt of negative value exception");
 				if (this->MSW == 0 && this->words[0] < 4) return (this->words[0] > 0);
 				int sigBits = this->ilog2();
