@@ -654,7 +654,7 @@ namespace largeNumberLibrary {
 					divisor <<= shiftCount;
 					dividend <<= shiftCount;
 				}
-				// we never update dividend MSW or LSW after this, because no operations are based on them
+				// we never manually update dividend MSW or LSW after this, because no operations are based on them
 				
 				for (int j = m; j >= 0; j--) {
 					uint64_t curDigits = concatTo64Bit(dividend.words[j + vInd + 1], dividend.words[j + vInd]);
@@ -716,7 +716,7 @@ namespace largeNumberLibrary {
 			// the sign of the divisor *does not* affect the result
 			int_limited& operator%= (int_limited rhs) {
 				if (rhs == 0) throw std::domain_error("Modulo by zero exception");
-
+				
 				// Create the dividend and divisor with at least an extra word of accuracy for indexing in the algorithm
 				const int extraPrecision = 64 + 32-bitSize%32;
 				int_limited<bitSize + extraPrecision> dividend;
@@ -741,7 +741,7 @@ namespace largeNumberLibrary {
 				*this = 0;
 
 				int potentialLSW = 0;
-				int potentialMSW = rhs.MSW;
+				int potentialMSW = divisor.MSW;
 				
 				// If the divisor only consists of one 32-bit word
 				// then divide manually and return
@@ -832,8 +832,8 @@ namespace largeNumberLibrary {
 					}
 				}
 				// only update MSW and LSW at the end, because it isn't needed in the middle
-				dividend.updateMSW(divisor.MSW);
-				dividend.updateLSW(0);
+				dividend.updateLSW(potentialLSW);
+				dividend.updateMSW(potentialMSW);
 				dividend >>= shiftCount;
 				for (int i = 0; i <= vInd; i++) {
 					this->words[i] = dividend.words[i];
