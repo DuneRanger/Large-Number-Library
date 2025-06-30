@@ -66,16 +66,20 @@ namespace QS {
 			qs_int quad(const qs_int& x) const { return (A+x)*(A+x); }
 		};
 		public:
+			std::vector<qs_int> factors;
+
 			qs_int N; // what we're trying to factorise
 			qs_int kN; // what we work with (modulo this)
 			ui64 B; // smoothness bound
+
 			std::vector<ui64> factor_base;
-			std::vector<qs_int> factors;
 			std::vector<QS_poly> polynomials;
-	
+			
+			int64_t sieve_start;
+			ui64 sieve_interval;
 			std::vector<qs_int> relations;
 			std::vector<CustomBitset> matrix_mod2;
-	
+			
 			#pragma region Helper
 			// Finding out that this had to be modulo so as to not overflow took way too long
 			ui64 pow_mod(ui64 n, ui64 exp, ui64 p) const {
@@ -216,21 +220,38 @@ namespace QS {
 				std::cout << '\n';
 			}
 
-			std::vector<qs_int> find_relation_candidates(ui64 max, QS_poly const& poly) const {
-				std::vector<qs_int> values(max);
-				std::vector<ui64> log_thresholds(max);
-				for (int i = 0; i < max; i++) {
-					values[i] = poly(i)%kN;
+			// requires B to be defined
+			void prepare_sieve_bounds() {
+				sieve_start = 0;
+				sieve_interval = 100000;
+			}
+			
+			std::vector<qs_int> find_relation_candidates(int64_t start, ui64 interval, QS_poly const& poly) const {
+				// std::vector<qs_int> values(interval);
+				std::vector<ui64> log_thresholds(interval);
+				// NOTE:
+				// this seems to be the slowest part of the sieving process (currently)
+				// Although calculating each value increases the accuracy of the log_threshold
+				// Only calculating the log_threshold for one or two values could significantly faster
+				// Though we still need a good enough threshold to keep the candidate count low
+				ui64 base = poly(start).ilog2();
+				// ui64 threshold = poly(interval).ilog2() - std::ceil(std::log2(factor_base[factor_base.size()-1]));
+				ui64 threshold = (base >> 1) + (base >> 2);
+				for (int i = 0; i < interval; i++) {
+					// if (i%(interval/3) == 0) threshold = (poly(start + i + interval/3)%kN).ilog2() >> 1;
+					// values[i] = poly(start + i)%kN;
 					// experimentally confirmed that log() >> 1 gets pretty much as many verifications as log() >> 2
 					// Whilst also reducing estimated candidates by 2 - 6 times
 					// simply just log() seems to work quite well, but with the current sieving interval, a few N get only half the required relations
 					// even if the threshold is set to 0
-					ui64 base = values[i].ilog2();
-					log_thresholds[i] = (base >> 2);// + (base >> 2);
+					if (i%(interval/50) == 0) base = poly(start + i).ilog2();
+					log_thresholds[i] = threshold;
 				}
 				std::vector<ui64> log_primes(factor_base.size());
 				for (int i = 0; i < factor_base.size(); i++) log_primes[i] = count_bits(factor_base[i]);
-				std::vector<ui64> log_counts(max, 0);
+				std::vector<ui64> log_counts(interval, 0);
+
+				std::cout << "Prepared ";
 
 				for (int i = 0; i < factor_base.size(); i++) {
 					ui64 prime = factor_base[i];
@@ -239,20 +260,21 @@ namespace QS {
 					// x_1 = raw_root - A (mod p)	x_2 = (p - raw_root) - A (mod p)
 					// We add an extra padding of `prime + ` to not underflow
 					ui64 A = ui64(poly.A%prime);
+					ui64 offset = start%prime;
 					ui64 x_1 = 0, x_2 = 0;
 					if (raw_root != 0){
-						x_1 = prime + raw_root - A;
+						x_1 = prime + raw_root - A - offset;
 						if (x_1 >= prime) x_1 -= prime;
-						x_2 = prime + prime - raw_root - A;
+						x_2 = prime + prime - raw_root - A - offset;
 						if (x_2 >= prime) x_2 -= prime;
 					}
-					for (int j = x_1; j < max; j += prime) log_counts[j] += log_primes[i];
-					if (x_1 != x_2) for (int j = x_2; j < max; j += prime) log_counts[j] += log_primes[i];
+					for (int j = x_1; j < interval; j += prime) log_counts[j] += log_primes[i];
+					if (x_1 != x_2) for (int j = x_2; j < interval; j += prime) log_counts[j] += log_primes[i];
 				}
 
 				std::vector<qs_int> candidates;
-				for (int i = 0; i < max; i++) {
-					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(values[i]);
+				for (int i = 0; i < interval; i++) {
+					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(poly(start + i)%kN);
 				}
 				std::cout << candidates.size() << " candidates | ";
 				return candidates;
@@ -274,11 +296,18 @@ namespace QS {
 				return verified;
 			}
 
-			// sieves from [min, max), returns the raw values found from sieving
-			std::vector<qs_int> sieve(ui64 max, QS_poly const& poly) const {
-				std::cout << "Sieving from 0 to " << max << " | ";
-				std::vector<qs_int> candidates = find_relation_candidates(max, poly);
-				return verify_candidates(candidates);
+			void sieve() {
+				std::cout << "Sieving from " << sieve_start << " to " << (sieve_start + sieve_interval) << " | ";
+				for (QS_poly const& poly : polynomials) {
+					std::vector<qs_int> candidates = find_relation_candidates(sieve_start, sieve_interval, poly);
+					std::vector<qs_int> verified = verify_candidates(candidates);
+					for (qs_int& v : verified) {
+						relations.push_back(v);
+					}
+				
+				}
+				sieve_start += sieve_interval;
+				sieve_interval += (sieve_interval >> 1);
 			}
 	
 			// Should only be called after enough relations have been gathered
@@ -321,10 +350,11 @@ namespace QS {
 				prepare_B();
 				prepare_factor_base();
 				prepare_polynomials();
-				for (QS_poly poly : polynomials) {
-					std::vector<qs_int> some_relations = sieve(6*B + 1000, poly);
-					for (qs_int& val : some_relations) relations.push_back(val);
+				prepare_sieve_bounds();
+				while (relations.size() < factor_base.size()) {
+					sieve();
 				}
+				
  				polynomials.clear();
 				create_matrix();
 				factor_base.clear();
