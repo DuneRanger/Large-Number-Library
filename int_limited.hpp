@@ -63,11 +63,13 @@ namespace largeNumberLibrary {
 
 			void updateLSW(int lowerBound) {
 				lowerBound = std::max(0, lowerBound);
-				if (this->wordCount > 0) lowerBound = std::min(lowerBound, this->wordCount - 1);
+				lowerBound = std::min(lowerBound, this->wordCount - 1);
 				// Find the highest non-zero word
-				while (this->words[lowerBound] == 0 && lowerBound < this->wordCount-1) {
+				while (lowerBound < this->wordCount && this->words[lowerBound] == 0) {
 					lowerBound++;
 				}
+				// if all values are zero
+				if (lowerBound == this->wordCount) lowerBound = 0;
 				this->LSW = lowerBound;
 				return;
 			}
@@ -76,9 +78,11 @@ namespace largeNumberLibrary {
 				upperBound = std::min(this->wordCount - 1, upperBound);
 				upperBound = std::max(upperBound, 0);
 				// Find the highest non-zero word
-				while (this->words[upperBound] == 0 && upperBound > 0) {
+				while (upperBound > -1 && this->words[upperBound] == 0) {
 					upperBound--;
 				}
+				// stay within index range
+				if (upperBound < 0) upperBound = 0;
 				this->MSW = upperBound;
 				if (this->MSW == this->wordCount - 1) {
 					this->truncateExtraBits();
