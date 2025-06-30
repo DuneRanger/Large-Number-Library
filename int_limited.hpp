@@ -63,13 +63,11 @@ namespace largeNumberLibrary {
 
 			void updateLSW(int lowerBound) {
 				lowerBound = std::max(0, lowerBound);
-				lowerBound = std::min(lowerBound, this->wordCount - 1);
+				if (this->wordCount > 0) lowerBound = std::min(lowerBound, this->wordCount - 1);
 				// Find the highest non-zero word
-				while (this->words[lowerBound] == 0) {
+				while (this->words[lowerBound] == 0 && lowerBound < this->wordCount-1) {
 					lowerBound++;
 				}
-				// if all values are zero
-				if (lowerBound >= this->wordCount) lowerBound = 0;
 				this->LSW = lowerBound;
 				return;
 			}
@@ -78,11 +76,9 @@ namespace largeNumberLibrary {
 				upperBound = std::min(this->wordCount - 1, upperBound);
 				upperBound = std::max(upperBound, 0);
 				// Find the highest non-zero word
-				while (this->words[upperBound] == 0) {
+				while (this->words[upperBound] == 0 && upperBound > 0) {
 					upperBound--;
 				}
-				// stay within index range
-				if (upperBound < 0) upperBound = 0;
 				this->MSW = upperBound;
 				if (this->MSW == this->wordCount - 1) {
 					this->truncateExtraBits();
@@ -424,8 +420,9 @@ namespace largeNumberLibrary {
 					binWordSize++;
 				}
 				// -1 to binWordSize to account for unfilled bits
+				if (binWordSize > 1) binWordSize--;
 				// +1 at the end to act as a ceil() for special cases
-				int maxWordCount = bitSize/(binWordSize - 1) + 1;
+				int maxWordCount = bitSize/(binWordSize) + 1;
 
 				// Convert this into a vector of uin32_t chunks (a bit wasteful for low bases)
 				std::vector<uint32_t> baseWords(maxWordCount, 0);
@@ -433,17 +430,17 @@ namespace largeNumberLibrary {
 				bool sign = num < 0;
 				bool add = false;
 				if (sign) {
-					add = num == int_limited::MIN_VALUE();
+					add = (num == int_limited::MIN_VALUE());
 					if (add) num += 1;
 					num = ~num+1;
 				}
-				// baseWords will be in MSb first, for ease of conversion to a string
+				// baseWords will be in MSb first, for ease of conversion to string
 				int index = maxWordCount-1;
 				do {
 					baseWords[index] = (uint32_t)(num%base);
 					num /= base;
 					index--;
-				} while (num != 0);
+				} while (num != 0 && index >= 0);
 				// Convert the word-size chunks into the string
 				std::string output = "";
 				if (sign) output += '-';
