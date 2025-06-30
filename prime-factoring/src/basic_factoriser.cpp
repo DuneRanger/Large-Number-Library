@@ -9,13 +9,13 @@ std::vector<uint64_t> trial_division(qs_int value) {
 	qs_int max = value.isqrt()+1;
 	while (primes >> prime) {
 		if (max < prime) {
-			std::cout << max << " " << prime << " " << value << std::endl;
 			factors.push_back(uint64_t(value));
 			break;
 		}
 		while (!(value % prime)) {
 			factors.push_back(prime);
 			value /= prime;
+			max = value.isqrt()+1;
 		}
 		if (value == 1) break;
 	}
@@ -28,11 +28,11 @@ bool is_small_prime(uint64_t value) {
 	int prime;
 	uint64_t max = std::ceil(std::sqrt(value));
 	while (primes >> prime) {
-		if (prime > max) break;
+		if (prime > max) return true;
 		while (!(value % prime)) value /= prime;
-		if (value == 1) break;
+		if (value == 1) return true;
 	}
-	return value == 1;
+	return false;
 }
 
 // Returns a vector of all primes smaller or equal to max_val
