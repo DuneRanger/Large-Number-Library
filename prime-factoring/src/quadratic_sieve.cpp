@@ -223,23 +223,17 @@ namespace QS {
 			// requires B to be defined
 			void prepare_sieve_bounds() {
 				sieve_start = 0;
-				sieve_interval = 100000;
+				sieve_interval = 10*B;
 			}
 			
 			std::vector<qs_int> find_relation_candidates(int64_t start, ui64 interval, QS_poly const& poly) const {
-				std::vector<ui64> log_thresholds(interval);
 				// NOTE:
-				// this seems to be the slowest part of the sieving process (currently)
-				// Although calculating each value increases the accuracy of the log_threshold
 				// Only calculating the log_threshold for a few values is *significantly* faster
-				// Though we still need a good enough threshold to keep the candidate count low
-				/// (and also to push small candidates, not just big ones)
+				// compared to calculating it for each poly(x) individually (though it is also less accurate)
 				ui64 base = poly(start).ilog2();
 				ui64 threshold = (base >> 1) + (base >> 2);
-				for (int i = 0; i < interval; i++) {
-					if (i%(interval/50) == 0) base = poly(start + i).ilog2();
-					log_thresholds[i] = threshold;
-				}
+				std::vector<ui64> log_thresholds(interval, threshold);
+
 				std::vector<ui64> log_primes(factor_base.size());
 				for (int i = 0; i < factor_base.size(); i++) log_primes[i] = count_bits(factor_base[i]);
 				std::vector<ui64> log_counts(interval, 0);
@@ -300,7 +294,7 @@ namespace QS {
 				
 				}
 				sieve_start += sieve_interval;
-				sieve_interval += (sieve_interval >> 1);
+				sieve_interval += (sieve_interval >> 2);
 			}
 	
 			// Should only be called after enough relations have been gathered
