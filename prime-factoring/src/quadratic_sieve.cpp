@@ -13,19 +13,19 @@ namespace QS {
 				int words = 1 + (_bits >> 6) + bool(_bits & 0x3f);
 				bits = std::vector<uint64_t>(words , 0);
 			}
-			const bool operator[](std::size_t ind) const {
+			const bool operator[](std::size_t const ind) const {
 				// ind/64 and ind%64
 				return bits[ind >> 6] >> (ind & 0x3f) & 1;
 			}
 
-			void flip_bit(std::size_t ind) {
+			void flip_bit(std::size_t const ind) {
 				// ind/64 and ind%64
 				int bit = ind & 0x3f;
 				if (bit == 0) bits.at(ind >> 6) ^= 1;
 				else bits.at(ind >> 6) ^= (1 << bit);
 			}
 
-			CustomBitset operator^=(const CustomBitset& rhs) {
+			CustomBitset operator^=(CustomBitset const& rhs) {
 				int words = this->bits.size();
 				assert(words == rhs.bits.size());
 				for (int i = 0; i < words; i++) {
@@ -34,7 +34,7 @@ namespace QS {
 				return *this;
 			}
 
-			CustomBitset operator^(const CustomBitset& rhs) {
+			CustomBitset operator^(CustomBitset const& rhs) const {
 				int words = this->bits.size();
 				assert(words == rhs.bits.size());
 				CustomBitset result(words*64);
