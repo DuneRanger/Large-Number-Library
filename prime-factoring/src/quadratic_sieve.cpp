@@ -77,7 +77,7 @@ namespace QS {
 			std::vector<CustomBitset> matrix_mod2;
 	
 			#pragma region Helper
-			// Finding you this had to be modulo to not overflow took way too long
+			// Finding out that this had to be modulo so as to not overflow took way too long
 			ui64 pow_mod(ui64 n, ui64 exp, ui64 p) const {
 				if (exp == 0) return 1;
 				if (exp % 2) return (pow_mod(n, exp-1, p) * n) % p;
@@ -97,10 +97,10 @@ namespace QS {
 						a /= 2;
 						// (2 | n) = (-1)^((n^2 - 1) / 8)
 						switch(p%8) {
-							// in the other cases, the symbol stays the same
 							case 3: case 5:
-								symbol = -symbol;
-								break;
+							symbol = -symbol;
+							break;
+							// in the other cases, the symbol stays the same
 						}
 					}
 					// this section only applies if a,p are coprime
@@ -177,7 +177,8 @@ namespace QS {
 			void prepare_kN() {
 				// Since I don't understand why most implementations increase kN to at least 115 bits, I'll just leave it be for now
 				kN = N;
-				std::cout << "N = " << N  << "\t|\tkN = " << kN << '\n';
+				// if (kN.ilog2() < 80) kN <<= (80 - kN.ilog2());
+				std::cout << "N = " << N << " (" << N.ilog2() << " bits) | kN = " << kN << " (" << kN.ilog2() << " bits)\n";
 			}
 	
 			// Requires kN to be defined
@@ -195,6 +196,7 @@ namespace QS {
 			// Requires B to be defined
 			void prepare_factor_base() {
 				std::vector<ui64> potential_primes = find_small_primes<ui64>(B);
+				std::cout << "Potential primes = " << potential_primes.size() << " | ";
 				for (ui64 prime : potential_primes) {
 					if (is_quadratic_residue(kN, prime)) factor_base.push_back(prime);
 				}
@@ -223,7 +225,8 @@ namespace QS {
 					// Whilst also reducing estimated candidates by 2 - 6 times
 					// simply just log() seems to work quite well, but with the current sieving interval, a few N get only half the required relations
 					// even if the threshold is set to 0
-					log_thresholds[i] = values[i].ilog2() >> 1;
+					ui64 base = values[i].ilog2();
+					log_thresholds[i] = (base >> 2);// + (base >> 2);
 				}
 				std::vector<ui64> log_primes(factor_base.size());
 				for (int i = 0; i < factor_base.size(); i++) log_primes[i] = count_bits(factor_base[i]);
@@ -234,37 +237,40 @@ namespace QS {
 					ui64 raw_root = Tonelli_Shanks(poly, prime);
 					// since the raw_root is (A + x), then we need to get x1 and x2
 					// x_1 = raw_root - A (mod p)	x_2 = (p - raw_root) - A (mod p)
-					// We'll add extra "padding" of `prime + ` to not underflow
+					// We add an extra padding of `prime + ` to not underflow
 					ui64 A = ui64(poly.A%prime);
-					ui64 x_1, x_2;
-					x_1 = prime + raw_root - A;
-					if (x_1 > prime) x_1 -= prime;
-					x_2 = prime + prime - raw_root - A;
-					if (x_2 > prime) x_2 -= prime;
+					ui64 x_1 = 0, x_2 = 0;
+					if (raw_root != 0){
+						x_1 = prime + raw_root - A;
+						if (x_1 >= prime) x_1 -= prime;
+						x_2 = prime + prime - raw_root - A;
+						if (x_2 >= prime) x_2 -= prime;
+					}
 					for (int j = x_1; j < max; j += prime) log_counts[j] += log_primes[i];
 					if (x_1 != x_2) for (int j = x_2; j < max; j += prime) log_counts[j] += log_primes[i];
 				}
 
 				std::vector<qs_int> candidates;
 				for (int i = 0; i < max; i++) {
-					if (log_counts[i] >= log_thresholds[i]) {
-						candidates.push_back(values[i]);
-					}
+					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(values[i]);
 				}
 				std::cout << candidates.size() << " candidates | ";
 				return candidates;
 			}
 
-				std::vector<qs_int> verified;
 			std::vector<qs_int> verify_candidates(std::vector<qs_int> const& candidates) const {
+				std::vector<qs_int> verified;
 				for (int i = 0; i < candidates.size(); i++) {
 					qs_int value = candidates[i];
 					for (ui64 prime : factor_base) {
 						while (value % prime == 0) value /= prime;
+						if (value == 1) {
+							verified.push_back(candidates[i]);
+							break;
+						}
 					}
-					if (value == 1) verified.push_back(candidates[i]);
 				}
-				std::cout << verified.size() << " verified\n";
+				std::cout << verified.size() << " verified" << std::endl;
 				return verified;
 			}
 
@@ -277,7 +283,7 @@ namespace QS {
 	
 			// Should only be called after enough relations have been gathered
 			void create_matrix() {
-				std::cout << "Creating matrix mod 2 of size " << relations.size() << " x " << factor_base.size() << '\n';
+				std::cout << "Creating matrix mod 2 of size " << relations.size() << " x " << factor_base.size() << "...";
 				ui64 row_size = factor_base.size();
 				for (int i = 0; i < relations.size(); i++) {
 					matrix_mod2.push_back(CustomBitset(row_size));
@@ -290,6 +296,7 @@ namespace QS {
 						}
 					}
 				}
+				std::cout << " Done\n";
 			}
 	
 			void solve_matrix() {}
