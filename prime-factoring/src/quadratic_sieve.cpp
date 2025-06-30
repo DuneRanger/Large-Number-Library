@@ -227,23 +227,16 @@ namespace QS {
 			}
 			
 			std::vector<qs_int> find_relation_candidates(int64_t start, ui64 interval, QS_poly const& poly) const {
-				// std::vector<qs_int> values(interval);
 				std::vector<ui64> log_thresholds(interval);
 				// NOTE:
 				// this seems to be the slowest part of the sieving process (currently)
 				// Although calculating each value increases the accuracy of the log_threshold
-				// Only calculating the log_threshold for one or two values could significantly faster
+				// Only calculating the log_threshold for a few values is *significantly* faster
 				// Though we still need a good enough threshold to keep the candidate count low
+				/// (and also to push small candidates, not just big ones)
 				ui64 base = poly(start).ilog2();
-				// ui64 threshold = poly(interval).ilog2() - std::ceil(std::log2(factor_base[factor_base.size()-1]));
 				ui64 threshold = (base >> 1) + (base >> 2);
 				for (int i = 0; i < interval; i++) {
-					// if (i%(interval/3) == 0) threshold = (poly(start + i + interval/3)%kN).ilog2() >> 1;
-					// values[i] = poly(start + i)%kN;
-					// experimentally confirmed that log() >> 1 gets pretty much as many verifications as log() >> 2
-					// Whilst also reducing estimated candidates by 2 - 6 times
-					// simply just log() seems to work quite well, but with the current sieving interval, a few N get only half the required relations
-					// even if the threshold is set to 0
 					if (i%(interval/50) == 0) base = poly(start + i).ilog2();
 					log_thresholds[i] = threshold;
 				}
