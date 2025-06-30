@@ -1,6 +1,6 @@
 #include "headers.hpp"
-#include "quadratic_sieve.cpp"
 #include "basic_factoriser.cpp"
+#include "quadratic_sieve.cpp"
 
 class Factoriser {
 	private:
@@ -30,24 +30,18 @@ class Factoriser {
 		}
 };
 
-
-
 int main() {
-	std::vector<qs_int> factors = Factoriser::factorise(0xDEADBEEF);
-	// for (int i = 0; i < factors.size(); i++) {
-	// 	std::cout << factors[i] << ", ";
-	// }
-	// std::cout << std::endl;
 	QS::QuadraticSieve test;
-	uint64_t a = 0x2782ba7de;
-	qs_int b = a;
-	for (int i = 0; i < 10; i++) {
-		test.factorise(b);
-		b <<= 2;
-		b ^= a;
-		std::cout << std::endl << std::endl;
-	}
-	// test.factorise("100000001");
-	// std::cout << Tonelli_Shanks(5, 41) << std::endl;
-	// std::cout << Tonelli_Shanks(100000001%37, 37) << std::endl;
+	uint64_t a = 0x2782b;
+	// uint64_t a = 0x2782ba7de;
+	// qs_int b = "411902941625262175430";
+	test.factorise(227179);
+	// qs_int b = a;
+	// int max_bit = (250-64)/2;
+	// for (int i = 0; i < 10; i++) {
+	// 	test.factorise(b);
+	// 	b <<= 2;
+	// 	b ^= a;
+	// 	std::cout << std::endl;
+	// }
 }
