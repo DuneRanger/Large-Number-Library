@@ -65,7 +65,7 @@ namespace QS {
 			qs_int operator()(const qs_int& x) const { return (A+x)*(A+x) - C; }
 			qs_int quad(const qs_int& x) const { return (A+x)*(A+x); }
 		};
-		public:
+		private:
 			std::vector<qs_int> factors;
 
 			qs_int N; // what we're trying to factorise
@@ -182,7 +182,7 @@ namespace QS {
 				// Since I don't understand why most implementations increase kN to at least 115 bits, I'll just leave it be for now
 				kN = N;
 				// if (kN.ilog2() < 80) kN <<= (80 - kN.ilog2());
-				std::cout << "N = " << N << " (" << N.ilog2() << " bits) | kN = " << kN << " (" << kN.ilog2() << " bits)\n";
+				if (debug) std::cout << "N = " << N << " (" << N.ilog2() << " bits) | kN = " << kN << " (" << kN.ilog2() << " bits)" << std::endl;
 			}
 	
 			// Requires kN to be defined
@@ -194,17 +194,17 @@ namespace QS {
 							(kN.ilog2()) * std::log(kN.ilog2())
 						)
 					));
-				std::cout << "B = " << B << " | ";
+				if (debug) std::cout << "B = " << B << " | ";
 			}
 	
 			// Requires B to be defined
 			void prepare_factor_base() {
 				std::vector<ui64> potential_primes = find_small_primes<ui64>(B);
-				std::cout << "Potential primes = " << potential_primes.size() << " | ";
+				if (debug) std::cout << potential_primes.size() << " potential primes | ";
 				for (ui64 prime : potential_primes) {
 					if (is_quadratic_residue(kN, prime)) factor_base.push_back(prime);
 				}
-				std::cout << "Factor base size = " << factor_base.size() << '\n';
+				if (debug) std::cout << factor_base.size() << " factor base size" << std::endl;;
 			}
 
 			// requires kN to be defined
@@ -213,11 +213,14 @@ namespace QS {
 				polynomials.push_back(QS_poly(kN.isqrt()+1, 0, -kN));
 				// !Warning! using multiple polynomials in the form of Q(x) = Ax^2 + Bx + C
 				// requires changing the QS_poly struct and some details in Tonelli_Shanks and find_relation_candidates
-				std::cout << "Polynomials used: ";
-				for (int i = 0; i < polynomials.size(); i++) {
-					std::cout << "(" << polynomials[i].A << " + x)^2 " << polynomials[i].C << " | ";
+
+				if (debug) {
+					std::cout << "Polynomials used: ";
+					for (int i = 0; i < polynomials.size(); i++) {
+						std::cout << "(" << polynomials[i].A << " + x)^2 " << polynomials[i].C << " | ";
+					}
+					std::cout << std::endl;
 				}
-				std::cout << '\n';
 			}
 
 			// requires B to be defined
@@ -238,7 +241,7 @@ namespace QS {
 				for (int i = 0; i < factor_base.size(); i++) log_primes[i] = count_bits(factor_base[i]);
 				std::vector<ui64> log_counts(interval, 0);
 
-				std::cout << "Prepared ";
+				if (debug) std::cout << "Prepared... ";
 
 				for (int i = 0; i < factor_base.size(); i++) {
 					ui64 prime = factor_base[i];
@@ -263,7 +266,7 @@ namespace QS {
 				for (int i = 0; i < interval; i++) {
 					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(poly(start + i)%kN);
 				}
-				std::cout << candidates.size() << " candidates | ";
+				if (debug) std::cout << candidates.size() << " candidates | ";
 				return candidates;
 			}
 
@@ -279,12 +282,14 @@ namespace QS {
 						}
 					}
 				}
-				std::cout << verified.size() << " verified" << std::endl;
+				if (debug) std::cout << verified.size() << " verified" << std::endl;
 				return verified;
 			}
 
+			// Gathers relations from all polynomials, always from new intervals
+			// Also directly adds verified relations as rows to the matrix to save time
 			void sieve() {
-				std::cout << "Sieving from " << sieve_start << " to " << (sieve_start + sieve_interval) << " | ";
+				if (debug) std::cout << "Sieving from " << sieve_start << " to " << (sieve_start + sieve_interval) << " | ";
 				for (QS_poly const& poly : polynomials) {
 					std::vector<qs_int> candidates = find_relation_candidates(sieve_start, sieve_interval, poly);
 					std::vector<qs_int> verified = verify_candidates(candidates);
@@ -299,7 +304,7 @@ namespace QS {
 	
 			// Should only be called after enough relations have been gathered
 			void create_matrix() {
-				std::cout << "Creating matrix mod 2 of size " << relations.size() << " x " << factor_base.size() << "...";
+				if (debug) std::cout << "Creating matrix mod 2 of size " << relations.size() << " x " << factor_base.size() << "...";
 				ui64 row_size = factor_base.size();
 				for (int i = 0; i < relations.size(); i++) {
 					matrix_mod2.push_back(CustomBitset(row_size));
@@ -312,7 +317,7 @@ namespace QS {
 						}
 					}
 				}
-				std::cout << " Done\n";
+				if (debug) std::cout << " Done" << std::endl;
 			}
 	
 			void solve_matrix() {}
@@ -323,11 +328,13 @@ namespace QS {
 		public:
 			bool debug = false;
 
+			QuadraticSieve() {};
+			QuadraticSieve(bool _debug) : debug(_debug) {};
+
 			std::vector<qs_int> factorise(qs_int value) {
-				std::cout << "VALUE : " << value << std::endl;
+				if (debug) std::cout << "Input Value: " << value << std::endl;
 				std::vector<ui64> small_factors = trial_division(value);
 				for (ui64 prime : small_factors) {
-					// std::cout << prime << ", ";
 					value /= prime;
 					factors.push_back(prime);
 				}
@@ -338,9 +345,7 @@ namespace QS {
 				prepare_factor_base();
 				prepare_polynomials();
 				prepare_sieve_bounds();
-				while (relations.size() < factor_base.size()) {
-					sieve();
-				}
+				while (relations.size() < factor_base.size()) sieve();
 				
  				polynomials.clear();
 				create_matrix();

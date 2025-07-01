@@ -31,17 +31,14 @@ class Factoriser {
 };
 
 int main() {
-	QS::QuadraticSieve test;
-	uint64_t a = 0x2782b;
-	// uint64_t a = 0x2782ba7de;
-	// qs_int b = "411902941625262175430";
-	test.factorise(227179);
-	// qs_int b = a;
-	// int max_bit = (250-64)/2;
-	// for (int i = 0; i < 10; i++) {
-	// 	test.factorise(b);
-	// 	b <<= 2;
-	// 	b ^= a;
-	// 	std::cout << std::endl;
-	// }
+	QS::QuadraticSieve test(true);
+	uint64_t a = 0x2782ba7cde;
+	qs_int b = a;
+	int max_bit = (150-64)/2;
+	for (int i = 0; i < max_bit; i++) {
+		test.factorise(b);
+		b <<= 10;
+		b ^= a;
+		std::cout << std::endl;
+	}
 }
