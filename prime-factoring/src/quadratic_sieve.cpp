@@ -112,6 +112,7 @@ namespace QS {
 			ui64 sieve_interval;
 			std::vector<relation> relations;
 			std::vector<CustomBitset> matrix_mod2;
+			std::vector<CustomBitset> solution_matrix;
 			
 			#pragma region Helper
 			// Finding out that this had to be modulo so as to not overflow took way too long
@@ -350,7 +351,34 @@ namespace QS {
 				if (debug) std::cout << "Matrix (mod 2) of size " << relations.size() << " x " << factor_base.size() << " created" << std::endl;
 			}
 	
-			void solve_matrix() {}
+			// utilises gauss elimination to solve the matrix of exponents
+			void solve_matrix() {
+				if (debug) std::cout << "Solving matrix with Gauss elimination... ";
+				for (int i = 0; i < relations.size(); i++) {
+					solution_matrix.push_back(CustomBitset(relations.size()));
+					solution_matrix.back().flip_bit(i);
+				}
+
+				int row_start = 0;
+				for (int col = 0; col < factor_base.size(); col++) {
+					int row = row_start;
+					for (; row < relations.size(); row++) if (matrix_mod2[row][col]) break;
+					if (row == relations.size()) continue;
+
+					matrix_mod2[row_start].swap(matrix_mod2[row]);
+					solution_matrix[row_start].swap(solution_matrix[row]);
+					
+					int elim_ind = row_start;
+					row_start++;
+					for (row = row_start; row < relations.size(); row++) {
+						if (matrix_mod2[row][col]) {
+							matrix_mod2[row].add(matrix_mod2[elim_ind]);
+							solution_matrix[row].add(solution_matrix[elim_ind]);
+						}
+					}
+				}
+				if (debug) std::cout << "Solved" << std::endl;
+			}
 	
 			void find_factors() {}
 			#pragma endregion Main
@@ -381,8 +409,9 @@ namespace QS {
 				create_matrix();
 				factor_base.clear();
 				solve_matrix();
-				matrix_mod2.clear();
 				relations.clear();
+				matrix_mod2.clear();
+				solution_matrix.clear();
 				return factors;
 			}
 			// std::vector<qs_int> factorise(std::string value) {
