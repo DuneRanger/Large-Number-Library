@@ -309,11 +309,11 @@ namespace QS {
 				for (int i = 0; i < candidates.size(); i++) {
 					qs_int value = candidates[i].poly_value;
 					CustomBitset exponents(factor_base.size());
-					for (int i = 0; i < factor_base.size(); i++) {
-						ui64 prime = factor_base[i];
+					for (int j = 0; j < factor_base.size(); j++) {
+						ui64 prime = factor_base[j];
 						while (value % prime == 0) {
 							value /= prime;
-							exponents.flip_bit(i);
+							exponents.flip_bit(j);
 						}
 						if (value == 1) {
 							verified.push_back(candidates[i]);
