@@ -94,10 +94,8 @@ namespace QS {
 
 			CustomBitset exponents;
 
-			relation(qs_int const& val, qs_int const& res) {
-				poly_value = val;
-				residue_solution = res;
-			}
+			relation(qs_int const& val, qs_int const& res, ui64 prime_count)
+				: poly_value(val), residue_solution(res), exponents(prime_count) {}
 		};
 
 		private:
@@ -299,7 +297,7 @@ namespace QS {
 
 				std::vector<relation> candidates;
 				for (int i = 0; i < interval; i++) {
-					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(relation(poly(start + i)%kN), (start + i)%kN);
+					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(relation(poly(start + i)%kN, (poly.A + start + i)%kN, factor_base.size()));
 				}
 				if (debug) std::cout << candidates.size() << " candidates | ";
 				return candidates;
