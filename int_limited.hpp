@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <array>
 
 
 namespace largeNumberLibrary {
@@ -19,11 +20,11 @@ namespace largeNumberLibrary {
 	template <int bitSize>
 	class int_limited {
 		private:
-			const int wordCount = bitSize/32 + (bitSize%32 > 0);
+			static const int wordCount = bitSize/32 + (bitSize%32 > 0);
 
 			// LSb first
 			// The most significant word is the last one
-			std::vector<uint32_t> words = std::vector<uint32_t>(wordCount, 0);
+			std::array<uint32_t, wordCount> words = {};
 
 			// Most and Least Significant Word containing a non-zero bit
 			// Used for a optimization for arithmetic operations
@@ -380,9 +381,13 @@ namespace largeNumberLibrary {
 
 			// For simplicity's sake this function only returns
 			// a vector of unsigned 32 bit integers from the standard library
-			// Currently returns *all* words, even those higher than the Most Significant Word
+			// Currently returns *all* words, even those higher than the Most Significant (used) Word
 			std::vector<uint32_t> exportBits() const {
-				return this->words;
+				std::vector<uint32_t> converted_words(wordCount, 0);
+				for (int i = this->LSW; i <= this->MSW; i++) {
+					converted_words[i] = this->words[i];
+				}
+				return converted_words;
 			}
 
 			static int_limited MAX_VALUE() {
@@ -545,9 +550,9 @@ namespace largeNumberLibrary {
 				int maxWordAmount = A.MSW;
 				int splitWordIndex  = maxWordAmount / 2 + 1;
 				int_limited lowA;
-				lowA.importBits(A.words, 0, splitWordIndex);
+				lowA.importBits(A.exportBits(), 0, splitWordIndex);
 				int_limited highA;
-				highA.importBits(A.words, splitWordIndex, maxWordAmount + 1);
+				highA.importBits(A.exportBits(), splitWordIndex, maxWordAmount + 1);
 
 				if (splitWordIndex >= B.MSW) {
 					*this = ((highA * B) << (32*splitWordIndex)) + (lowA * B);
@@ -555,9 +560,9 @@ namespace largeNumberLibrary {
 				}
 
 				int_limited lowB;
-				lowB.importBits(B.words, 0, splitWordIndex);
+				lowB.importBits(B.exportBits(), 0, splitWordIndex);
 				int_limited highB;
-				highB.importBits(B.words, splitWordIndex, maxWordAmount + 1);
+				highB.importBits(B.exportBits(), splitWordIndex, maxWordAmount + 1);
 
 				int_limited z0 = lowA * lowB;
 				int_limited z2 = highA * highB;
@@ -587,8 +592,8 @@ namespace largeNumberLibrary {
 				const int extraPrecision = 32 + 32-bitSize%32;
 				int_limited<bitSize + extraPrecision> dividend;
 				int_limited<bitSize + extraPrecision> divisor;
-				dividend.importBits(this->words);
-				divisor.importBits(rhs.words);
+				dividend.importBits(this->exportBits());
+				divisor.importBits(rhs.exportBits());
 				
 				// Convert both of the *original* values to positive
 				// We don't need to worry about the asymmetry of two's complement integer limits
@@ -722,8 +727,8 @@ namespace largeNumberLibrary {
 				const int extraPrecision = 64 + 32-bitSize%32;
 				int_limited<bitSize + extraPrecision> dividend;
 				int_limited<bitSize + extraPrecision> divisor;
-				dividend.importBits(this->words);
-				divisor.importBits(rhs.words);
+				dividend.importBits(this->exportBits());
+				divisor.importBits(rhs.exportBits());
 				
 				// Convert both of the *original* values to positive
 				// We don't need to worry about the asymmetry of two's complement integer limits
