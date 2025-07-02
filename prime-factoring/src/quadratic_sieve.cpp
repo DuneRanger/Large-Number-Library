@@ -43,6 +43,16 @@ namespace QS {
 				}
 				return result;
 			}
+			
+			void add(CustomBitset const& rhs) {
+				*this ^= rhs;
+			}
+
+			void swap(CustomBitset& rhs) {
+				CustomBitset temp = *this;
+				*this = rhs;
+				rhs = temp;
+			}
 	};
 	
 	// The following is a rudimentary implementation of the quadratic sieve algorithm, based on my limited understanding of how it works
@@ -65,6 +75,7 @@ namespace QS {
 			qs_int operator()(const qs_int& x) const { return (A+x)*(A+x) - C; }
 			qs_int quad(const qs_int& x) const { return (A+x)*(A+x); }
 		};
+
 		private:
 			std::vector<qs_int> factors;
 
@@ -345,7 +356,7 @@ namespace QS {
 				prepare_factor_base();
 				prepare_polynomials();
 				prepare_sieve_bounds();
-				while (relations.size() < factor_base.size()) sieve();
+				while (relations.size() <= factor_base.size()) sieve();
 				
  				polynomials.clear();
 				create_matrix();
