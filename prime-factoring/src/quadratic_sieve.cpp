@@ -4,41 +4,49 @@
 
 namespace QS {
 	class CustomBitset {
-		public:
+		private:
 			std::vector<uint64_t> bits;
+			
+		public:
+			std::size_t size;
 
-			CustomBitset() {}
 			CustomBitset(int _bits) {
-				// _bits/64 and _bits%64
-				int words = 1 + (_bits >> 6) + bool(_bits & 0x3f);
-				bits = std::vector<uint64_t>(words , 0);
+				size = _bits;
+				// size/64 and size%64
+				int words = 1 + (size >> 6) + bool(size & 0x3f);
+				bits = std::vector<uint64_t>(words, 0);
 			}
+			// ~CustomBitset() {
+			// 	delete[] bits;
+			// }
 			const bool operator[](std::size_t const ind) const {
 				// ind/64 and ind%64
+				assert(ind < size);
+				assert(ind >= 0);
 				return bits[ind >> 6] >> (ind & 0x3f) & 1;
 			}
 
 			void flip_bit(std::size_t const ind) {
 				// ind/64 and ind%64
+				assert(ind < size);
+				assert(ind >= 0);
 				int bit = ind & 0x3f;
-				if (bit == 0) bits.at(ind >> 6) ^= 1;
-				else bits.at(ind >> 6) ^= (1 << bit);
+				if (bit == 0) bits[ind >> 6] ^= 1;
+				else bits[ind >> 6] ^= (1 << bit);
 			}
 
 			CustomBitset operator^=(CustomBitset const& rhs) {
-				int words = this->bits.size();
-				assert(words == rhs.bits.size());
-				for (int i = 0; i < words; i++) {
+				assert(size == rhs.size);
+				for (int i = 0; i < size; i++) {
 					this->bits[i] ^= rhs.bits[i];
 				}
 				return *this;
 			}
 
 			CustomBitset operator^(CustomBitset const& rhs) const {
-				int words = this->bits.size();
-				assert(words == rhs.bits.size());
-				CustomBitset result(words*64);
-				for (int i = 0; i < words; i++) {
+				assert(size == rhs.size);
+				CustomBitset result(size);
+				for (int i = 0; i < size; i++) {
 					result.bits[i] = this->bits[i] ^ rhs.bits[i];
 				}
 				return result;
