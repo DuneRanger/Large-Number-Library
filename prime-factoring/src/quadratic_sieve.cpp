@@ -67,13 +67,13 @@ namespace QS {
 			qs_int B;
 			qs_int C;
 	
-			QS_poly(const qs_int& a, const qs_int& b, const qs_int& c) {
+			QS_poly(qs_int const& a, qs_int const& b, qs_int const& c) {
 				A = a;
 				B = b;
 				C = c;
 			}
-			qs_int operator()(const qs_int& x) const { return (A+x)*(A+x) - C; }
-			qs_int quad(const qs_int& x) const { return (A+x)*(A+x); }
+			qs_int operator()(qs_int const& x) const { return (A+x)*(A+x) - C; }
+			qs_int quad(qs_int const& x) const { return (A+x)*(A+x); }
 		};
 
 		private:
