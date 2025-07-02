@@ -330,7 +330,10 @@ namespace QS {
 			// Gathers relations from all polynomials, always from new intervals
 			// Also directly adds verified relations as rows to the matrix to save time
 			void sieve() {
-				if (debug) std::cout << "Sieving from " << sieve_start << " to " << (sieve_start + sieve_interval) << " | ";
+				if (debug) {
+					std::cout << "Sieving from " << sieve_start << " to " << (sieve_start + sieve_interval);
+					std::cout << " (" << sieve_interval << " values) | ";
+				}
 				for (QS_poly const& poly : polynomials) {
 					std::vector<relation> candidates = find_relation_candidates(sieve_start, sieve_interval, poly);
 					std::vector<relation> verified = verify_candidates(candidates);
@@ -340,7 +343,7 @@ namespace QS {
 				
 				}
 				sieve_start += sieve_interval;
-				sieve_interval += (sieve_interval >> 2);
+				if (10*relations.size() < factor_base.size()) sieve_interval += (sieve_interval >> 2);
 			}
 	
 			// Should only be called after enough relations have been gathered
