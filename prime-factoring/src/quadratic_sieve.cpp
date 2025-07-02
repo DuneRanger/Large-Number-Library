@@ -76,6 +76,22 @@ namespace QS {
 			qs_int quad(qs_int const& x) const { return (A+x)*(A+x); }
 		};
 
+		// contains both the relation value and the solution to the quadratic residue
+		// and the bitset of its exponents
+		struct relation {
+			// the value of poly(x) mod kN
+			qs_int poly_value;
+			// the value of R^2 = (A + x)^2 = kN mod kN
+			qs_int residue_solution;
+
+			CustomBitset exponents;
+
+			relation(qs_int const& val, qs_int const& res) {
+				poly_value = val;
+				residue_solution = res;
+			}
+		};
+
 		private:
 			std::vector<qs_int> factors;
 
@@ -88,7 +104,7 @@ namespace QS {
 			
 			int64_t sieve_start;
 			ui64 sieve_interval;
-			std::vector<qs_int> relations;
+			std::vector<relation> relations;
 			std::vector<CustomBitset> matrix_mod2;
 			
 			#pragma region Helper
@@ -240,7 +256,7 @@ namespace QS {
 				sieve_interval = 10*B;
 			}
 			
-			std::vector<qs_int> find_relation_candidates(int64_t start, ui64 interval, QS_poly const& poly) const {
+			std::vector<relation> find_relation_candidates(int64_t start, ui64 interval, QS_poly const& poly) const {
 				// NOTE:
 				// Only calculating the log_threshold for a few values is *significantly* faster
 				// compared to calculating it for each poly(x) individually (though it is also less accurate)
@@ -273,22 +289,29 @@ namespace QS {
 					if (x_1 != x_2) for (int j = x_2; j < interval; j += prime) log_counts[j] += log_primes[i];
 				}
 
-				std::vector<qs_int> candidates;
+				std::vector<relation> candidates;
 				for (int i = 0; i < interval; i++) {
-					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(poly(start + i)%kN);
+					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(relation(poly(start + i)%kN), (start + i)%kN);
 				}
 				if (debug) std::cout << candidates.size() << " candidates | ";
 				return candidates;
 			}
 
-			std::vector<qs_int> verify_candidates(std::vector<qs_int> const& candidates) const {
-				std::vector<qs_int> verified;
+			std::vector<relation> verify_candidates(std::vector<relation> const& candidates) const {
+				if (debug) std::cout << "Verifying... ";
+				std::vector<relation> verified;
 				for (int i = 0; i < candidates.size(); i++) {
-					qs_int value = candidates[i];
-					for (ui64 prime : factor_base) {
-						while (value % prime == 0) value /= prime;
+					qs_int value = candidates[i].poly_value;
+					CustomBitset exponents(factor_base.size());
+					for (int i = 0; i < factor_base.size(); i++) {
+						ui64 prime = factor_base[i];
+						while (value % prime == 0) {
+							value /= prime;
+							exponents.flip_bit(i);
+						}
 						if (value == 1) {
 							verified.push_back(candidates[i]);
+							verified.back().exponents = exponents;
 							break;
 						}
 					}
@@ -302,9 +325,9 @@ namespace QS {
 			void sieve() {
 				if (debug) std::cout << "Sieving from " << sieve_start << " to " << (sieve_start + sieve_interval) << " | ";
 				for (QS_poly const& poly : polynomials) {
-					std::vector<qs_int> candidates = find_relation_candidates(sieve_start, sieve_interval, poly);
-					std::vector<qs_int> verified = verify_candidates(candidates);
-					for (qs_int& v : verified) {
+					std::vector<relation> candidates = find_relation_candidates(sieve_start, sieve_interval, poly);
+					std::vector<relation> verified = verify_candidates(candidates);
+					for (relation& v : verified) {
 						relations.push_back(v);
 					}
 				
@@ -315,20 +338,10 @@ namespace QS {
 	
 			// Should only be called after enough relations have been gathered
 			void create_matrix() {
-				if (debug) std::cout << "Creating matrix mod 2 of size " << relations.size() << " x " << factor_base.size() << "...";
-				ui64 row_size = factor_base.size();
 				for (int i = 0; i < relations.size(); i++) {
-					matrix_mod2.push_back(CustomBitset(row_size));
-					qs_int value = relations[i];
-					for (int j = 0; j < factor_base.size(); j++) {
-						ui64 prime = factor_base[j];
-						while (value % prime == 0) {
-							value /= prime;
-							matrix_mod2[i].flip_bit(j);
-						}
-					}
+					matrix_mod2.push_back(relations[i].exponents);
 				}
-				if (debug) std::cout << " Done" << std::endl;
+				if (debug) std::cout << "Matrix (mod 2) of size " << relations.size() << " x " << factor_base.size() << " created" << std::endl;
 			}
 	
 			void solve_matrix() {}
