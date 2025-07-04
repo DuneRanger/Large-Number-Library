@@ -111,8 +111,6 @@ namespace QS {
 			int64_t sieve_start;
 			ui64 sieve_interval;
 			std::vector<relation> relations;
-			std::vector<CustomBitset> matrix_mod2;
-			std::vector<CustomBitset> solution_matrix;
 			
 			#pragma region Helper
 			// Finding out that this had to be modulo so as to not overflow took way too long
@@ -263,7 +261,7 @@ namespace QS {
 				sieve_interval = 10*B;
 			}
 			
-			std::vector<relation> find_relation_candidates(int64_t start, ui64 interval, QS_poly const& poly) const {
+			void find_relation_candidates(int64_t start, ui64 interval, QS_poly const& poly, std::vector<relation>& candidates) const {
 				// NOTE:
 				// Only calculating the log_threshold for a few values is *significantly* faster
 				// compared to calculating it for each poly(x) individually (though it is also less accurate)
@@ -296,17 +294,14 @@ namespace QS {
 					if (x_1 != x_2) for (int j = x_2; j < interval; j += prime) log_counts[j] += log_primes[i];
 				}
 
-				std::vector<relation> candidates;
 				for (int i = 0; i < interval; i++) {
 					if (log_counts[i] >= log_thresholds[i]) candidates.push_back(relation(poly(start + i)%kN, (poly.A + start + i)%kN, factor_base.size()));
 				}
 				if (debug) std::cout << candidates.size() << " candidates | ";
-				return candidates;
 			}
 
-			std::vector<relation> verify_candidates(std::vector<relation> const& candidates) const {
+			void verify_candidates(std::vector<relation> const& candidates, std::vector<relation>& verified) const {
 				if (debug) std::cout << "Verifying... ";
-				std::vector<relation> verified;
 				for (int i = 0; i < candidates.size(); i++) {
 					qs_int value = candidates[i].poly_value;
 					CustomBitset exponents(factor_base.size());
@@ -324,7 +319,6 @@ namespace QS {
 					}
 				}
 				if (debug) std::cout << verified.size() << " verified" << std::endl;
-				return verified;
 			}
 
 			// Gathers relations from all polynomials, always from new intervals
@@ -335,8 +329,10 @@ namespace QS {
 					std::cout << " (" << sieve_interval << " values) | ";
 				}
 				for (QS_poly const& poly : polynomials) {
-					std::vector<relation> candidates = find_relation_candidates(sieve_start, sieve_interval, poly);
-					std::vector<relation> verified = verify_candidates(candidates);
+					std::vector<relation> candidates;
+					find_relation_candidates(sieve_start, sieve_interval, poly, candidates);
+					std::vector<relation> verified;
+					verify_candidates(candidates, verified);
 					for (relation& v : verified) {
 						relations.push_back(v);
 					}
@@ -347,42 +343,50 @@ namespace QS {
 			}
 	
 			// Should only be called after enough relations have been gathered
-			void create_matrix() {
+			void prepare_matrix(std::vector<CustomBitset>& matrix) const {
 				for (int i = 0; i < relations.size(); i++) {
-					matrix_mod2.push_back(relations[i].exponents);
+					matrix.push_back(relations[i].exponents);
 				}
 				if (debug) std::cout << "Matrix (mod 2) of size " << relations.size() << " x " << factor_base.size() << " created" << std::endl;
 			}
 	
 			// utilises gauss elimination to solve the matrix of exponents
-			void solve_matrix() {
+			void solve_matrix(std::vector<CustomBitset>& matrix, std::vector<CustomBitset>& solutions) const {
 				if (debug) std::cout << "Solving matrix with Gauss elimination... ";
-				for (int i = 0; i < relations.size(); i++) {
-					solution_matrix.push_back(CustomBitset(relations.size()));
-					solution_matrix.back().flip_bit(i);
-				}
+				std::vector<CustomBitset> solution_matrix(matrix.size(), CustomBitset(matrix.size()));
+				for (int i = 0; i < matrix.size(); i++) solution_matrix[i].flip_bit(i);
 
 				int row_start = 0;
 				for (int col = 0; col < factor_base.size(); col++) {
 					int row = row_start;
-					for (; row < relations.size(); row++) if (matrix_mod2[row][col]) break;
-					if (row == relations.size()) continue;
+					for (; row < matrix.size(); row++) if (matrix[row][col]) break;
+					if (row == matrix.size()) continue;
 
-					matrix_mod2[row_start].swap(matrix_mod2[row]);
+					matrix[row_start].swap(matrix[row]);
 					solution_matrix[row_start].swap(solution_matrix[row]);
 					
 					int elim_ind = row_start;
 					row_start++;
-					for (row = row_start; row < relations.size(); row++) {
-						if (matrix_mod2[row][col]) {
-							matrix_mod2[row].add(matrix_mod2[elim_ind]);
+					for (row = row_start; row < matrix.size(); row++) {
+						if (matrix[row][col]) {
+							matrix[row].add(matrix[elim_ind]);
 							solution_matrix[row].add(solution_matrix[elim_ind]);
 						}
 					}
 				}
+				for (int i = row_start; i < matrix.size(); i++) {
+					solutions.push_back(solution_matrix[i]);
+				}
 				if (debug) std::cout << "Solved" << std::endl;
 			}
 	
+			void find_factors_from_relations() {
+				std::vector<CustomBitset> matrix_mod2;
+				prepare_matrix(matrix_mod2);
+				std::vector<CustomBitset> solutions;
+				solve_matrix(matrix_mod2, solutions);
+			}
+
 			void find_factors() {}
 			#pragma endregion Main
 	
@@ -409,12 +413,11 @@ namespace QS {
 				while (relations.size() <= factor_base.size()) sieve();
 				
  				polynomials.clear();
-				create_matrix();
+
+				find_factors_from_relations();
+
 				factor_base.clear();
-				solve_matrix();
 				relations.clear();
-				matrix_mod2.clear();
-				solution_matrix.clear();
 				return factors;
 			}
 			// std::vector<qs_int> factorise(std::string value) {
