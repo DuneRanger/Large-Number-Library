@@ -286,6 +286,14 @@ namespace largeNumberLibrary {
 				}
 				if (negative) *this = ~*this + 1;
 			}
+			template<int rhs_size>
+			int_limited(int_limited<rhs_size> const& rhs) {
+				if (rhs >= 0) this->importBits(rhs.exportBits());
+				else {
+					this->importBits((~rhs + 1).exportBits());
+					*this = ~(*this) + 1;
+				}
+			}
 
 			// All explicit conversions simply returns the bits for the given bit amount
 			// For example the minimum value (in two's complement) converted to a int64_t will simply return 0
