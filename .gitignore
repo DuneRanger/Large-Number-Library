@@ -3,5 +3,8 @@
 *.out
 *.app
 
+# Object files
+*.o
+
 # Local functionality testing
 .testing/*
