@@ -1,0 +1,425 @@
+#pragma once
+#include <vector>
+#include <cassert>
+#include <cmath>
+#include <cstdint>
+#include "factoriser_basic.hpp"
+#include "factoriser_math.hpp"
+#include "../../int_limited.hpp"
+
+// Since I decided to have the int_limited bit_size be a template,
+// all of this has to live in a header file
+template<int bit_size>
+class factoriser_QS {
+	typedef largeNumberLibrary::int_limited<bit_size> qs_int;
+	typedef uint64_t ui64;
+
+	class CustomBitset {
+		private:
+			std::vector<ui64> bits;
+			
+		public:
+			std::size_t size;
+
+			CustomBitset(int _bits) {
+				size = _bits;
+				// size/64 and size%64
+				int words = 1 + (size >> 6) + bool(size & 0x3f);
+				bits = std::vector<ui64>(words, 0);
+			}
+
+			const bool operator[](std::size_t const ind) const {
+				// ind/64 and ind%64
+				assert(ind < size);
+				assert(ind >= 0);
+				return bits[ind >> 6] >> (ind & 0x3f) & 1;
+			}
+
+			// Serves as an access point to an index
+			void flip_bit(std::size_t const ind) {
+				// ind/64 and ind%64
+				assert(ind < size);
+				assert(ind >= 0);
+				int bit = ind & 0x3f;
+				if (bit == 0) bits[ind >> 6] ^= 1;
+				else bits[ind >> 6] ^= (1 << bit);
+			}
+
+			CustomBitset operator^=(CustomBitset const& rhs) {
+				assert(size == rhs.size);
+				int words = 1 + (size >> 6) + bool(size & 0x3f);
+				for (int i = 0; i < words; i++) {
+					this->bits[i] ^= rhs.bits[i];
+				}
+				return *this;
+			}
+
+			CustomBitset operator^(CustomBitset const& rhs) const {
+				assert(size == rhs.size);
+				CustomBitset result(size);
+				int words = 1 + (size >> 6) + bool(size & 0x3f);
+				for (int i = 0; i < words; i++) {
+					result.bits[i] = this->bits[i] ^ rhs.bits[i];
+				}
+				return result;
+			}
+			
+			void add(CustomBitset const& rhs) {
+				*this ^= rhs;
+			}
+
+			void swap(CustomBitset& rhs) {
+				CustomBitset temp = *this;
+				*this = rhs;
+				rhs = temp;
+			}
+	};
+	
+	// polynomials used for quadratic sieve (QS)
+	struct QS_poly {
+		qs_int A;
+		qs_int B;
+		qs_int C;
+
+		// a vector of solutions of Q(x) = 0 (mod p)
+		// where p is a prime from the factor base (with the same index)
+		std::vector<ui64> solutions_mod_p;
+	
+		// Since this is a simple single-polynomial version of the quadratic sieve,
+		// there is a special constructor for Q(x) = (A + x)^2 - C = (sqrt(kN) + x)^2 - kN
+		QS_poly(qs_int const& kN) {
+			// (sqrt(kN) + x)^2 - kN = x^2 + 2*sqrt(kN) + sqrt(kN)^2 - kN;
+			A = 1;
+			qs_int sqrt_kN = kN.isqrt()+1;
+			B = sqrt_kN << 1;
+			C = sqrt_kN*sqrt_kN - kN;
+		}
+		
+		// If this was Multi-Polynomial QS, then they would be in the form of Q(x) = Ax^2 + Bx + C
+		// And this constructor would be used
+		QS_poly(qs_int const& a, qs_int const& b, qs_int const& c) {
+			A = a;
+			B = b;
+			C = c;
+		}
+
+		// Returns the value of the polynomial for a given x
+		qs_int operator()(qs_int const& x) const {
+			return (A*x*x) + (B*x) + C;
+		}
+	};
+
+	// The structure for a relation used in the quadratic sieve
+	// Contains the relation/poly value, the solution to the quadratic residue
+	// and the bitset of relation value's exponents
+	struct relation {
+		// the value of poly(x) mod kN
+		qs_int poly_value;
+		// the value of R^2 = (A + x)^2 = 0 (mod kN)
+		qs_int residue_solution;
+
+		// A bitset of the parity of the exponents of poly_value
+		CustomBitset exponents;
+
+		relation(qs_int const& val, qs_int const& res, ui64 prime_count)
+			: poly_value(val), residue_solution(res), exponents(prime_count) {}
+	};
+
+	// A struct for the global variables commonly used in quadratic sieve sub-functions
+	// AKA - the variables that get passed a lot
+	struct QS_global {
+		qs_int N;
+		// what we work with (modulo kN)
+		qs_int kN;
+		// the prime number smoothness bound
+		ui64 B;
+
+		// a vector of B-smooth primes for which kN is a quadratic residue
+		std::vector<ui64> factor_base;
+		int64_t sieve_start;
+		ui64 sieve_interval;
+	};
+
+
+	// The following is a rudimentary implementation of the quadratic sieve algorithm
+	// based on my understanding of how it works
+
+	qs_int calc_kN(qs_int const& N) const {
+		// Since I don't understand why most implementations increase kN to at least 115 bits, I'll just leave it be for now
+		qs_int kN = N;
+		if (debug) std::cout << "N = " << N << " (" << N.ilog2() << " bits) | kN = " << kN << " (" << kN.ilog2() << " bits)" << std::endl;
+		return kN;
+	}
+
+	ui64 calc_B(qs_int const& kN) const {
+		// A rough heuristic based on the algorithm's complexity
+		// exp((0.5 + o(1))*(ln(N)ln(ln(N))^(0.5) ))
+		ui64 B = std::ceil(std::exp(0.51*std::sqrt(
+							(kN.ilog2()) * std::log(kN.ilog2())
+						)
+					));
+		if (debug) std::cout << "B = " << B << " | ";
+		return B;
+	}
+
+	// Directly fills globals.factor_base with the found B-smooth primes
+	void prepare_factor_base(QS_global& globals) const {
+		std::vector<ui64> potential_primes;
+		factoriser_basic::find_small_primes(globals.B, potential_primes);
+		if (debug) std::cout << potential_primes.size() << " potential primes | ";
+		for (ui64 prime : potential_primes) {
+			if (factoriser_math::is_quadratic_residue(globals.kN, prime)) globals.factor_base.push_back(prime);
+		}
+		if (debug) std::cout << globals.factor_base.size() << " factor base size" << std::endl;;
+	}
+	
+	void prepare_polynomials(QS_global const& globals, std::vector<QS_poly>& polynomials) const {
+		// Uses the basic polynomial Q(x) = (sqrt(kN) + x)^2 - kN
+		polynomials.push_back(QS_poly(globals.kN));
+
+		for (QS_poly& poly : polynomials) {
+			for (uint32_t i = 0; i < globals.factor_base.size(); i++) {
+				ui64 prime = globals.factor_base[i];
+				// A simplified case for the single polynomial QS
+				qs_int rhs = globals.kN;
+				ui64 root1 = factoriser_math::Tonelli_Shanks(rhs, prime);
+				if (root1 == 0) continue;
+				poly.solutions_mod_p.push_back(root1);
+			}
+		}
+
+		if (debug) {
+			std::cout << "Polynomials used: ";
+			for (uint32_t i = 0; i < polynomials.size(); i++) {
+				// special log for single polynomial QS
+				std::cout << "(" << (polynomials[i].C + globals.kN).isqrt() << " + x)^2 - " << globals.kN << " | ";
+				// std::cout << polynomials[i].A << "x^2 + " << polynomials[i].B << "x + " << polynomials[i].C << " | ";
+			}
+			std::cout << std::endl;
+		}
+	}
+
+	void set_sieve_bounds(QS_global& globals) const {
+		globals.sieve_start = 0;
+		globals.sieve_interval = globals.B;
+	}
+
+	void find_relation_candidates(QS_global globals, QS_poly const& poly, std::vector<relation>& candidates) const {
+		ui64 fb_size = globals.factor_base.size();
+		ui64 interval = globals.sieve_interval;
+		// NOTE:
+		// Only calculating the log_threshold for a few values is *significantly* faster
+		// compared to calculating it for each poly(x) individually (though it is also less accurate)
+		ui64 base = poly(globals.sieve_start).ilog2();
+		ui64 threshold = (base >> 1) - factoriser_math::count_bits(globals.factor_base.back());
+		std::vector<ui64> log_thresholds(interval, threshold);
+
+		std::vector<ui64> log_primes(fb_size);
+		for (int i = 0; i < fb_size; i++) log_primes[i] = factoriser_math::count_bits(globals.factor_base[i]);
+		std::vector<ui64> log_counts(interval, 0);
+
+		if (debug) std::cout << "Prepared... ";
+
+		// Solve it specially for the values (K + x)^2 = (sqrt(kN) + x)^x
+		// Since we know this is the single polynomial version
+		qs_int K = globals.kN.isqrt();
+		for (int i = 0; i < fb_size; i++) {
+			ui64 prime = globals.factor_base[i];
+			ui64 root1 = poly.solutions_mod_p[i];
+			if (root1 == 0) continue;
+			// And we won't have to convert Ax^2 + Bx + C into (K + L*x)^2 + M
+			
+			ui64 A = ui64(K%prime);
+			ui64 offset = globals.sieve_start%prime;
+			// since root1 is (A + x), then we need to extract x
+			// x_1 = root1 - A (mod p
+			// x_2 = (p - root1) - A (mod p)
+			// We add an extra padding of `prime + ` to not underflow
+			ui64 x_1 = prime + root1 - A - offset;
+			if (x_1 >= prime) x_1 -= prime;
+
+			for (int j = x_1; j < interval; j += prime) log_counts[j] += log_primes[i];
+
+			if (prime != 2) {
+				ui64 x_2 = prime + prime - root1 - A - offset;
+				if (x_2 >= prime) x_2 -= prime;
+	
+				if (prime != 2) for (int j = x_2; j < interval; j += prime) log_counts[j] += log_primes[i];
+			}
+		}
+
+		for (int i = 0; i < interval; i++) {
+			if (log_counts[i] >= log_thresholds[i]){
+				candidates.push_back(
+					relation(poly(globals.sieve_start + i)%globals.kN, \
+						(K + globals.sieve_start + i)%globals.kN, \
+						fb_size)
+				);
+			}
+		}
+		if (debug) std::cout << candidates.size() << " candidates | ";
+	}
+
+	void verify_candidates(QS_global globals, std::vector<relation> const& candidates, std::vector<relation>& verified) const {
+		if (debug) std::cout << "Verifying... ";
+		for (int i = 0; i < candidates.size(); i++) {
+			qs_int value = candidates[i].poly_value;
+			CustomBitset exponents(globals.factor_base.size());
+			for (int j = 0; j < globals.factor_base.size(); j++) {
+				ui64 prime = globals.factor_base[j];
+				while (value % prime == 0) {
+					value /= prime;
+					exponents.flip_bit(j);
+				}
+				if (value == 1) {
+					verified.push_back(candidates[i]);
+					verified.back().exponents = exponents;
+					break;
+				}
+			}
+		}
+		if (debug) std::cout << verified.size() << " verified" << std::endl;
+	}
+
+	// Gathers relations from all polynomials and sets a new intervals
+	void sieve(QS_global& globals, std::vector<QS_poly> const& polynomials, std::vector<relation>& relations) const {
+		if (debug) {
+			std::cout << "Sieving from " << globals.sieve_start << " to " << (globals.sieve_start + globals.sieve_interval);
+			std::cout << " (" << globals.sieve_interval << " values) | ";
+		}
+		for (QS_poly const& poly : polynomials) {
+			std::vector<relation> candidates;
+			find_relation_candidates(globals, poly, candidates);
+			std::vector<relation> verified;
+			verify_candidates(globals, candidates, verified);
+			for (relation& v : verified) {
+				relations.push_back(v);
+			}
+		}
+		globals.sieve_start += globals.sieve_interval;
+		if (10*relations.size() < globals.factor_base.size()) {
+			globals.sieve_interval += (globals.sieve_interval >> 2);
+		}
+	}
+
+	// Should only be called after enough relations have been gathered
+	void prepare_matrix(std::vector<relation> const& relations, std::vector<CustomBitset>& matrix) const {
+		for (int i = 0; i < relations.size(); i++) {
+			matrix.push_back(relations[i].exponents);
+		}
+		if (debug) std::cout << "Matrix (mod 2) of size " << relations.size() << " x " << relations[0].exponents.size << " created" << std::endl;
+	}
+
+	// utilises gauss elimination to solve the matrix of exponents
+	void solve_matrix(std::vector<CustomBitset>& matrix, std::vector<CustomBitset>& solutions) const {
+		if (debug) std::cout << "Solving matrix with Gauss elimination... ";
+		std::vector<CustomBitset> solution_matrix(matrix.size(), CustomBitset(matrix.size()));
+		for (int i = 0; i < matrix.size(); i++) solution_matrix[i].flip_bit(i);
+
+		int row_start = 0;
+		for (int col = 0; col < matrix[0].size; col++) {
+			int row = row_start;
+			for (; row < matrix.size(); row++) if (matrix[row][col]) break;
+			if (row == matrix.size()) continue;
+
+			matrix[row_start].swap(matrix[row]);
+			solution_matrix[row_start].swap(solution_matrix[row]);
+			
+			int elim_ind = row_start;
+			row_start++;
+			for (row = row_start; row < matrix.size(); row++) {
+				if (matrix[row][col]) {
+					matrix[row].add(matrix[elim_ind]);
+					solution_matrix[row].add(solution_matrix[elim_ind]);
+				}
+			}
+		}
+		for (int i = row_start; i < matrix.size(); i++) {
+			solutions.push_back(solution_matrix[i]);
+		}
+		if (debug) std::cout << "Solved" << std::endl;
+	}
+
+	void find_factors_from_relations(QS_global& globals, std::vector<relation> const& relations, std::vector<qs_int>& prime_factors) {
+		std::vector<CustomBitset> matrix_mod2;
+		prepare_matrix(relations, matrix_mod2);
+
+		std::vector<CustomBitset> solutions;
+		solve_matrix(matrix_mod2, solutions);
+
+		std::vector<qs_int> possible_factors;
+
+		if (debug) std::cout << "Finding factors... ";
+		for (CustomBitset& bitset : solutions) {
+			largeNumberLibrary::int_limited<2*bit_size> res_sols = 1;
+			// extra precision, since we are multiplying up to 256 bit values
+			largeNumberLibrary::int_limited<bit_size*30> poly_vals = 1;
+			for (int i = 0; i < bitset.size; i++) {
+				if (poly_vals.ilog2() + relations[i].poly_value.ilog2() > 32*200) {
+					std::cout << poly_vals.ilog2() << std::endl;
+					throw std::overflow_error("Error: poly_vals exceeded alloted precision in factors_from_matrix_solution");
+				}
+				if (!bitset[i]) continue;
+				poly_vals *= relations[i].poly_value;
+				res_sols *= relations[i].residue_solution;
+				// we can afford to do this to help keep the value small
+				res_sols %= globals.kN;
+			}
+			// assert(poly_vals.isqrt().pow(2) == poly_vals);
+			poly_vals = poly_vals.isqrt();
+			poly_vals %= globals.kN;
+			if (res_sols == poly_vals) continue;
+			std::cout << res_sols << " " << poly_vals << " " << globals.kN;
+			
+			qs_int factor_1, factor_2;
+			if (res_sols > poly_vals) factor_1 = factoriser_math::gcd(qs_int(res_sols - poly_vals), globals.kN);
+			else factor_1 = factoriser_math::gcd(qs_int(poly_vals - res_sols), globals.kN);
+
+			factor_2 = factoriser_math::gcd(qs_int(res_sols + poly_vals), globals.kN);
+			std::cout << " " << factor_1 << " " << factor_2 << std::endl;
+			if (factor_1 != 1 && factor_1 != globals.N)possible_factors.push_back(factor_1);
+			if (factor_2 != 1 && factor_2 != globals.N)
+			possible_factors.push_back(factor_2);
+		}
+		for (qs_int& factor : possible_factors) {
+			// should always be true, for now this stays here
+			// as an artefact of an older version
+			if (globals.N%factor == 0) {
+				globals.N /= factor;
+				prime_factors.push_back(factor);
+			}
+		}
+		if (debug) std::cout << prime_factors.size() << " found" << std::endl;
+	}
+
+	public:
+		bool debug;
+		factoriser_QS() : debug(false) {}
+		factoriser_QS(bool _debug) : debug(_debug) {}
+
+
+		std::vector<qs_int> quadratic_sieve(qs_int const& value) {
+			QS_global globals;
+			globals.N = value;
+			globals.kN = calc_kN(globals.N);
+			globals.B = calc_B(globals.kN);
+
+			prepare_factor_base(globals);
+
+			std::vector<QS_poly> polynomials;
+			prepare_polynomials(globals, polynomials);
+			set_sieve_bounds(globals);
+
+			std::vector<relation> relations;
+			while (relations.size() < 210*globals.factor_base.size()/100) sieve(globals, polynomials, relations);
+
+			std::vector<qs_int> prime_factors;
+			find_factors_from_relations(globals, relations, prime_factors);
+
+			return {};
+		}
+
+		std::vector<qs_int> quadratic_sieve(int64_t value) {
+			return quadratic_sieve(qs_int(value));
+		}
+};
