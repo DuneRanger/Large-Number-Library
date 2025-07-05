@@ -1,3 +1,5 @@
+#include <cmath>
+#include <fstream>
 #include "factoriser_basic.hpp"
 
 namespace factoriser_basic {
@@ -46,7 +48,7 @@ namespace factoriser_basic {
 
 	bool is_small_prime(uint64_t value) {
 		std::ifstream primes("./primes.txt");
-		int prime;
+		uint64_t prime;
 		uint64_t max = std::ceil(std::sqrt(value));
 		while (primes >> prime) {
 			if (prime > max) return true;
@@ -60,7 +62,7 @@ namespace factoriser_basic {
 	template<int bits>
 	bool is_small_prime(int_limited<bits> value) {
 		std::ifstream primes("./primes.txt");
-		int prime;
+		uint64_t prime;
 		int_limited<bits> max = value.isqrt()+1;
 		while (primes >> prime) {
 			if (prime > max) return true;
