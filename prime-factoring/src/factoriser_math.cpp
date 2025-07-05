@@ -67,10 +67,10 @@ namespace factoriser_math {
 
 	// Mostly just implements the pseudo code from:
 	// https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm#The_algorithm
-	std::pair<uint64_t, uint64_t> Tonelli_Shanks(uint64_t N, uint64_t prime) {
-		if (prime == 2) return {N&1, N&1};
+	uint64_t Tonelli_Shanks(uint64_t N, uint64_t prime) {
+		if (prime == 2) return N&1;
 		N %= prime;
-		if (N == 0) return {0, 0};
+		if (N == 0) return 0;
 		
 		// We're solving x^2 = N (mod p)
 		// because n^((p-1)/2) = 1 (mod p), we find Q,S such that Q*2^S = p-1
@@ -89,19 +89,19 @@ namespace factoriser_math {
 			uint64_t t_exp = (t*t) % prime;
 			uint64_t i = 1;
 			while (t_exp != 1 && i < M) { t_exp = (t_exp*t_exp)%prime; i++; }
-			if (i == M) return {0, 0};
+			if (i == M) return 0;
 			uint64_t b = pow_mod(c, 1 << (M-i-1), prime);
 			M = i;
 			c = (b*b)%prime;
 			t = (t*c)%prime;
 			R = (R*b)%prime;
 		}
-		if (t == 1) return {R, prime-R};
-		return {0, 0};
+		if (t == 1) return R;
+		return 0;
 	}
 
 	template<int bits>
-	std::pair<uint64_t, uint64_t> Tonelli_Shanks(int_limited<bits> N, uint64_t prime) {
+	uint64_t Tonelli_Shanks(int_limited<bits> N, uint64_t prime) {
 		return Tonelli_Shanks(uint64_t(N%prime), prime);
 	}
 

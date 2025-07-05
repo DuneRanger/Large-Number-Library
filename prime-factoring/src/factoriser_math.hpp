@@ -25,16 +25,16 @@ namespace factoriser_math {
 	// i.e. (64 - number of leading zeroes)
 	uint64_t count_bits(uint64_t val);
 
-	// Returns a both solutions to x^2 = N (mod p)
+	// Returns a single solution to x^2 = N (mod p) (the other solution is x2 = p - x1)
 	// If a solution is not found, zero is returned
 	// p must be a prime for the algorithm to work
-	std::pair<uint64_t, uint64_t> Tonelli_Shanks(uint64_t N, uint64_t prime);
+	uint64_t Tonelli_Shanks(uint64_t N, uint64_t prime);
 
-	// Returns a both solutions to x^2 = N (mod p)
+	// Returns a single solution to x^2 = N (mod p) (the other solution is x2 = p - x1)
 	// If a solution is not found, zero is returned
 	// p must be a prime for the algorithm to work
 	template<int bits>
-	std::pair<uint64_t, uint64_t> Tonelli_Shanks(int_limited<bits>& N, uint64_t prime);
+	uint64_t Tonelli_Shanks(int_limited<bits>& N, uint64_t prime);
 
 	template<int bits>
 	int_limited<bits> gcd(int_limited<bits> a, int_limited<bits> b);
