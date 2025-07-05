@@ -253,6 +253,7 @@ namespace QS {
 				for (ui64 prime : potential_primes) {
 					if (is_quadratic_residue(kN, prime)) factor_base.push_back(prime);
 				}
+
 				if (debug) std::cout << factor_base.size() << " factor base size" << std::endl;;
 			}
 
@@ -275,15 +276,15 @@ namespace QS {
 			// requires B to be defined
 			void prepare_sieve_bounds() {
 				sieve_start = 0;
-				sieve_interval = 10*B;
+				sieve_interval = B;
 			}
-			
+
 			void find_relation_candidates(int64_t start, ui64 interval, QS_poly const& poly, std::vector<relation>& candidates) const {
 				// NOTE:
 				// Only calculating the log_threshold for a few values is *significantly* faster
 				// compared to calculating it for each poly(x) individually (though it is also less accurate)
 				ui64 base = poly(start).ilog2();
-				ui64 threshold = (base >> 1) + (base >> 2);
+				ui64 threshold = (base >> 1) ;//- std::ceil(std::log2(factor_base.back()));
 				std::vector<ui64> log_thresholds(interval, threshold);
 
 				std::vector<ui64> log_primes(factor_base.size());
@@ -353,7 +354,6 @@ namespace QS {
 					for (relation& v : verified) {
 						relations.push_back(v);
 					}
-				
 				}
 				sieve_start += sieve_interval;
 				if (10*relations.size() < factor_base.size()) sieve_interval += (sieve_interval >> 2);
@@ -448,7 +448,6 @@ namespace QS {
 				if (debug) std::cout << prime_factors.size() << " found" << std::endl;
 			}
 
-			void find_factors() {}
 			#pragma endregion Main
 	
 		public:
@@ -461,13 +460,13 @@ namespace QS {
 				std::vector<qs_int> prime_factors;
 
 				if (debug) std::cout << "Input Value: " << value << std::endl;
-				std::vector<ui64> small_factors = trial_division(value);
-				for (ui64 prime : small_factors) {
-					value /= prime;
-					factors.push_back(prime);
-				}
-				if (value == 1) return factors;
 				N = value;
+				std::vector<ui64> small_factors = trial_division(N);
+				for (ui64 prime : small_factors) {
+					N /= prime;
+					prime_factors.push_back(prime);
+				}
+				if (N == 1) return prime_factors;
 				prepare_kN();
 				prepare_B();
 				prepare_factor_base();
@@ -492,13 +491,18 @@ namespace QS {
 				polynomials.clear();
 				factor_base.clear();
 
-				qs_int test2 = 1;
+				qs_int test = 1;
 				for (qs_int& factor : prime_factors) {
-					std::cout << factor << " ";
-					test2 *= factor;
+					test *= factor;
 				}
-				std::cout << std::endl;
-				if (test2 != value) throw std::runtime_error("Error: prime factors found do not make up input\nGot " + test2.toString() + "\nExpected " + value.toString());
+				if (test != value) {
+					if (debug) {
+						std::cout << "Found factors: ";
+						for (qs_int& factor : prime_factors) std::cout << factor << " ";
+						std::cout << std::endl;
+					}
+					throw std::runtime_error("Error: prime factors found do not make up input\nGot " + test.toString() + "\nExpected " + value.toString());
+				}
 				return prime_factors;
 			}
 			// std::vector<qs_int> factorise(std::string value) {
