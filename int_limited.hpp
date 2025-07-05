@@ -1076,7 +1076,7 @@ namespace largeNumberLibrary {
 			#pragma region Math
 			// returns a signed integer of the floored binary log
 			int ilog2() const {
-				if (*this <= 0) throw std::domain_error("Logarithm of invalid value exception");
+				if (*this <= 0) throw std::domain_error("Logarithm of non-positive exception");
 				int result = this->MSW * 32;
 				
 				int leadingZeroes = 32;
