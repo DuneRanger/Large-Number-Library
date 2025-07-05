@@ -37,7 +37,8 @@ namespace QS {
 
 			CustomBitset operator^=(CustomBitset const& rhs) {
 				assert(size == rhs.size);
-				for (int i = 0; i < size; i++) {
+				int words = 1 + (size >> 6) + bool(size & 0x3f);
+				for (int i = 0; i < words; i++) {
 					this->bits[i] ^= rhs.bits[i];
 				}
 				return *this;
@@ -46,7 +47,8 @@ namespace QS {
 			CustomBitset operator^(CustomBitset const& rhs) const {
 				assert(size == rhs.size);
 				CustomBitset result(size);
-				for (int i = 0; i < size; i++) {
+				int words = 1 + (size >> 6) + bool(size & 0x3f);
+				for (int i = 0; i < words; i++) {
 					result.bits[i] = this->bits[i] ^ rhs.bits[i];
 				}
 				return result;
