@@ -100,9 +100,18 @@ namespace QS {
 				: poly_value(val), residue_solution(res), exponents(prime_count) {}
 		};
 
-		private:
-			std::vector<qs_int> factors;
+		// gcd(residue_solutions - poly_values, kN) are divisors of N
+		struct separated_factor {
+			// The square root of the product of poly_value's of the relations
+			qs_int poly_values;
+			// The product of residue_solutions's of the relations
+			// (which are already square rooted in the original relation)
+			qs_int residue_solutions;
 
+			separated_factor() : poly_values(1), residue_solutions(1) {}
+		};
+
+		private:
 			qs_int N; // what we're trying to factorise
 			qs_int kN; // what we work with (modulo this)
 			ui64 B; // smoothness bound
@@ -381,12 +390,56 @@ namespace QS {
 				}
 				if (debug) std::cout << "Solved" << std::endl;
 			}
-	
-			void find_factors_from_relations() {
+
+			void find_factors_from_relations(std::vector<qs_int>& prime_factors) {
 				std::vector<CustomBitset> matrix_mod2;
 				prepare_matrix(matrix_mod2);
+
 				std::vector<CustomBitset> solutions;
 				solve_matrix(matrix_mod2, solutions);
+
+				std::vector<qs_int> possible_factors;
+
+				if (debug) std::cout << "Finding factors... ";
+				for (CustomBitset& bitset : solutions) {
+					largeNumberLibrary::int_limited<512> res_sols = 1;
+					// extra precision, since we are multiplying up to 256 bit values
+					largeNumberLibrary::int_limited<32*200> poly_vals = 1;
+					for (int i = 0; i < bitset.size; i++) {
+						if (poly_vals.ilog2() + relations[i].poly_value.ilog2() > 32*200) {
+							std::cout << poly_vals.ilog2() << std::endl;
+							throw std::overflow_error("Error: poly_vals exceeded alloted precision in factors_from_matrix_solution");
+						}
+						if (!bitset[i]) continue;
+						poly_vals *= relations[i].poly_value;
+						res_sols *= relations[i].residue_solution;
+						// we can afford to do this to help keep the value small
+						res_sols %= kN;
+					}
+					// assert(poly_vals.isqrt().pow(2) == poly_vals);
+					poly_vals = poly_vals.isqrt();
+					poly_vals %= kN;
+					if (res_sols == poly_vals) continue;
+					
+					qs_int factor_1, factor_2;
+					if (res_sols > poly_vals) factor_1 = gcd(res_sols - poly_vals, kN);
+					else factor_1 = gcd(poly_vals - res_sols, kN);
+					if (factor_1 == 1 || factor_1 == N) continue;
+
+					factor_2 = gcd(res_sols + poly_vals, kN);
+					std::cout << factor_1 << " " << factor_2 << std::endl;
+					possible_factors.push_back(factor_1);
+					possible_factors.push_back(factor_2);
+				}
+				for (qs_int& factor : possible_factors) {
+					// should always be true, for now this stays here
+					// as an artefact of an older version
+					if (N%factor == 0) {
+						N /= factor;
+						prime_factors.push_back(factor);
+					}
+				}
+				if (debug) std::cout << prime_factors.size() << " found" << std::endl;
 			}
 
 			void find_factors() {}
@@ -399,6 +452,8 @@ namespace QS {
 			QuadraticSieve(bool _debug) : debug(_debug) {};
 
 			std::vector<qs_int> factorise(qs_int value) {
+				std::vector<qs_int> prime_factors;
+
 				if (debug) std::cout << "Input Value: " << value << std::endl;
 				std::vector<ui64> small_factors = trial_division(value);
 				for (ui64 prime : small_factors) {
@@ -414,13 +469,31 @@ namespace QS {
 				prepare_sieve_bounds();
 				while (relations.size() <= factor_base.size()) sieve();
 				
- 				polynomials.clear();
+				find_factors_from_relations(prime_factors);
+				
+				if (N != 1) {
+					if (debug) std::cout << "Not all prime factors were found, trying once again" << std::endl;
+					// relations.clear();
+					for (int i = 0; i < 10; i++) sieve();
+					find_factors_from_relations(prime_factors);
+				}
+				if (N != 1) {
+					if (debug) std::cout << N << " may be prime" << std::endl;
+					prime_factors.push_back(N);
+				}
 
-				find_factors_from_relations();
-
-				factor_base.clear();
 				relations.clear();
-				return factors;
+				polynomials.clear();
+				factor_base.clear();
+
+				qs_int test2 = 1;
+				for (qs_int& factor : prime_factors) {
+					std::cout << factor << " ";
+					test2 *= factor;
+				}
+				std::cout << std::endl;
+				if (test2 != value) throw std::runtime_error("Error: prime factors found do not make up input\nGot " + test2.toString() + "\nExpected " + value.toString());
+				return prime_factors;
 			}
 			// std::vector<qs_int> factorise(std::string value) {
 			// 	for (int i = 0; i < value.size(); i++) {
