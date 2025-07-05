@@ -217,6 +217,12 @@ namespace QS {
 				if (t == 0) return 0;
 				return R;
 			}
+			
+			qs_int gcd(qs_int a, qs_int b) {
+				if (b == 0) return a;
+				return gcd(b, a%b);
+			}
+
 			#pragma endregion Helper
 	
 			#pragma region Main
