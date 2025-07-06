@@ -82,7 +82,7 @@ namespace QS {
 				B = b;
 				C = c;
 			}
-			qs_int operator()(qs_int const& x) const { return (A+x)*(A+x) - C; }
+			qs_int operator()(qs_int const& x) const { return (A+x)*(A+x) + C; }
 			qs_int quad(qs_int const& x) const { return (A+x)*(A+x); }
 		};
 
