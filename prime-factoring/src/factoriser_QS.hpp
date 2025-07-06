@@ -201,7 +201,7 @@ class factoriser_QS {
 
 	void set_sieve_bounds(QS_global& globals) const {
 		globals.sieve_start = 0;
-		globals.sieve_interval = globals.B;
+		globals.sieve_interval = 10*globals.B;
 	}
 
 	void find_relation_candidates(QS_global globals, QS_poly const& poly, std::vector<relation>& candidates) const {
@@ -222,12 +222,12 @@ class factoriser_QS {
 
 		// Solve it specially for the values (K + x)^2 = (sqrt(kN) + x)^x
 		// Since we know this is the single polynomial version
-		qs_int K = globals.kN.isqrt();
+		// And we won't have to convert Ax^2 + Bx + C into (K + L*x)^2 + M
+		qs_int K = globals.kN.isqrt()+1;
 		for (int i = 0; i < fb_size; i++) {
 			ui64 prime = globals.factor_base[i];
 			ui64 root1 = poly.solutions_mod_p[i];
 			if (root1 == 0) continue;
-			// And we won't have to convert Ax^2 + Bx + C into (K + L*x)^2 + M
 			
 			ui64 A = ui64(K%prime);
 			ui64 offset = globals.sieve_start%prime;
@@ -244,7 +244,7 @@ class factoriser_QS {
 				ui64 x_2 = prime + prime - root1 - A - offset;
 				if (x_2 >= prime) x_2 -= prime;
 	
-				if (prime != 2) for (int j = x_2; j < interval; j += prime) log_counts[j] += log_primes[i];
+				for (int j = x_2; j < interval; j += prime) log_counts[j] += log_primes[i];
 			}
 		}
 
@@ -352,10 +352,10 @@ class factoriser_QS {
 		if (debug) std::cout << "Finding factors... ";
 		for (CustomBitset& bitset : solutions) {
 			largeNumberLibrary::int_limited<2*bit_size> res_sols = 1;
-			// extra precision, since we are multiplying up to 256 bit values
+			// extra precision, because we can't afford to modulo the results
 			largeNumberLibrary::int_limited<bit_size*30> poly_vals = 1;
 			for (int i = 0; i < bitset.size; i++) {
-				if (poly_vals.ilog2() + relations[i].poly_value.ilog2() > 32*200) {
+				if (poly_vals.ilog2() + relations[i].poly_value.ilog2() > bit_size*30) {
 					std::cout << poly_vals.ilog2() << std::endl;
 					throw std::overflow_error("Error: poly_vals exceeded alloted precision in factors_from_matrix_solution");
 				}
@@ -369,14 +369,12 @@ class factoriser_QS {
 			poly_vals = poly_vals.isqrt();
 			poly_vals %= globals.kN;
 			if (res_sols == poly_vals) continue;
-			std::cout << res_sols << " " << poly_vals << " " << globals.kN;
 			
 			qs_int factor_1, factor_2;
 			if (res_sols > poly_vals) factor_1 = factoriser_math::gcd(qs_int(res_sols - poly_vals), globals.kN);
 			else factor_1 = factoriser_math::gcd(qs_int(poly_vals - res_sols), globals.kN);
 
 			factor_2 = factoriser_math::gcd(qs_int(res_sols + poly_vals), globals.kN);
-			std::cout << " " << factor_1 << " " << factor_2 << std::endl;
 			if (factor_1 != 1 && factor_1 != globals.N)possible_factors.push_back(factor_1);
 			if (factor_2 != 1 && factor_2 != globals.N)
 			possible_factors.push_back(factor_2);
@@ -411,12 +409,12 @@ class factoriser_QS {
 			set_sieve_bounds(globals);
 
 			std::vector<relation> relations;
-			while (relations.size() < 210*globals.factor_base.size()/100) sieve(globals, polynomials, relations);
+			while (relations.size() < 110*globals.factor_base.size()/100) sieve(globals, polynomials, relations);
 
 			std::vector<qs_int> prime_factors;
 			find_factors_from_relations(globals, relations, prime_factors);
 
-			return {};
+			return prime_factors;
 		}
 
 		std::vector<qs_int> quadratic_sieve(int64_t value) {
