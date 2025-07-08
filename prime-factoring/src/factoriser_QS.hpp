@@ -12,6 +12,7 @@
 template<int bit_size>
 class factoriser_QS {
 	typedef largeNumberLibrary::int_limited<bit_size> qs_int;
+	typedef largeNumberLibrary::int_limited<2*bit_size> qs_int_double;
 	typedef uint64_t ui64;
 
 	class CustomBitset {
@@ -133,11 +134,17 @@ class factoriser_QS {
 		// the value of R^2 = (A + x)^2 = 0 (mod kN)
 		qs_int residue_solution;
 
-		// A bitset of the parity of the exponents of poly_value
-		CustomBitset exponents;
+		// A list of all of the pairs prime exponents that make up poly_value
+		// This is used to drastically improve find_factors_from_relations(), instead of multiplying 10000+ bit values
+		// Big thanks to https://github.com/michel-leonard/C-Quadratic-Sieve/blob/main/quadratic-sieve.c#L1013
+		// for making me realise that this method allows work completely modulo kN 
+		std::vector<ui64> exponents;
+		// A bitset of the parity of the exponents of poly_value for all prime in the factor base
+		// It differs from the pairs in that its size is equal to the factor base 
+		CustomBitset exponents_mod_2;
 
 		relation(qs_int const& val, qs_int const& res, ui64 prime_count)
-			: poly_value(val), residue_solution(res), exponents(prime_count) {}
+			: poly_value(val), residue_solution(res), exponents(prime_count), exponents_mod_2(prime_count) {}
 	};
 
 	// A struct for the global variables commonly used in quadratic sieve sub-functions
@@ -275,20 +282,21 @@ class factoriser_QS {
 		if (debug) std::cout << candidates.size() << " candidates | ";
 	}
 
-	void verify_candidates(QS_global globals, std::vector<relation> const& candidates, std::vector<relation>& verified) const {
+	void verify_candidates(QS_global globals, std::vector<relation>& candidates, std::vector<relation>& verified) const {
 		if (debug) std::cout << "Verifying... ";
 		for (int i = 0; i < candidates.size(); i++) {
 			qs_int value = candidates[i].poly_value;
-			CustomBitset exponents(globals.factor_base.size());
 			for (int j = 0; j < globals.factor_base.size(); j++) {
 				ui64 prime = globals.factor_base[j];
-				while (value % prime == 0) {
-					value /= prime;
-					exponents.flip_bit(j);
+				if (value % prime == 0) {
+					while (value % prime == 0) {
+						value /= prime;
+						candidates[i].exponents[j]++;
+						candidates[i].exponents_mod_2.flip_bit(j);
+					}
 				}
 				if (value == 1) {
 					verified.push_back(candidates[i]);
-					verified.back().exponents = exponents;
 					break;
 				}
 			}
@@ -320,9 +328,9 @@ class factoriser_QS {
 	// Should only be called after enough relations have been gathered
 	void prepare_matrix(std::vector<relation> const& relations, std::vector<CustomBitset>& matrix) const {
 		for (int i = 0; i < relations.size(); i++) {
-			matrix.push_back(relations[i].exponents);
+			matrix.push_back(relations[i].exponents_mod_2);
 		}
-		if (debug) std::cout << "Matrix (mod 2) of size " << relations.size() << " x " << relations[0].exponents.size << " created" << std::endl;
+		if (debug) std::cout << "Matrix (mod 2) of size " << relations.size() << " x " << relations[0].exponents_mod_2.size << " created" << std::endl;
 	}
 
 	// utilises gauss elimination to solve the matrix of exponents
@@ -352,7 +360,7 @@ class factoriser_QS {
 		for (int i = row_start; i < matrix.size(); i++) {
 			solutions.push_back(solution_matrix[i]);
 		}
-		if (debug) std::cout << "Solved" << std::endl;
+		if (debug) std::cout << solutions.size() " solutions found" << std::endl;
 	}
 
 	void find_factors_from_relations(QS_global& globals, std::vector<relation> const& relations, std::vector<qs_int>& prime_factors) {
@@ -366,30 +374,33 @@ class factoriser_QS {
 
 		if (debug) std::cout << "Finding factors... ";
 		for (CustomBitset& bitset : solutions) {
-			largeNumberLibrary::int_limited<2*bit_size> res_sols = 1;
-			// extra precision, because we can't afford to modulo the results
-			largeNumberLibrary::int_limited<bit_size*30> poly_vals = 1;
+			qs_int_double res_sols = 1;
+			qs_int_double poly_vals = 1;
+			// list of exponents of the factor base that make up poly_vals
+			std::vector<ui64> poly_vals_exps(globals.factor_base.size());
+			// If we do not modulo, then we can end up multiplying 10000+ bit values
+			// Thus we continually work with the already square values, which we can modulo throughout
 			for (int i = 0; i < bitset.size; i++) {
-				if (poly_vals.ilog2() + relations[i].poly_value.ilog2() > bit_size*30) {
-					std::cout << poly_vals.ilog2() << std::endl;
-					throw std::overflow_error("Error: poly_vals exceeded alloted precision in factors_from_matrix_solution");
-				}
 				if (!bitset[i]) continue;
-				poly_vals *= relations[i].poly_value;
 				res_sols *= relations[i].residue_solution;
-				// we can afford to do this to help keep the value small
-				res_sols %= globals.kN;
+				res_sols %= globals.N;
+				for (int j = 0; j < globals.factor_base.size(); j++) {
+					poly_vals_exps[j] += relations[i].exponents[j];
+				}
 			}
-			// assert(poly_vals.isqrt().pow(2) == poly_vals);
-			poly_vals = poly_vals.isqrt();
-			poly_vals %= globals.kN;
-			if (res_sols == poly_vals) continue;
+			for (int i = 0; i < globals.factor_base.size(); i++) {
+				assert(poly_vals_exps[i]%2 == 0);
+				// divides exponent by two to already square-root the value
+				poly_vals *= factoriser_math::pow_mod<2*bit_size>(globals.factor_base[i], poly_vals_exps[i]>>1, globals.N);
+				poly_vals %= globals.N;
+			}
 			
 			qs_int factor_1, factor_2;
-			if (res_sols > poly_vals) factor_1 = factoriser_math::gcd(qs_int(res_sols - poly_vals), globals.kN);
-			else factor_1 = factoriser_math::gcd(qs_int(poly_vals - res_sols), globals.kN);
+			if (res_sols > poly_vals) factor_1 = factoriser_math::gcd(qs_int(res_sols - poly_vals), globals.N);
+			else factor_1 = factoriser_math::gcd(qs_int(poly_vals - res_sols), globals.N);
 
-			factor_2 = factoriser_math::gcd(qs_int(res_sols + poly_vals), globals.kN);
+			factor_2 = factoriser_math::gcd(qs_int(res_sols + poly_vals), globals.N);
+
 			if (factor_1 != 1 && factor_1 != globals.N) possible_factors.push_back(factor_1);
 			if (factor_2 != 1 && factor_2 != globals.N) possible_factors.push_back(factor_2);
 		}
@@ -424,6 +435,7 @@ class factoriser_QS {
 
 			std::vector<relation> relations;
 			while (relations.size() < 110*globals.factor_base.size()/100) sieve(globals, polynomials, relations);
+			while (relations.size() < globals.factor_base.size()) sieve(globals, polynomials, relations);
 
 			std::vector<qs_int> prime_factors;
 			find_factors_from_relations(globals, relations, prime_factors);
