@@ -152,7 +152,7 @@ namespace factoriser_math {
 	}
 
 	template<int bits>
-	int_limited<bits> gcd(int_limited<bits> a, int_limited<bits> b) {
+	int_limited<bits> gcd(int_limited<bits> const& a, int_limited<bits> const& b) {
 		if (b == 0) return a;
 		return gcd(b, a%b);
 	}

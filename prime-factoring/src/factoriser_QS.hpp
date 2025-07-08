@@ -16,7 +16,8 @@ class factoriser_QS {
 
 	class CustomBitset {
 		private:
-			std::vector<ui64> bits;
+			std::vector<uint64_t> bits;
+			std::size_t words;
 			
 		public:
 			std::size_t size;
@@ -24,8 +25,8 @@ class factoriser_QS {
 			CustomBitset(int _bits) {
 				size = _bits;
 				// size/64 and size%64
-				int words = 1 + (size >> 6) + bool(size & 0x3f);
-				bits = std::vector<ui64>(words, 0);
+				words = 1 + (size >> 6) + bool(size & 0x3f);
+				bits = std::vector<uint64_t>(words, 0);
 			}
 
 			const bool operator[](std::size_t const ind) const {
@@ -42,12 +43,11 @@ class factoriser_QS {
 				assert(ind >= 0);
 				int bit = ind & 0x3f;
 				if (bit == 0) bits[ind >> 6] ^= 1;
-				else bits[ind >> 6] ^= (1 << bit);
+				else bits[ind >> 6] ^= (uint64_t(1) << bit);
 			}
 
 			CustomBitset operator^=(CustomBitset const& rhs) {
 				assert(size == rhs.size);
-				int words = 1 + (size >> 6) + bool(size & 0x3f);
 				for (int i = 0; i < words; i++) {
 					this->bits[i] ^= rhs.bits[i];
 				}
@@ -57,11 +57,26 @@ class factoriser_QS {
 			CustomBitset operator^(CustomBitset const& rhs) const {
 				assert(size == rhs.size);
 				CustomBitset result(size);
-				int words = 1 + (size >> 6) + bool(size & 0x3f);
 				for (int i = 0; i < words; i++) {
 					result.bits[i] = this->bits[i] ^ rhs.bits[i];
 				}
 				return result;
+			}
+
+			bool operator==(CustomBitset const& rhs) const {
+				assert (size == rhs.size);
+				for (int i = 0; i < words; i++) {
+					if (rhs.bits[i] != this->bits[i]) return false;
+				}
+				return true;
+			}
+
+			std::string to_string() const {
+				std::string output = "";
+				for (int i = 0; i < size; i++) {
+					output += std::to_string((*this)[i]);
+				}
+				return output;
 			}
 			
 			void add(CustomBitset const& rhs) {
