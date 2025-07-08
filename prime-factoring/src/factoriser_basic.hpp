@@ -3,8 +3,8 @@
 #include <fstream>
 #include <cstdint>
 #include <vector>
-#include "factoriser_basic.hpp"
 #include "../../int_limited.hpp"
+#include "factoriser_math.hpp"
 
 namespace factoriser_basic {
 	using largeNumberLibrary::int_limited;
@@ -96,5 +96,39 @@ namespace factoriser_basic {
 				for (uint64_t j = 2*i; j < max_val; j += i) sieve[j] = false;
 			}
 		}
+	}
+
+	// A probabilistic Miller-Rabin primality test
+	template<int bits>
+	bool Miller_Rabin_test(int_limited<bits> n, uint64_t iterations = 5) {
+		int_limited<bits> d = n - 1;
+		int_limited<bits> n_sub = n-1;
+		uint64_t s = 0;
+		while ((uint64_t(d)&1) == 0) {
+			d >>= 1;
+			s++;
+		}
+		int_limited<bits> base_a = factoriser_math::random_64();
+		for (int i = 0; i < iterations; i++) {
+			int_limited<bits> a = factoriser_math::pow_mod(base_a, d, n);
+			if (a == 1 || a == n_sub) continue; // is a strong probable prime to base a
+			int j = 1;
+			for (; j < s; j++) {
+				a = a*a%n;
+				if (a == n_sub) break;
+			}
+			if (j == s) return false; // isn't a strong probably prime, thus it is composite
+			base_a <<= 64;
+			base_a |= factoriser_math::random_64();
+			base_a %= n;
+		}
+		return true;
+	}
+
+	template<int bits>
+	bool is_prime(int_limited<bits> N) {
+		if (uint64_t(N)&1 == 0) return false;
+		if (N.ilog2() < 40) return is_small_prime(uint64_t(N));
+		return Miller_Rabin_test(N);
 	}
 }
