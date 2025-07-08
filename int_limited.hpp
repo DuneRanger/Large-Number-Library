@@ -1050,8 +1050,7 @@ namespace largeNumberLibrary {
 			#pragma region Logical
 			// returns *this == 0
 			bool operator! () const {
-				if (!!this->MSW) return false;
-				return this->words[0] == 0;
+				return this->MSW == 0 && this->words[0] == 0;
 			}
 			bool operator&& (int_limited const& rhs) const {
 				// if *this and rhs are non-zero
