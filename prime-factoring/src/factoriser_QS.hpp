@@ -233,7 +233,9 @@ class factoriser_QS {
 		// Only calculating the log_threshold for a few values is *significantly* faster
 		// compared to calculating it for each poly(x) individually (though it is also less accurate)
 		ui64 base = poly(globals.sieve_start + interval/10).ilog2();
-		ui64 threshold = (base >> 1) + (base >> 2);// - factoriser_math::count_bits(globals.factor_base.back());
+		// We want a very low threshold, because verifying bad candidates is much slower than another sieve
+		// Experimentally, + (base >> 3) means having 1-2x less correct verifications, but up to 4-10x less candidates per sieve
+		ui64 threshold = (base >> 1) + (base >> 2) + (base >> 3);// - factoriser_math::count_bits(globals.factor_base.back());
 		std::vector<ui64> log_thresholds(interval, threshold);
 
 		std::vector<ui64> log_primes(fb_size);
@@ -364,6 +366,8 @@ class factoriser_QS {
 	}
 
 	void find_factors_from_relations(QS_global& globals, std::vector<relation> const& relations, std::vector<qs_int>& prime_factors) {
+		using factoriser_math::element_in_vector;
+		using factoriser_math::gcd;
 		std::vector<CustomBitset> matrix_mod2;
 		prepare_matrix(relations, matrix_mod2);
 
@@ -372,8 +376,14 @@ class factoriser_QS {
 
 		std::vector<qs_int> divisors;
 
-		if (debug) std::cout << "Finding factors... ";
+		// NOTE:
+		// This is currently the slowest part of the algorithm, because of ther being 1000+ solutions
+		// Maybe consider only going through 50 solutions or any other hard cap?
+		int solution_count = 0;
+		const int solution_cap = 50;
+		if (debug) std::cout << "Finding factors from " << solution_cap << " solutions...";
 		for (CustomBitset& bitset : solutions) {
+			if (solution_count++ > solution_cap) break;
 			qs_int_double res_sols = 1;
 			qs_int_double poly_vals = 1;
 			// list of exponents of the factor base that make up poly_vals
@@ -396,44 +406,59 @@ class factoriser_QS {
 			}
 			
 			qs_int factor_1, factor_2;
-			if (res_sols > poly_vals) factor_1 = factoriser_math::gcd(qs_int(res_sols - poly_vals), globals.N);
-			else factor_1 = factoriser_math::gcd(qs_int(poly_vals - res_sols), globals.N);
+			if (res_sols > poly_vals) factor_1 = gcd(qs_int(res_sols - poly_vals), globals.N);
+			else factor_1 = gcd(qs_int(poly_vals - res_sols), globals.N);
 
-			factor_2 = factoriser_math::gcd(qs_int(res_sols + poly_vals), globals.N);
+			factor_2 = gcd(qs_int(res_sols + poly_vals), globals.N);
 
-			if (factor_1 != 1 && factor_1 != globals.N) divisors.push_back(factor_1);
-			if (factor_2 != 1 && factor_2 != globals.N) divisors.push_back(factor_2);
+			// The list of divisors should be relatively sparse when pruned liked this
+			if (factor_1 != 1 && factor_1 != globals.N && !element_in_vector(factor_1, divisors)) {
+				divisors.push_back(factor_1);
+			}
+			if (factor_2 != 1 && factor_2 != globals.N&& !element_in_vector(factor_2, divisors)) {
+				divisors.push_back(factor_2);
+			}
 		}
+		if (debug) std::cout << divisors.size() << " Unique divisors found | " << std::endl;
 		// Factorise composite divisors into primes
 		std::vector<qs_int> possible_primes;
-		for (int i = 0; i < divisors.size(); i++) {
-			qs_int& divisor = divisors[i];
-			if (!factoriser_basic::is_prime(divisor)) {
+		{
+			std::vector<qs_int> big_divisors;
+			// First we sort out prime divisors and small primes in composites
+			for (qs_int& divisor : divisors) {
+				// skip prime divisors
+				if (factoriser_basic::is_prime(divisor) && !element_in_vector(divisor, possible_primes)) {
+					possible_primes.push_back(divisor);
+					continue;
+				}
+
 				// get small primes and add them to possible factors
 				for (ui64 prime : factoriser_basic::trial_division(divisor)) {
 					divisor /= prime;
-					possible_primes.push_back(prime);
+					if (!element_in_vector(divisor, possible_primes)) possible_primes.push_back(prime);
 				}
 				if (divisor == 1) continue;
 				if (factoriser_basic::is_prime(divisor)) possible_primes.push_back(divisor);
-				else {
-					if (debug) std::cout << "Divisor " << divisor << " is being recursively factored by a new quadratic sieve instance!" << std::endl;
-					factoriser_QS QS;
-					for (qs_int prime : QS.quadratic_sieve(divisor)) {
-						divisor /= prime;
-						possible_primes.push_back(prime);
-					}
+				else if (!element_in_vector(divisor, big_divisors)) big_divisors.push_back(divisor);
+			}
+
+			// now we sort out big divisors individually
+			factoriser_QS QS;
+			for (qs_int& divisor : big_divisors) {
+				if (debug) std::cout << "Divisor " << divisor << " is being recursively factored by a new quadratic sieve instance!" << std::endl;
+				for (qs_int prime : QS.quadratic_sieve(divisor)) {
+					divisor /= prime;
+					if (!element_in_vector(divisor, possible_primes)) possible_primes.push_back(prime);
 				}
 			}
 		}
 		for (qs_int& factor : possible_primes) {
-
-			if (globals.N%factor == 0) {
+			while (globals.N%factor == 0) {
 				globals.N /= factor;
 				prime_factors.push_back(factor);
 			}
 		}
-		if (debug) std::cout << prime_factors.size() << " factors found" << std::endl;
+		if (debug) std::cout << prime_factors.size() << " prime factors found" << std::endl;
 	}
 
 	public:
