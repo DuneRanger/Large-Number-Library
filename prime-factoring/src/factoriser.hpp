@@ -32,9 +32,9 @@ namespace Factoriser {
 			}
 		}
 
-		// Stage 2: trial division up to 1000000
+		// Stage 2: trial division up to 100000
 		{
-			std::vector<uint64_t> small_factors = factoriser_basic::trial_division(value);
+			std::vector<uint64_t> small_factors = factoriser_basic::trial_division(value, 100000);
 			for (uint64_t prime : small_factors) {
 				value /= prime;
 				factors.push_back(prime);
