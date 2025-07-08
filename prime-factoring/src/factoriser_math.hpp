@@ -1,17 +1,46 @@
 #pragma once
 #include <cstdint>
-#include "factoriser_math.hpp"
 
 namespace factoriser_math {
 	using largeNumberLibrary::int_limited;
 
+	namespace {
+		uint64_t pow_mod_2(uint64_t n, uint64_t exp, uint64_t p) {
+			if (exp == 0) return 1;
+			if (exp % 2) return (pow_mod_2(n, exp-1, p) * n) % p;
+			n = pow_mod_2(n, exp/2, p);
+			return (n * n) % p;
+		}
+
+		template<int bits>
+		int_limited<bits> pow_mod_2(int_limited<bits> n, int_limited<bits> exp, int_limited<bits> p) {
+			if (exp == 0) return 1;
+			if (uint64_t(exp)&1) return (pow_mod_2(n, exp-1, p) * n) % p;
+			n = pow_mod_2(n, exp>>1, p);
+			return (n * n) % p;
+		}
+	}
+
 	// Calculates (n^exp) mod p without losing precision
-	// Throws an error when p > UINT32_MAX (potential precision loss)
+	// Throws an error if there is a potential precision loss
 	uint64_t pow_mod(uint64_t n, uint64_t exp, uint64_t p) {
-		if (p > UINT32_MAX) throw std::overflow_error("Error: pow_mod with p = " + std::to_string(p) + " may overflow");
+		if (p > UINT32_MAX) throw std::overflow_error("Error: pow_mod() with p = " + std::to_string(p) + " may overflow");
+		if (n > UINT32_MAX) throw std::overflow_error("Error: pow_mod() with n = " + std::to_string(n) + " may overflow");
 		if (exp == 0) return 1;
-		if (exp % 2) return (pow_mod(n, exp-1, p) * n) % p;
-		n = pow_mod(n, exp/2, p);
+		if (exp % 2) return (pow_mod_2(n, exp-1, p) * n) % p;
+		n = pow_mod_2(n, exp/2, p);
+		return (n * n) % p;
+	}
+
+	// Calculates (n^exp) mod p without losing precision
+	// Throws an error if there is a potential precision loss
+	template<int bits>
+	int_limited<bits> pow_mod(int_limited<bits> n, int_limited<bits> exp, int_limited<bits> p) {
+		if (p.ilog2() > bits/2) throw std::overflow_error("Error: pow_mod() with p = " + p.toString() + " may overflow");
+		if (n.ilog2() > bits/2) throw std::overflow_error("Error: pow_mod() with n = " + n.toString() + " may overflow");
+		if (exp == 0) return 1;
+		if (uint64_t(exp)&1) return (pow_mod_2(n, exp-1, p) * n) % p;
+		n = pow_mod_2(n, exp>>1, p);
 		return (n * n) % p;
 	}
 
