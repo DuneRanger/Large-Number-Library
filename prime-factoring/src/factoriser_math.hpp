@@ -127,5 +127,28 @@ namespace factoriser_math {
 		if (b == 0) return a;
 		return gcd(b, a%b);
 	}
+
+	// Either takes a non-zero seed as an input
+	// Or uses its own predetermined seed
+	uint64_t random_64(uint64_t n = 0)
+	{
+		// From https://www.reddit.com/r/C_Programming/comments/ozew2u/comment/h7zijm8
+		// with an added manual seed
+		static uint64_t seed = 0x193ba71fe0d721c8;
+		const uint64_t z = 0x9FB21C651E98DF25;
+		if (!n) n = seed;
+		
+		n ^= ((n << 49) | (n >> 15)) ^ ((n << 24) | (n >> 40));
+		n *= z;
+		n ^= n >> 35;
+		n *= z;
+		n ^= n >> 28;
+
+		seed ^= seed << 3;
+		seed ^= seed >> 5;
+		seed *= z;
+		seed ^= seed >> 17;
+		return n;
+	}
 }
 
