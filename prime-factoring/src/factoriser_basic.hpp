@@ -110,7 +110,7 @@ namespace factoriser_basic {
 		}
 		int_limited<bits> base_a = factoriser_math::random_64();
 		for (int i = 0; i < iterations; i++) {
-			int_limited<bits> a = factoriser_math::pow_mod(base_a, d, n);
+			int_limited<bits> a = factoriser_math::pow_mod<2*bits>(base_a, d, n);
 			if (a == 1 || a == n_sub) continue; // is a strong probable prime to base a
 			int j = 1;
 			for (; j < s; j++) {
