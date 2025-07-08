@@ -401,18 +401,39 @@ class factoriser_QS {
 
 			factor_2 = factoriser_math::gcd(qs_int(res_sols + poly_vals), globals.N);
 
-			if (factor_1 != 1 && factor_1 != globals.N) possible_factors.push_back(factor_1);
-			if (factor_2 != 1 && factor_2 != globals.N) possible_factors.push_back(factor_2);
+			if (factor_1 != 1 && factor_1 != globals.N) divisors.push_back(factor_1);
+			if (factor_2 != 1 && factor_2 != globals.N) divisors.push_back(factor_2);
 		}
-		for (qs_int& factor : possible_factors) {
-			// should always be true, for now this stays here
-			// as an artefact of an older version
+		// Factorise composite divisors into primes
+		std::vector<qs_int> possible_primes;
+		for (int i = 0; i < divisors.size(); i++) {
+			qs_int& divisor = divisors[i];
+			if (!factoriser_basic::is_prime(divisor)) {
+				// get small primes and add them to possible factors
+				for (ui64 prime : factoriser_basic::trial_division(divisor)) {
+					divisor /= prime;
+					possible_primes.push_back(prime);
+				}
+				if (divisor == 1) continue;
+				if (factoriser_basic::is_prime(divisor)) possible_primes.push_back(divisor);
+				else {
+					if (debug) std::cout << "Divisor " << divisor << " is being recursively factored by a new quadratic sieve instance!" << std::endl;
+					factoriser_QS QS;
+					for (qs_int prime : QS.quadratic_sieve(divisor)) {
+						divisor /= prime;
+						possible_primes.push_back(prime);
+					}
+				}
+			}
+		}
+		for (qs_int& factor : possible_primes) {
+
 			if (globals.N%factor == 0) {
 				globals.N /= factor;
 				prime_factors.push_back(factor);
 			}
 		}
-		if (debug) std::cout << prime_factors.size() << " found" << std::endl;
+		if (debug) std::cout << prime_factors.size() << " factors found" << std::endl;
 	}
 
 	public:
