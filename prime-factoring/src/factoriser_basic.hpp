@@ -16,7 +16,7 @@ namespace factoriser_basic {
 		uint64_t prime;
 		if (!upperBound) upperBound = UINT64_MAX;
 		uint64_t max = std::ceil(std::sqrt(value));
-		while (primes >> prime && prime < upperBound) {
+		while ((primes >> prime) && prime < upperBound) {
 			if (max < prime) {
 				factors.push_back(uint64_t(value));
 				break;
@@ -39,7 +39,7 @@ namespace factoriser_basic {
 		uint64_t prime;
 		if (!upperBound) upperBound = UINT64_MAX;
 		int_limited<bits> max = value.isqrt()+1;
-		while (primes >> prime && prime < upperBound) {
+		while ((primes >> prime) && prime < upperBound) {
 			if (max < prime) {
 				factors.push_back(uint64_t(value));
 				break;
@@ -56,11 +56,11 @@ namespace factoriser_basic {
 
 	// Simple trial division, should work up to 10^12
 	bool is_small_prime(uint64_t value, uint64_t upperBound = 0) {
-		std::ifstream primes("./primes.txt");
-		uint64_t prime;
+		std::ifstream primes("./src/primes.txt");
+		uint64_t prime = 0;
 		if (!upperBound) upperBound = UINT64_MAX;
 		uint64_t max = std::ceil(std::sqrt(value));
-		while (primes >> prime && prime < upperBound) {
+		while ((primes >> prime) && prime < upperBound) {
 			if (prime > max) return true;
 			while (!(value % prime)) value /= prime;
 			if (value == 1) return true;
@@ -72,11 +72,11 @@ namespace factoriser_basic {
 	// Simple trial division, should work up to 10^12
 	template<int bits>
 	bool is_small_prime(int_limited<bits> value, uint64_t upperBound = 0) {
-		std::ifstream primes("./primes.txt");
-		uint64_t prime;
+		std::ifstream primes("./src/primes.txt");
+		uint64_t prime = 0;
 		if (!upperBound) upperBound = UINT64_MAX;
 		int_limited<bits> max = value.isqrt()+1;
-		while (primes >> prime && prime < upperBound) {
+		while ((primes >> prime) && prime < upperBound) {
 			if (prime > max) return true;
 			while (!(value % prime)) value /= prime;
 			if (value == 1) return true;
@@ -100,7 +100,7 @@ namespace factoriser_basic {
 
 	// A probabilistic Miller-Rabin primality test
 	template<int bits>
-	bool Miller_Rabin_test(int_limited<bits> n, uint64_t iterations = 25) {
+	bool Miller_Rabin_test(int_limited<bits> const& n, uint64_t iterations = 25) {
 		int_limited<bits> d = n - 1;
 		int_limited<bits> n_sub = n-1;
 		uint64_t s = 0;
@@ -126,7 +126,7 @@ namespace factoriser_basic {
 	}
 
 	template<int bits>
-	bool is_prime(int_limited<bits> N) {
+	bool is_prime(int_limited<bits> const& N) {
 		if (N == 2) return true;
 		if ((uint64_t(N)&1) == 0) return false;
 		if (N.ilog2() < 40) return is_small_prime(uint64_t(N));
