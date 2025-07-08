@@ -179,5 +179,13 @@ namespace factoriser_math {
 		seed ^= seed >> 17;
 		return n;
 	}
+
+	template<typename T>
+	bool element_in_vector(T const& element, std::vector<T> const& list) {
+		for (int i = 0; i < list.size(); i++) {
+			if (element == list[i]) return true;
+		}
+		return false;
+	}
 }
 
