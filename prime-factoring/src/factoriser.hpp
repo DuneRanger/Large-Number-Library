@@ -56,7 +56,7 @@ namespace Factoriser {
 					value /= prime;
 					factors.push_back(prime);
 				}
-			} while (0 || !factoriser_basic::is_prime(value));
+			} while (false && !factoriser_basic::is_prime(value));
 		}
 		
 		// value should be either a strong probable prime or 1 at this point

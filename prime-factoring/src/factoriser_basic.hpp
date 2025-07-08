@@ -100,7 +100,7 @@ namespace factoriser_basic {
 
 	// A probabilistic Miller-Rabin primality test
 	template<int bits>
-	bool Miller_Rabin_test(int_limited<bits> n, uint64_t iterations = 5) {
+	bool Miller_Rabin_test(int_limited<bits> n, uint64_t iterations = 25) {
 		int_limited<bits> d = n - 1;
 		int_limited<bits> n_sub = n-1;
 		uint64_t s = 0;
@@ -128,7 +128,7 @@ namespace factoriser_basic {
 	template<int bits>
 	bool is_prime(int_limited<bits> N) {
 		if (N == 2) return true;
-		if (uint64_t(N)&1 == 0) return false;
+		if ((uint64_t(N)&1) == 0) return false;
 		if (N.ilog2() < 40) return is_small_prime(uint64_t(N));
 		return Miller_Rabin_test(N);
 	}
