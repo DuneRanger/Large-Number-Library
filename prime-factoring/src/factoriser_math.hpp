@@ -76,9 +76,12 @@ namespace factoriser_math {
 		return bits;
 	}
 
-	// Mostly just implements the pseudo code from:
-	// https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm#The_algorithm
+	// Returns a single solution to x^2 = N (mod p) (the other solution is x2 = p - x1)
+	// If a solution is not found, zero is returned
+	// p must be a prime for the algorithm to work
 	uint64_t Tonelli_Shanks(uint64_t N, uint64_t prime) {
+		// Mostly just implements the lua pseudo code from:
+		// https://en.wikipedia.org/wiki/Tonelli%E2%80%93Shanks_algorithm#The_algorithm
 		if (prime == 2) return N&1;
 		N %= prime;
 		if (N == 0) return 0;
@@ -119,9 +122,6 @@ namespace factoriser_math {
 		return Tonelli_Shanks(uint64_t(N%prime), prime);
 	}
 
-	// Returns a single solution to x^2 = N (mod p) (the other solution is x2 = p - x1)
-	// If a solution is not found, zero is returned
-	// p must be a prime for the algorithm to work
 	template<int bits>
 	int_limited<bits> gcd(int_limited<bits> a, int_limited<bits> b) {
 		if (b == 0) return a;

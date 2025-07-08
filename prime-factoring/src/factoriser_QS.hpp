@@ -375,9 +375,8 @@ class factoriser_QS {
 			else factor_1 = factoriser_math::gcd(qs_int(poly_vals - res_sols), globals.kN);
 
 			factor_2 = factoriser_math::gcd(qs_int(res_sols + poly_vals), globals.kN);
-			if (factor_1 != 1 && factor_1 != globals.N)possible_factors.push_back(factor_1);
-			if (factor_2 != 1 && factor_2 != globals.N)
-			possible_factors.push_back(factor_2);
+			if (factor_1 != 1 && factor_1 != globals.N) possible_factors.push_back(factor_1);
+			if (factor_2 != 1 && factor_2 != globals.N) possible_factors.push_back(factor_2);
 		}
 		for (qs_int& factor : possible_factors) {
 			// should always be true, for now this stays here
