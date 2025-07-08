@@ -223,7 +223,7 @@ class factoriser_QS {
 
 	void set_sieve_bounds(QS_global& globals) const {
 		globals.sieve_start = 0;
-		globals.sieve_interval = 10*globals.B;
+		globals.sieve_interval = 5*globals.B;
 	}
 
 	void find_relation_candidates(QS_global globals, QS_poly const& poly, std::vector<relation>& candidates) const {
@@ -232,8 +232,8 @@ class factoriser_QS {
 		// NOTE:
 		// Only calculating the log_threshold for a few values is *significantly* faster
 		// compared to calculating it for each poly(x) individually (though it is also less accurate)
-		ui64 base = poly(globals.sieve_start).ilog2();
-		ui64 threshold = (base >> 1) - factoriser_math::count_bits(globals.factor_base.back());
+		ui64 base = poly(globals.sieve_start + interval/10).ilog2();
+		ui64 threshold = (base >> 1) + (base >> 2);// - factoriser_math::count_bits(globals.factor_base.back());
 		std::vector<ui64> log_thresholds(interval, threshold);
 
 		std::vector<ui64> log_primes(fb_size);
@@ -360,7 +360,7 @@ class factoriser_QS {
 		for (int i = row_start; i < matrix.size(); i++) {
 			solutions.push_back(solution_matrix[i]);
 		}
-		if (debug) std::cout << solutions.size() " solutions found" << std::endl;
+		if (debug) std::cout << solutions.size() << " solutions found" << std::endl;
 	}
 
 	void find_factors_from_relations(QS_global& globals, std::vector<relation> const& relations, std::vector<qs_int>& prime_factors) {
@@ -370,7 +370,7 @@ class factoriser_QS {
 		std::vector<CustomBitset> solutions;
 		solve_matrix(matrix_mod2, solutions);
 
-		std::vector<qs_int> possible_factors;
+		std::vector<qs_int> divisors;
 
 		if (debug) std::cout << "Finding factors... ";
 		for (CustomBitset& bitset : solutions) {
@@ -443,6 +443,7 @@ class factoriser_QS {
 
 
 		std::vector<qs_int> quadratic_sieve(qs_int const& value) {
+			if (debug) std::cout << "QUADRATIC SIEVE DEBUG LOG:" << std::endl;
 			QS_global globals;
 			globals.N = value;
 			globals.kN = calc_kN(globals.N);
@@ -455,12 +456,12 @@ class factoriser_QS {
 			set_sieve_bounds(globals);
 
 			std::vector<relation> relations;
-			while (relations.size() < 110*globals.factor_base.size()/100) sieve(globals, polynomials, relations);
 			while (relations.size() < globals.factor_base.size()) sieve(globals, polynomials, relations);
 
 			std::vector<qs_int> prime_factors;
 			find_factors_from_relations(globals, relations, prime_factors);
 
+			if (debug) std::cout << "QUADRATIC SIEVE COMPLETED" << std::endl;
 			return prime_factors;
 		}
 
