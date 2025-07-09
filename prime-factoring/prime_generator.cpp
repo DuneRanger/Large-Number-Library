@@ -3,7 +3,8 @@
 #include <string>
 #include <cstdint>
 
-constexpr uint64_t max_val = 1000000 + 1;
+// High enough to get the first prime after 1 000 000
+constexpr uint64_t max_val = 1000000 + 4;
 const std::string out_path = "./src/primes.txt";
 
 int main() {
