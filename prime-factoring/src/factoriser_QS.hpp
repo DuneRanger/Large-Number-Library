@@ -167,8 +167,9 @@ class factoriser_QS {
 	// based on my understanding of how it works
 
 	qs_int calc_kN(qs_int const& N) const {
-		// Since I don't understand why most implementations increase kN to at least 115 bits, I'll just leave it be for now
 		qs_int kN = N;
+		// Increase kN for small values, so that the sieving interval and factor base size is decent
+		if (kN.ilog2() < 80) kN *= (qs_int(1) << (80 - kN.ilog2())) + 17;
 		if (debug) std::cout << "N = " << N << " (" << N.ilog2() << " bits) | kN = " << kN << " (" << kN.ilog2() << " bits)" << std::endl;
 		return kN;
 	}
@@ -378,7 +379,7 @@ class factoriser_QS {
 		std::vector<qs_int> divisors;
 
 		// NOTE:
-		// Now that the Smoothness bound and factor base have changed sizes, this is no longer the slowest part of the algorithm
+		// Now that the Smoothness bound and factor base have changed sizes, this is now only sometimes the slowest part of the algorithm
 		// Because we only now usually find 5-50 solutions
 		// However, the solution cap is still required, because sometimes we still find 1000+ solutions
 		int solution_count = 0;
@@ -486,11 +487,11 @@ class factoriser_QS {
 			set_sieve_bounds(globals);
 
 			std::vector<relation> relations;
-			// 100% is enough to guarantee a solution
-			// 90% seems to work as well for most inputs, but I can't guarantee it's always enough
-			ui64 percentage = 100;
 			ui64 sieve_count = 0;
 			ui64 sieve_start = globals.sieve_start;
+			// 100% is enough to guarantee a solution
+			// 90% seems to work as well for most inputs, but I can't guarantee it's always enough
+			ui64 percentage = 105;
 			while (relations.size() < percentage*globals.factor_base.size()/100) {
 				sieve(globals, polynomials, relations);
 				sieve_count++;
