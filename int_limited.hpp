@@ -668,7 +668,7 @@ namespace largeNumberLibrary {
 					divisor <<= shiftCount;
 					dividend <<= shiftCount;
 				}
-				// we never update dividend MSW or LSW after this, because no operations are based on them
+				// we never manually update dividend MSW or LSW after this, because no operations are based on them
 				
 				for (int j = m; j >= 0; j--) {
 					uint64_t curDigits = concatTo64Bit(dividend.words[j + vInd + 1], dividend.words[j + vInd]);
@@ -730,7 +730,7 @@ namespace largeNumberLibrary {
 			// the sign of the divisor *does not* affect the result
 			int_limited& operator%= (int_limited const& rhs) {
 				if (rhs == 0) throw std::domain_error("Modulo by zero exception");
-
+				
 				// Create the dividend and divisor with at least an extra word of accuracy for indexing in the algorithm
 				const int extraPrecision = 64 + 32-bitSize%32;
 				int_limited<bitSize + extraPrecision> dividend;
@@ -755,7 +755,7 @@ namespace largeNumberLibrary {
 				*this = 0;
 
 				int potentialLSW = 0;
-				int potentialMSW = rhs.MSW;
+				int potentialMSW = divisor.MSW;
 				
 				// If the divisor only consists of one 32-bit word
 				// then divide manually and return
@@ -846,8 +846,8 @@ namespace largeNumberLibrary {
 					}
 				}
 				// only update MSW and LSW at the end, because it isn't needed in the middle
-				dividend.updateMSW(divisor.MSW);
-				dividend.updateLSW(0);
+				dividend.updateLSW(potentialLSW);
+				dividend.updateMSW(potentialMSW);
 				dividend >>= shiftCount;
 				for (int i = 0; i <= vInd; i++) {
 					this->words[i] = dividend.words[i];
@@ -1050,8 +1050,7 @@ namespace largeNumberLibrary {
 			#pragma region Logical
 			// returns *this == 0
 			bool operator! () const {
-				if (!!this->MSW) return false;
-				return this->words[0] == 0;
+				return this->MSW == 0 && this->words[0] == 0;
 			}
 			bool operator&& (int_limited const& rhs) const {
 				// if *this and rhs are non-zero
@@ -1076,7 +1075,7 @@ namespace largeNumberLibrary {
 			#pragma region Math
 			// returns a signed integer of the floored binary log
 			int ilog2() const {
-				if (*this <= 0) throw std::domain_error("Logarithm of invalid value exception");
+				if (*this <= 0) throw std::domain_error("Logarithm of non-positive exception");
 				int result = this->MSW * 32;
 				
 				int leadingZeroes = 32;
@@ -1124,8 +1123,4 @@ namespace largeNumberLibrary {
 
 			#pragma endregion Math
 	};
-
-	typedef int_limited<256> int256;
-	typedef int_limited<512> int512;
-	typedef int_limited<1024> int1024;
 }
