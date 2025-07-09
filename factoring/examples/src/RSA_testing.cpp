@@ -1,6 +1,6 @@
-#include "../../int_limited.hpp"
-#include "factoriser_QS.hpp"
-#include "factoriser_basic.hpp"
+#include "../../../int_limited.hpp"
+#include "../../factoriser_QS.hpp"
+#include "../../factoriser_basic.hpp"
 #include <chrono>
 #include <iostream>
 using largeNumberLibrary::int_limited;

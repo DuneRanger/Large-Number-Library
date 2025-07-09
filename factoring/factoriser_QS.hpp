@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "factoriser_basic.hpp"
 #include "factoriser_math.hpp"
-#include "../../int_limited.hpp"
+#include "../int_limited.hpp"
 
 // Since I decided to have the int_limited bit_size be a template,
 // all of this has to live in a header file

@@ -3,7 +3,7 @@
 #include <fstream>
 #include <cstdint>
 #include <vector>
-#include "../../int_limited.hpp"
+#include "../int_limited.hpp"
 #include "factoriser_math.hpp"
 
 namespace factoriser_basic {
@@ -12,7 +12,7 @@ namespace factoriser_basic {
 	// Finds all factors less than or equal to 1_000_003
 	std::vector<uint64_t> trial_division(uint64_t value, uint64_t upperBound = 0) {
 		std::vector<uint64_t> factors;
-		std::ifstream primes("./src/primes.txt");
+		std::ifstream primes("./primes.txt");
 		uint64_t prime;
 		if (!upperBound) upperBound = UINT64_MAX;
 		uint64_t max = std::ceil(std::sqrt(value));
@@ -35,7 +35,7 @@ namespace factoriser_basic {
 	template<int bit_size>
 	std::vector<uint64_t> trial_division(int_limited<bit_size> value, uint64_t upperBound = 0) {
 		std::vector<uint64_t> factors;
-		std::ifstream primes("./src/primes.txt");
+		std::ifstream primes("./primes.txt");
 		uint64_t prime;
 		if (!upperBound) upperBound = UINT64_MAX;
 		int_limited<bit_size> max = value.isqrt()+1;
@@ -56,7 +56,7 @@ namespace factoriser_basic {
 
 	// Simple trial division, should work up to 10^12
 	bool is_small_prime(uint64_t value, uint64_t upperBound = 0) {
-		std::ifstream primes("./src/primes.txt");
+		std::ifstream primes("./primes.txt");
 		uint64_t prime = 0;
 		if (!upperBound) upperBound = UINT64_MAX;
 		uint64_t max = std::ceil(std::sqrt(value));
@@ -72,7 +72,7 @@ namespace factoriser_basic {
 	// Simple trial division, should work up to 10^12
 	template<int bit_size>
 	bool is_small_prime(int_limited<bit_size> value, uint64_t upperBound = 0) {
-		std::ifstream primes("./src/primes.txt");
+		std::ifstream primes("./primes.txt");
 		uint64_t prime = 0;
 		if (!upperBound) upperBound = UINT64_MAX;
 		int_limited<bit_size> max = value.isqrt()+1;

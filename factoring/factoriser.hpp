@@ -3,7 +3,7 @@
 #include "factoriser_math.hpp"
 #include "factoriser_basic.hpp"
 #include "factoriser_QS.hpp"
-#include "../../int_limited.hpp"
+#include "../int_limited.hpp"
 
 namespace Factoriser {
 	using largeNumberLibrary::int_limited;
