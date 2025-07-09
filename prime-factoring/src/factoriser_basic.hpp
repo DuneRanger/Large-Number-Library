@@ -62,11 +62,11 @@ namespace factoriser_basic {
 		uint64_t max = std::ceil(std::sqrt(value));
 		while ((primes >> prime) && prime < upperBound) {
 			if (prime > max) return true;
-			while (!(value % prime)) value /= prime;
-			if (value == 1) return true;
-			max = std::ceil(std::sqrt(value));
+			if (prime == value) return true;
+
+			if (value % prime == 0) return false;
 		}
-		return false;
+		return true;
 	}
 
 	// Simple trial division, should work up to 10^12
@@ -78,11 +78,11 @@ namespace factoriser_basic {
 		int_limited<bits> max = value.isqrt()+1;
 		while ((primes >> prime) && prime < upperBound) {
 			if (prime > max) return true;
-			while (!(value % prime)) value /= prime;
-			if (value == 1) return true;
-			max = value.isqrt()+1;
+			if (prime == value) return true;
+
+			if (value % prime == 0) return false;
 		}
-		return false;
+		return true;
 	}
 
 	// Adds all primes smaller or equal to max_val into the argument `primes`

@@ -15,7 +15,7 @@ namespace Factoriser {
 	template<int bit_size>
 	std::vector<int_limited<bit_size>> factorise(int_limited<bit_size> value) {
 		typedef int_limited<bit_size> qs_int;
-		if (debug) std::cout << "====================== Factoriser input: " << value << " ======================" << std::endl;
+		if (debug) std::cout << "=============== Factoriser input: " << value << " (" << value.ilog2() << " bits) ===============" << std::endl;
 		if (factoriser_basic::is_prime(value)) return {value};
 		
 		std::vector<qs_int> factors;

@@ -383,7 +383,7 @@ class factoriser_QS {
 		// However, the solution cap is still required, because sometimes we still find 1000+ solutions
 		int solution_count = 0;
 		const int solution_cap = 100;
-		if (debug) std::cout << "Finding factors from " << std::min(solution_cap, solutions.size) << " solutions...";
+		if (debug) std::cout << "Finding factors from " << std::min(solution_cap, int(solutions.size())) << " solutions...";
 		for (CustomBitset& bitset : solutions) {
 			if (solution_count++ > solution_cap) break;
 			qs_int_double res_sols = 1;
