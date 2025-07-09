@@ -243,7 +243,7 @@ class factoriser_QS {
 		for (int i = 0; i < fb_size; i++) log_primes[i] = factoriser_math::count_bits(globals.factor_base[i]);
 		std::vector<ui64> log_counts(interval, 0);
 
-		if (debug) std::cout << "Prepared... ";
+		if (sieve_debug) std::cout << "Prepared... ";
 
 		// Solve it specially for the values (K + x)^2 = (sqrt(kN) + x)^x
 		// Since we know this is the single polynomial version
@@ -282,12 +282,12 @@ class factoriser_QS {
 				);
 			}
 		}
-		if (debug) std::cout << candidates.size() << " candidates | ";
+		if (sieve_debug) std::cout << candidates.size() << " candidates | ";
 	}
 
 	void verify_candidates(QS_global globals, std::vector<relation>& candidates, std::vector<relation>& verified) const {
 		// currently the slowest part of the sieving process
-		if (debug) std::cout << "Verifying... ";
+		if (sieve_debug) std::cout << "Verifying... ";
 		for (int i = 0; i < candidates.size(); i++) {
 			qs_int value = candidates[i].poly_value;
 			for (int j = 0; j < globals.factor_base.size(); j++) {
@@ -305,12 +305,12 @@ class factoriser_QS {
 				}
 			}
 		}
-		if (debug) std::cout << verified.size() << " verified" << std::endl;
+		if (sieve_debug) std::cout << verified.size() << " verified" << std::endl;
 	}
 
 	// Gathers relations from all polynomials and sets a new intervals
 	void sieve(QS_global& globals, std::vector<QS_poly> const& polynomials, std::vector<relation>& relations) const {
-		if (debug) {
+		if (sieve_debug) {
 			std::cout << "Sieving from " << globals.sieve_start << " to " << (globals.sieve_start + globals.sieve_interval);
 			std::cout << " (" << globals.sieve_interval << " values) | ";
 		}
@@ -465,9 +465,11 @@ class factoriser_QS {
 	}
 
 	public:
-		bool debug;
-		factoriser_QS() : debug(false) {}
+		bool debug = false;
+		bool sieve_debug = false;
+		factoriser_QS() {}
 		factoriser_QS(bool _debug) : debug(_debug) {}
+		factoriser_QS(bool _debug, bool _sieve_debug) : debug(_debug), sieve_debug(_sieve_debug) {}
 
 
 		std::vector<qs_int> quadratic_sieve(qs_int const& value) {
@@ -486,8 +488,17 @@ class factoriser_QS {
 			std::vector<relation> relations;
 			// 100% is enough to guarantee a solution
 			// 90% seems to work as well for most inputs, but I can't guarantee it's always enough
-			int percentage = 100;
-			while (relations.size() < percentage*globals.factor_base.size()/100) sieve(globals, polynomials, relations);
+			ui64 percentage = 100;
+			ui64 sieve_count = 0;
+			ui64 sieve_start = globals.sieve_start;
+			while (relations.size() < percentage*globals.factor_base.size()/100) {
+				sieve(globals, polynomials, relations);
+				sieve_count++;
+			}
+			if (debug) {
+				std::cout << "Sieved from " << sieve_start << " to " << (globals.sieve_start + globals.sieve_interval);
+				std::cout << " through " << sieve_count << " sieve iterations" << std::endl;
+			}
 
 			std::vector<qs_int> prime_factors;
 			find_factors_from_relations(globals, relations, prime_factors);
