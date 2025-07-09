@@ -180,6 +180,7 @@ class factoriser_QS {
 							(kN.ilog2()) * std::log(kN.ilog2())
 						)
 					));
+		B /= 6;
 		if (debug) std::cout << "B = " << B << " | ";
 		return B;
 	}
@@ -223,7 +224,7 @@ class factoriser_QS {
 
 	void set_sieve_bounds(QS_global& globals) const {
 		globals.sieve_start = 0;
-		globals.sieve_interval = 5*globals.B;
+		globals.sieve_interval = 2*globals.B;
 	}
 
 	void find_relation_candidates(QS_global globals, QS_poly const& poly, std::vector<relation>& candidates) const {
@@ -285,6 +286,7 @@ class factoriser_QS {
 	}
 
 	void verify_candidates(QS_global globals, std::vector<relation>& candidates, std::vector<relation>& verified) const {
+		// currently the slowest part of the sieving process
 		if (debug) std::cout << "Verifying... ";
 		for (int i = 0; i < candidates.size(); i++) {
 			qs_int value = candidates[i].poly_value;
@@ -377,10 +379,11 @@ class factoriser_QS {
 		std::vector<qs_int> divisors;
 
 		// NOTE:
-		// This is currently the slowest part of the algorithm, because of ther being 1000+ solutions
-		// Maybe consider only going through 50 solutions or any other hard cap?
+		// Now that the Smoothness bound and factor base have changed sizes, this is no longer the slowest part of the algorithm
+		// Because we only now usually find 5-50 solutions
+		// However, the solution cap is still required, because sometimes we still find 1000+ solutions
 		int solution_count = 0;
-		const int solution_cap = 50;
+		const int solution_cap = 100;
 		if (debug) std::cout << "Finding factors from " << solution_cap << " solutions...";
 		for (CustomBitset& bitset : solutions) {
 			if (solution_count++ > solution_cap) break;
@@ -481,7 +484,10 @@ class factoriser_QS {
 			set_sieve_bounds(globals);
 
 			std::vector<relation> relations;
-			while (relations.size() < globals.factor_base.size()) sieve(globals, polynomials, relations);
+			// 100% is enough to guarantee a solution
+			// 90% seems to work as well for most inputs, but I can't guarantee it's always enough
+			int percentage = 100;
+			while (relations.size() < percentage*globals.factor_base.size()/100) sieve(globals, polynomials, relations);
 
 			std::vector<qs_int> prime_factors;
 			find_factors_from_relations(globals, relations, prime_factors);
