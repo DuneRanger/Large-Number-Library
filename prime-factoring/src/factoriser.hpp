@@ -12,6 +12,20 @@ namespace Factoriser {
 	bool QS_debug = false;
 	bool sieve_debug = false;
 
+	// Simple bubble sort, suitable for ascending subsequences
+	template<int bit_size>
+	void sort_factors(std::vector<int_limited<bit_size>>& factors) {
+		for (int i = 1; i < factors.size(); i++) {
+			if (factors[i] > factors[i-1]) continue;
+			for (int j = i; j > 0; j--) {
+				if (factors[j] > factors[j-1]) break;
+				int_limited<bit_size> temp = factors[j];
+				factors[j] = factors[j-1];
+				factors[j-1] = temp;
+			}
+		}
+	}
+
 	template<int bit_size>
 	std::vector<int_limited<bit_size>> factorise(int_limited<bit_size> value) {
 		typedef int_limited<bit_size> qs_int;
@@ -65,6 +79,7 @@ namespace Factoriser {
 		
 		// value should be either a strong probable prime or 1 at this point
 		if (value != 1) factors.push_back(value);
+		sort_factors(factors);
 		return factors;
 	};
 }
