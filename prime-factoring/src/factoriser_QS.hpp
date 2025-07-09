@@ -175,7 +175,8 @@ class factoriser_QS {
 
 	ui64 calc_B(qs_int const& kN) const {
 		// A rough heuristic based on the algorithm's complexity
-		// exp((0.5 + o(1))*(ln(N)ln(ln(N))^(0.5) ))
+		// exp((0.5 + o(1))*(ln(N)ln(ln(N))^(0.5)))
+		
 		ui64 B = std::ceil(std::exp(0.51*std::sqrt(
 							(kN.ilog2()) * std::log(kN.ilog2())
 						)
@@ -384,7 +385,7 @@ class factoriser_QS {
 		// However, the solution cap is still required, because sometimes we still find 1000+ solutions
 		int solution_count = 0;
 		const int solution_cap = 100;
-		if (debug) std::cout << "Finding factors from " << solution_cap << " solutions...";
+		if (debug) std::cout << "Finding factors from " << std::min(solution_cap, solutions.size) << " solutions...";
 		for (CustomBitset& bitset : solutions) {
 			if (solution_count++ > solution_cap) break;
 			qs_int_double res_sols = 1;
@@ -422,7 +423,7 @@ class factoriser_QS {
 				divisors.push_back(factor_2);
 			}
 		}
-		if (debug) std::cout << divisors.size() << " Unique divisors found | " << std::endl;
+		if (debug) std::cout << divisors.size() << " Unique divisors found | ";
 		// Factorise composite divisors into primes
 		std::vector<qs_int> possible_primes;
 		{
@@ -448,12 +449,13 @@ class factoriser_QS {
 			// now we sort out big divisors individually
 			factoriser_QS QS;
 			for (qs_int& divisor : big_divisors) {
-				if (debug) std::cout << "Divisor " << divisor << " is being recursively factored by a new quadratic sieve instance!" << std::endl;
+				if (debug) std::cout << std::endl << "Divisor " << divisor << " is being recursively factored by a new quadratic sieve instance!";
 				for (qs_int prime : QS.quadratic_sieve(divisor)) {
 					divisor /= prime;
 					if (!element_in_vector(divisor, possible_primes)) possible_primes.push_back(prime);
 				}
 			}
+			if (big_divisors.size() && debug) std::cout << std::endl;
 		}
 		for (qs_int& factor : possible_primes) {
 			while (globals.N%factor == 0) {
@@ -497,7 +499,8 @@ class factoriser_QS {
 			}
 			if (debug) {
 				std::cout << "Sieved from " << sieve_start << " to " << (globals.sieve_start + globals.sieve_interval);
-				std::cout << " through " << sieve_count << " sieve iterations" << std::endl;
+				std::cout << " through " << sieve_count << " sieve iterations | ";
+				std::cout << "Found " << relations.size() << " relations" << std::endl;
 			}
 
 			std::vector<qs_int> prime_factors;
