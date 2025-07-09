@@ -176,12 +176,10 @@ class factoriser_QS {
 	ui64 calc_B(qs_int const& kN) const {
 		// A rough heuristic based on the algorithm's complexity
 		// exp((0.5 + o(1))*(ln(N)ln(ln(N))^(0.5)))
-		
 		ui64 B = std::ceil(std::exp(0.51*std::sqrt(
-							(kN.ilog2()) * std::log(kN.ilog2())
+							(2*kN.ilog2()/3) * std::log(kN.ilog2())
 						)
 					));
-		B /= 6;
 		if (debug) std::cout << "B = " << B << " | ";
 		return B;
 	}
