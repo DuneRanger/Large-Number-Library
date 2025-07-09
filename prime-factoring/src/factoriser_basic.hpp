@@ -101,26 +101,28 @@ namespace factoriser_basic {
 	// A probabilistic Miller-Rabin primality test
 	template<int bits>
 	bool Miller_Rabin_test(int_limited<bits> const& n, uint64_t iterations = 25) {
-		int_limited<bits> d = n - 1;
-		int_limited<bits> n_sub = n-1;
+		int_limited<2*bits> n_big = n;
+		int_limited<2*bits> n_sub = n_big-1;
+		int_limited<2*bits> d = n_sub;
 		uint64_t s = 0;
 		while ((uint64_t(d)&1) == 0) {
 			d >>= 1;
 			s++;
 		}
-		int_limited<bits> base_a = factoriser_math::random_64();
+		int_limited<2*bits> base_a = factoriser_math::random_64();
 		for (int i = 0; i < iterations; i++) {
-			int_limited<bits> a = factoriser_math::pow_mod<2*bits>(base_a, d, n);
+			int_limited<2*bits> a = factoriser_math::pow_mod<2*bits>(base_a, d, n_big);
 			if (a == 1 || a == n_sub) continue; // is a strong probable prime to base a
 			int j = 1;
 			for (; j < s; j++) {
-				a = a*a%n;
+				a = a*a%n_big;
 				if (a == n_sub) break;
 			}
 			if (j == s) return false; // isn't a strong probably prime, thus it is composite
-			base_a <<= 64;
-			base_a |= factoriser_math::random_64();
-			base_a %= n;
+			base_a <<= 32;
+			if (base_a < 0) base_a >>= 1;
+			base_a ^= factoriser_math::random_64();
+			base_a %= n_big;
 		}
 		return true;
 	}
