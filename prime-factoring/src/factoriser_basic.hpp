@@ -32,13 +32,13 @@ namespace factoriser_basic {
 	}
 
 	// Finds all factors less than or equal to 1_000_003
-	template<int bits>
-	std::vector<uint64_t> trial_division(int_limited<bits> value, uint64_t upperBound = 0) {
+	template<int bit_size>
+	std::vector<uint64_t> trial_division(int_limited<bit_size> value, uint64_t upperBound = 0) {
 		std::vector<uint64_t> factors;
 		std::ifstream primes("./src/primes.txt");
 		uint64_t prime;
 		if (!upperBound) upperBound = UINT64_MAX;
-		int_limited<bits> max = value.isqrt()+1;
+		int_limited<bit_size> max = value.isqrt()+1;
 		while ((primes >> prime) && prime < upperBound) {
 			if (max < prime) {
 				factors.push_back(uint64_t(value));
@@ -70,12 +70,12 @@ namespace factoriser_basic {
 	}
 
 	// Simple trial division, should work up to 10^12
-	template<int bits>
-	bool is_small_prime(int_limited<bits> value, uint64_t upperBound = 0) {
+	template<int bit_size>
+	bool is_small_prime(int_limited<bit_size> value, uint64_t upperBound = 0) {
 		std::ifstream primes("./src/primes.txt");
 		uint64_t prime = 0;
 		if (!upperBound) upperBound = UINT64_MAX;
-		int_limited<bits> max = value.isqrt()+1;
+		int_limited<bit_size> max = value.isqrt()+1;
 		while ((primes >> prime) && prime < upperBound) {
 			if (prime > max) return true;
 			if (prime == value) return true;
@@ -99,19 +99,19 @@ namespace factoriser_basic {
 	}
 
 	// A probabilistic Miller-Rabin primality test
-	template<int bits>
-	bool Miller_Rabin_test(int_limited<bits> const& n, uint64_t iterations = 25) {
-		int_limited<2*bits> n_big = n;
-		int_limited<2*bits> n_sub = n_big-1;
-		int_limited<2*bits> d = n_sub;
+	template<int bit_size>
+	bool Miller_Rabin_test(int_limited<bit_size> const& n, uint64_t iterations = 25) {
+		int_limited<2*bit_size> n_big = n;
+		int_limited<2*bit_size> n_sub = n_big-1;
+		int_limited<2*bit_size> d = n_sub;
 		uint64_t s = 0;
 		while ((uint64_t(d)&1) == 0) {
 			d >>= 1;
 			s++;
 		}
-		int_limited<2*bits> base_a = factoriser_math::random_64();
+		int_limited<2*bit_size> base_a = factoriser_math::random_64();
 		for (int i = 0; i < iterations; i++) {
-			int_limited<2*bits> a = factoriser_math::pow_mod<2*bits>(base_a, d, n_big);
+			int_limited<2*bit_size> a = factoriser_math::pow_mod<2*bit_size>(base_a, d, n_big);
 			if (a == 1 || a == n_sub) continue; // is a strong probable prime to base a
 			int j = 1;
 			for (; j < s; j++) {
@@ -127,8 +127,8 @@ namespace factoriser_basic {
 		return true;
 	}
 
-	template<int bits>
-	bool is_prime(int_limited<bits> const& N) {
+	template<int bit_size>
+	bool is_prime(int_limited<bit_size> const& N) {
 		if (N == 2) return true;
 		if ((uint64_t(N)&1) == 0) return false;
 		if (N.ilog2() < 40) return is_small_prime(uint64_t(N));

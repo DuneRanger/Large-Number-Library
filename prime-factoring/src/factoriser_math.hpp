@@ -12,8 +12,8 @@ namespace factoriser_math {
 			return (n * n) % p;
 		}
 
-		template<int bits>
-		int_limited<bits> pow_mod_2(int_limited<bits> n, int_limited<bits> exp, int_limited<bits> p) {
+		template<int bit_size>
+		int_limited<bit_size> pow_mod_2(int_limited<bit_size> n, int_limited<bit_size> exp, int_limited<bit_size> p) {
 			if (exp == 0) return 1;
 			if (uint64_t(exp)&1) return (pow_mod_2(n, exp-1, p) * n) % p;
 			n = pow_mod_2(n, exp>>1, p);
@@ -34,10 +34,10 @@ namespace factoriser_math {
 
 	// Calculates (n^exp) mod p without losing precision
 	// Throws an error if there is a potential precision loss
-	template<int bits>
-	int_limited<bits> pow_mod(int_limited<bits> n, int_limited<bits> exp, int_limited<bits> p) {
-		if (p.ilog2() > bits/2) throw std::overflow_error("Error: pow_mod() with p = " + p.toString() + " may overflow");
-		if (n.ilog2() > bits/2) throw std::overflow_error("Error: pow_mod() with n = " + n.toString() + " may overflow");
+	template<int bit_size>
+	int_limited<bit_size> pow_mod(int_limited<bit_size> n, int_limited<bit_size> exp, int_limited<bit_size> p) {
+		if (p.ilog2() > bit_size/2) throw std::overflow_error("Error: pow_mod() with p = " + p.toString() + " may overflow");
+		if (n.ilog2() > bit_size/2) throw std::overflow_error("Error: pow_mod() with n = " + n.toString() + " may overflow");
 		if (exp == 0) return 1;
 		if (uint64_t(exp)&1) return (pow_mod_2(n, exp-1, p) * n) % p;
 		n = pow_mod_2(n, exp>>1, p);
@@ -87,8 +87,8 @@ namespace factoriser_math {
 
 	// Returns whether N is a quadratic residue modulo p
 	// Returns false for N=0 (mod p)
-	template<int bits>
-	bool is_quadratic_residue(int_limited<bits> const& N, uint64_t p) {
+	template<int bit_size>
+	bool is_quadratic_residue(int_limited<bit_size> const& N, uint64_t p) {
 		if (p == 2) return uint64_t(N)&1;
 		return calc_Jacobi_symbol(uint64_t(N%p), p) == 1;
 	}
@@ -146,13 +146,13 @@ namespace factoriser_math {
 	// Returns a single solution to x^2 = N (mod p) (the other solution is x2 = p - x1)
 	// If a solution is not found, zero is returned
 	// p must be a prime for the algorithm to work
-	template<int bits>
-	uint64_t Tonelli_Shanks(int_limited<bits> N, uint64_t prime) {
+	template<int bit_size>
+	uint64_t Tonelli_Shanks(int_limited<bit_size> N, uint64_t prime) {
 		return Tonelli_Shanks(uint64_t(N%prime), prime);
 	}
 
-	template<int bits>
-	int_limited<bits> gcd(int_limited<bits> const& a, int_limited<bits> const& b) {
+	template<int bit_size>
+	int_limited<bit_size> gcd(int_limited<bit_size> const& a, int_limited<bit_size> const& b) {
 		if (b == 0) return a;
 		return gcd(b, a%b);
 	}
