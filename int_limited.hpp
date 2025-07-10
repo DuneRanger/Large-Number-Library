@@ -278,11 +278,11 @@ namespace largeNumberLibrary {
 					i++;
 				}
 				for (; i < s.size(); i++) {
-					char c = s[i];
+					const char c = s[i];
 					if (c < '0' || c > '9') throw std::domain_error("String to int_limited conversion exception");
-					*this += (c-'0');
 					// multiply by ten
 					*this = ((*this << 2) + *this) << 1;
+					*this += (c-'0');
 				}
 				if (negative) *this = ~*this + 1;
 			}
