@@ -61,6 +61,7 @@ std::vector<std::vector<int_limited<256>>> test_values {
 int main() {
 	bool QS_debug = false, sieve_debug = false;
 	factoriser_QS<256> QS(QS_debug, sieve_debug);
+	factoriser_basic::prepare_primes();
 
 	for (int i = 0; i < test_values.size(); i++) {
 		double times = 0;

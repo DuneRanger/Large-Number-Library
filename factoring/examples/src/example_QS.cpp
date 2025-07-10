@@ -11,6 +11,7 @@ int main() {
 	int_limited<256> a, b;
 	int test_iterations;
 	b = 0xde;
+	factoriser_basic::prepare_primes();
 
 	// 32-167 bits | for quadratic sieve: 88-160 bits
 	// a = 0xdeadbeef; test_iterations = 16;

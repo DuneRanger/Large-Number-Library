@@ -9,14 +9,39 @@
 namespace factoriser_basic {
 	using largeNumberLibrary::int_limited;
 
+	
+	// Adds all primes smaller or equal to max_val into the argument `primes`
+	// Uses the sieve of Eratosthenes
+	void find_small_primes(uint64_t max_val, std::vector<uint64_t>& primes) {
+		std::vector<bool> sieve(max_val+1, true);
+
+		for (uint64_t i = 2; i < max_val; i++) {
+			if (sieve[i]) {
+				primes.push_back(i);
+				for (uint64_t j = 2*i; j < max_val; j += i) sieve[j] = false;
+			}
+		}
+	}
+
+	namespace {
+		// globals list of primes, that is shared amongst all functions
+		// Instead of relying on primes.txt containing them
+		std::vector<uint64_t> primes;
+		constexpr uint64_t max_val = 1000000 + 4;
+	}
+
+	void prepare_primes() {
+		find_small_primes(max_val, primes);
+	}
+
 	// Finds all factors less than or equal to 1_000_003
-	std::vector<uint64_t> trial_division(uint64_t value, uint64_t upperBound = 0) {
+	std::vector<uint64_t> trial_division(uint64_t value, uint64_t upper_bound = 0) {
 		std::vector<uint64_t> factors;
-		std::ifstream primes("./primes.txt");
-		uint64_t prime;
-		if (!upperBound) upperBound = UINT64_MAX;
+		if (!primes.size()) prepare_primes();
+		if (!upper_bound) upper_bound = UINT64_MAX;
 		uint64_t max = std::ceil(std::sqrt(value));
-		while ((primes >> prime) && prime < upperBound) {
+		for (uint64_t prime : primes) {
+			if (prime > upper_bound) break;
 			if (max < prime) {
 				factors.push_back(uint64_t(value));
 				break;
@@ -31,15 +56,15 @@ namespace factoriser_basic {
 		return factors;
 	}
 
-	// Finds all factors less than or equal to 1_000_003
+	// Finds all factors less than or equal to 1_000_003, or the given upper_bound
 	template<int bit_size>
-	std::vector<uint64_t> trial_division(int_limited<bit_size> value, uint64_t upperBound = 0) {
+	std::vector<uint64_t> trial_division(int_limited<bit_size> value, uint64_t upper_bound = 0) {
 		std::vector<uint64_t> factors;
-		std::ifstream primes("./primes.txt");
-		uint64_t prime;
-		if (!upperBound) upperBound = UINT64_MAX;
+		if (!primes.size()) prepare_primes();
+		if (!upper_bound) upper_bound = UINT64_MAX;
 		int_limited<bit_size> max = value.isqrt()+1;
-		while ((primes >> prime) && prime < upperBound) {
+		for (uint64_t prime : primes) {
+			if (prime > upper_bound) break;
 			if (max < prime) {
 				factors.push_back(uint64_t(value));
 				break;
@@ -55,12 +80,12 @@ namespace factoriser_basic {
 	}
 
 	// Simple trial division, should work up to 10^12
-	bool is_small_prime(uint64_t value, uint64_t upperBound = 0) {
-		std::ifstream primes("./primes.txt");
-		uint64_t prime = 0;
-		if (!upperBound) upperBound = UINT64_MAX;
+	bool is_small_prime(uint64_t value, uint64_t upper_bound = 0) {
+		if (!primes.size()) prepare_primes();
+		if (!upper_bound) upper_bound = UINT64_MAX;
 		uint64_t max = std::ceil(std::sqrt(value));
-		while ((primes >> prime) && prime < upperBound) {
+		if (max > upper_bound) max = upper_bound;
+		for (uint64_t prime : primes) {
 			if (prime > max) return true;
 			if (prime == value) return true;
 
@@ -71,31 +96,18 @@ namespace factoriser_basic {
 
 	// Simple trial division, should work up to 10^12
 	template<int bit_size>
-	bool is_small_prime(int_limited<bit_size> value, uint64_t upperBound = 0) {
-		std::ifstream primes("./primes.txt");
-		uint64_t prime = 0;
-		if (!upperBound) upperBound = UINT64_MAX;
+	bool is_small_prime(int_limited<bit_size> value, uint64_t upper_bound = 0) {
+		if (!primes.size()) prepare_primes();
+		if (!upper_bound) upper_bound = UINT64_MAX;
 		int_limited<bit_size> max = value.isqrt()+1;
-		while ((primes >> prime) && prime < upperBound) {
+		if (upper_bound < max) max = upper_bound;
+		for (uint64_t prime : primes) {
 			if (prime > max) return true;
 			if (prime == value) return true;
 
 			if (value % prime == 0) return false;
 		}
 		return true;
-	}
-
-	// Adds all primes smaller or equal to max_val into the argument `primes`
-	// Uses the sieve of Eratosthenes
-	void find_small_primes(uint64_t max_val, std::vector<uint64_t>& primes) {
-		std::vector<bool> sieve(max_val+1, true);
-
-		for (uint64_t i = 2; i < max_val; i++) {
-			if (sieve[i]) {
-				primes.push_back(i);
-				for (uint64_t j = 2*i; j < max_val; j += i) sieve[j] = false;
-			}
-		}
 	}
 
 	// A probabilistic Miller-Rabin primality test
