@@ -1,4 +1,4 @@
-all: example_factoriser example_QS RSA_testing
+all: example_factoriser example_QS RSA_testing factoriser
 
 .PHONY: all clean
 
@@ -16,5 +16,8 @@ example_QS: src/example_QS.cpp ../factoriser_QS.hpp ../factoriser_basic.hpp ../f
 	$(CC) $(CFLAGS) $< -o $@
 
 RSA_testing: src/RSA_testing.cpp ../factoriser_QS.hpp ../factoriser_basic.hpp ../factoriser_math.hpp
+	$(CC) $(CFLAGS) $< -o $@
+
+factoriser: src/factoriser.cpp ../factoriser_QS.hpp ../factoriser_basic.hpp ../factoriser_math.hpp ../factoriser.hpp
 	$(CC) $(CFLAGS) $< -o $@
 
