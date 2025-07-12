@@ -6,7 +6,7 @@
 #include "../int_limited.hpp"
 #include "factoriser_math.hpp"
 
-namespace factoriser_basic {
+namespace Factoriser::Basic {
 	using largeNumberLibrary::int_limited;
 
 	
@@ -121,9 +121,9 @@ namespace factoriser_basic {
 			d >>= 1;
 			s++;
 		}
-		int_limited<2*bit_size> base_a = factoriser_math::random_64();
+		int_limited<2*bit_size> base_a = Math::random_64();
 		for (int i = 0; i < iterations; i++) {
-			int_limited<2*bit_size> a = factoriser_math::pow_mod<2*bit_size>(base_a, d, n_big);
+			int_limited<2*bit_size> a = Math::pow_mod<2*bit_size>(base_a, d, n_big);
 			if (a == 1 || a == n_sub) continue; // is a strong probable prime to base a
 			int j = 1;
 			for (; j < s; j++) {
@@ -133,7 +133,7 @@ namespace factoriser_basic {
 			if (j == s) return false; // isn't a strong probably prime, thus it is composite
 			base_a <<= 32;
 			if (base_a < 0) base_a >>= 1;
-			base_a ^= factoriser_math::random_64();
+			base_a ^= Math::random_64();
 			base_a %= n_big;
 		}
 		return true;

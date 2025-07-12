@@ -43,14 +43,13 @@ int main(int argc, const char* argv[]) {
 			std::string max_val = big_int::MAX_VALUE().toString();
 			if (arg.size() >= max_val.size() && arg > max_val) throw std::overflow_error("Error: Value is larger than a signed " + std::to_string(bit_size) + " integer");
 			value = arg;
-		
 		}
 	}
 	if (verbosity > 0) Factoriser::debug = true;
 	if (verbosity > 1) Factoriser::QS_debug = true;
 	if (verbosity > 2) Factoriser::sieve_debug= true;
 
-	factoriser_basic::prepare_primes();
+	Factoriser::Basic::prepare_primes();
 	
 	auto start = std::chrono::steady_clock::now();
 	std::vector<big_int> factors = Factoriser::factorise(value);
@@ -59,11 +58,11 @@ int main(int argc, const char* argv[]) {
 	std::cout << "Factors: ";
 	big_int test = 1;
 	for (big_int factor : factors) {
-		assert(factoriser_basic::is_prime(factor));
+		assert(Factoriser::Basic::is_prime(factor));
 		std::cout << factor << " ";
 		test *= factor;
 	}
 	assert(value == test);
-	if (verbosity > 0) std::cout << "Factorisation took " << std::chrono::duration<double>(end - start).count() << " seconds" << std::endl;
+	if (verbosity > 0) std::cout << "\nFactorisation took " << std::chrono::duration<double>(end - start).count() << " seconds" << std::endl;
 	if (verbosity > 1) std::cout << "Factors were asserted to be prime and their product was correct" << std::endl;
 }

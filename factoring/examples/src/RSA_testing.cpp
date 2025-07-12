@@ -60,8 +60,8 @@ std::vector<std::vector<int_limited<256>>> test_values {
 
 int main() {
 	bool QS_debug = false, sieve_debug = false;
-	factoriser_QS<256> QS(QS_debug, sieve_debug);
-	factoriser_basic::prepare_primes();
+	Factoriser::QuadraticSieve<256> QS(QS_debug, sieve_debug);
+	Factoriser::Basic::prepare_primes();
 
 	for (int i = 0; i < test_values.size(); i++) {
 		double times = 0;
@@ -69,14 +69,14 @@ int main() {
 		for (int j = 0; j < test_values[i].size(); j++) {
 			int_limited<256> value = test_values[i][j];
 			auto start = std::chrono::steady_clock::now();
-			std::vector<int_limited<256>> factors = QS.quadratic_sieve(value);
+			std::vector<int_limited<256>> factors = QS.factorise(value);
 			auto end = std::chrono::steady_clock::now();
 	
 			assert(factors.size() == 2);
 			if (QS_debug) std::cout << "Factors: ";
 			int_limited<256> test = 1;
 			for (int_limited<256> factor : factors) {
-				assert(factoriser_basic::is_prime(factor));
+				assert(Factoriser::Basic::is_prime(factor));
 				if (QS_debug) std::cout << factor << " ";
 				test *= factor;
 			}

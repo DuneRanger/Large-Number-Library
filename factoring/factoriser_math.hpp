@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "../int_limited.hpp"
 
-namespace factoriser_math {
+namespace Factoriser::Math {
 	using largeNumberLibrary::int_limited;
 
 	namespace {

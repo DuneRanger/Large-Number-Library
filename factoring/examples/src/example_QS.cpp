@@ -7,11 +7,11 @@
 int main() {
 	using largeNumberLibrary::int_limited;
 	bool QS_debug = true, sieve_debug = false;
-	factoriser_QS<256> QS(QS_debug, sieve_debug);
+	Factoriser::QuadraticSieve<256> QS(QS_debug, sieve_debug);
 	int_limited<256> a, b;
 	int test_iterations;
 	b = 0xde;
-	factoriser_basic::prepare_primes();
+	Factoriser::Basic::prepare_primes();
 
 	// 32-167 bits | for quadratic sieve: 88-160 bits
 	// a = 0xdeadbeef; test_iterations = 16;
@@ -24,13 +24,13 @@ int main() {
 
 	for (int i = 0; i < test_iterations; i++) {
 		auto start = std::chrono::steady_clock::now();
-		std::vector<int_limited<256>> factors = QS.quadratic_sieve(a);
+		std::vector<int_limited<256>> factors = QS.factorise(a);
 		auto end = std::chrono::steady_clock::now();
 
 		std::cout << "Factors: ";
 		int_limited<256> test = 1;
 		for (int_limited<256> factor : factors) {
-			assert(factoriser_basic::is_prime(factor));
+			assert(Factoriser::Basic::is_prime(factor));
 			std::cout << factor << " ";
 			test *= factor;
 		}
