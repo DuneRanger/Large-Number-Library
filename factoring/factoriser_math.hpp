@@ -5,44 +5,26 @@
 namespace Factoriser::Math {
 	using largeNumberLibrary::int_limited;
 
-	namespace {
-		uint64_t pow_mod_2(uint64_t n, uint64_t exp, uint64_t p) {
-			if (exp == 0) return 1;
-			if (exp % 2) return (pow_mod_2(n, exp-1, p) * n) % p;
-			n = pow_mod_2(n, exp/2, p);
-			return (n * n) % p;
-		}
-
-		template<int bit_size>
-		int_limited<bit_size> pow_mod_2(int_limited<bit_size> n, int_limited<bit_size> exp, int_limited<bit_size> p) {
-			if (exp == 0) return 1;
-			if (uint64_t(exp)&1) return (pow_mod_2(n, exp-1, p) * n) % p;
-			n = pow_mod_2(n, exp>>1, p);
-			return (n * n) % p;
-		}
-	}
-
 	// Calculates (n^exp) mod p without losing precision
 	// Throws an error if there is a potential precision loss
 	uint64_t pow_mod(uint64_t n, uint64_t exp, uint64_t p) {
-		if (p > UINT32_MAX) throw std::overflow_error("Error: pow_mod() with p = " + std::to_string(p) + " may overflow");
-		if (n > UINT32_MAX) throw std::overflow_error("Error: pow_mod() with n = " + std::to_string(n) + " may overflow");
+		if (exp == 1) return n%p;
 		if (exp == 0) return 1;
-		if (exp % 2) return (pow_mod_2(n, exp-1, p) * n) % p;
-		n = pow_mod_2(n, exp/2, p);
+		if (n > UINT32_MAX) throw std::overflow_error("Error: pow_mod() with n = " + std::to_string(n) + " may overflow");
+		if (exp % 2) return (pow_mod(n, exp-1, p) * n) % p;
+		n = pow_mod(n, exp/2, p);
 		return (n * n) % p;
 	}
 
 	// Calculates (n^exp) mod p without losing precision
 	// Throws an error if there is a potential precision loss
 	template<int bit_size>
-	int_limited<bit_size> pow_mod(int_limited<bit_size> n, int_limited<bit_size> exp, int_limited<bit_size> p) {
-		if (p.ilog2() > bit_size/2) throw std::overflow_error("Error: pow_mod() with p = " + p.toString() + " may overflow");
-		if (n.ilog2() > bit_size/2) throw std::overflow_error("Error: pow_mod() with n = " + n.toString() + " may overflow");
 	int_limited<bit_size> pow_mod(int_limited<bit_size> n, int_limited<bit_size> const& exp, int_limited<bit_size> const& p) {
+		if (exp == 1) return n%p;
 		if (exp == 0) return 1;
-		if (uint64_t(exp)&1) return (pow_mod_2(n, exp-1, p) * n) % p;
-		n = pow_mod_2(n, exp>>1, p);
+		if (n.ilog2() > bit_size/2) throw std::overflow_error("Error: pow_mod() with n = " + n.toString() + " may overflow");
+		if (uint64_t(exp)&1) return (pow_mod(n, exp-1, p) * n) % p;
+		n = pow_mod(n, exp>>1, p);
 		return (n * n) % p;
 	}
 
