@@ -39,6 +39,7 @@ namespace Factoriser::Math {
 	int_limited<bit_size> pow_mod(int_limited<bit_size> n, int_limited<bit_size> exp, int_limited<bit_size> p) {
 		if (p.ilog2() > bit_size/2) throw std::overflow_error("Error: pow_mod() with p = " + p.toString() + " may overflow");
 		if (n.ilog2() > bit_size/2) throw std::overflow_error("Error: pow_mod() with n = " + n.toString() + " may overflow");
+	int_limited<bit_size> pow_mod(int_limited<bit_size> n, int_limited<bit_size> const& exp, int_limited<bit_size> const& p) {
 		if (exp == 0) return 1;
 		if (uint64_t(exp)&1) return (pow_mod_2(n, exp-1, p) * n) % p;
 		n = pow_mod_2(n, exp>>1, p);
@@ -148,7 +149,7 @@ namespace Factoriser::Math {
 	// If a solution is not found, zero is returned
 	// p must be a prime for the algorithm to work
 	template<int bit_size>
-	uint64_t Tonelli_Shanks(int_limited<bit_size> N, uint64_t prime) {
+	uint64_t Tonelli_Shanks(int_limited<bit_size> const& N, uint64_t prime) {
 		return Tonelli_Shanks(uint64_t(N%prime), prime);
 	}
 
