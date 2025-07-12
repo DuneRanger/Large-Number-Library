@@ -27,18 +27,18 @@ namespace Factoriser::Basic {
 		// globals list of primes, that is shared amongst all functions
 		// Instead of relying on primes.txt containing them
 		std::vector<uint64_t> primes;
-		constexpr uint64_t max_val = 1000000 + 4;
 	}
 
-	void prepare_primes() {
-		find_small_primes(max_val, primes);
+	void prepare_primes(uint64_t max_value = 1000004) {
+		primes.clear();
+		find_small_primes(max_value, primes);
 	}
 
-	// Finds all factors less than or equal to 1_000_003
-	std::vector<uint64_t> trial_division(uint64_t value, uint64_t upper_bound = 0) {
+	// Finds all factors less than or equal to 1000000
+	std::vector<uint64_t> trial_division(uint64_t value, uint64_t upper_bound = 1000000) {
 		std::vector<uint64_t> factors;
-		if (!primes.size()) prepare_primes();
-		if (!upper_bound) upper_bound = UINT64_MAX;
+		// to guarantee that a prime number larger than upper_bound is found
+		if (!primes.size() || primes.back() < upper_bound) prepare_primes(2*upper_bound);
 		uint64_t max = std::ceil(std::sqrt(value));
 		for (uint64_t prime : primes) {
 			if (prime > upper_bound) break;
@@ -56,12 +56,12 @@ namespace Factoriser::Basic {
 		return factors;
 	}
 
-	// Finds all factors less than or equal to 1_000_003, or the given upper_bound
+	// Finds all factors less than or equal to 1000000, or the given upper_bound
 	template<int bit_size>
-	std::vector<uint64_t> trial_division(int_limited<bit_size> value, uint64_t upper_bound = 0) {
+	std::vector<uint64_t> trial_division(int_limited<bit_size> value, uint64_t upper_bound = 1000000) {
 		std::vector<uint64_t> factors;
-		if (!primes.size()) prepare_primes();
-		if (!upper_bound) upper_bound = UINT64_MAX;
+		// to guarantee that a prime number larger than upper_bound is found
+		if (!primes.size() || primes.back() < upper_bound) prepare_primes(2*upper_bound);
 		int_limited<bit_size> max = value.isqrt()+1;
 		for (uint64_t prime : primes) {
 			if (prime > upper_bound) break;
@@ -80,34 +80,34 @@ namespace Factoriser::Basic {
 	}
 
 	// Simple trial division, should work up to 10^12
-	bool is_small_prime(uint64_t value, uint64_t upper_bound = 0) {
-		if (!primes.size()) prepare_primes();
-		if (!upper_bound) upper_bound = UINT64_MAX;
+	// Returns false is value is composite or unable to be determined
+	bool is_small_prime(uint64_t value, uint64_t upper_bound = 1000000) {
+		// to guarantee that a prime number larger than upper_bound is found
+		if (!primes.size() || primes.back() < upper_bound) prepare_primes(2*upper_bound);
 		uint64_t max = std::ceil(std::sqrt(value));
-		if (max > upper_bound) max = upper_bound;
 		for (uint64_t prime : primes) {
 			if (prime > max) return true;
-			if (prime == value) return true;
+			if (prime > upper_bound) break;
 
-			if (value % prime == 0) return false;
+			if (value % prime == 0) return prime == value;
 		}
 		return true;
 	}
 
 	// Simple trial division, should work up to 10^12
+	// Returns false is value is composite or unable to be determined
 	template<int bit_size>
-	bool is_small_prime(int_limited<bit_size> value, uint64_t upper_bound = 0) {
-		if (!primes.size()) prepare_primes();
-		if (!upper_bound) upper_bound = UINT64_MAX;
+	bool is_small_prime(int_limited<bit_size> value, uint64_t upper_bound = 1000000) {
+		// to guarantee that a prime number larger than upper_bound is found
+		if (!primes.size() || primes.back() < upper_bound) prepare_primes(2*upper_bound);
 		int_limited<bit_size> max = value.isqrt()+1;
-		if (upper_bound < max) max = upper_bound;
 		for (uint64_t prime : primes) {
 			if (prime > max) return true;
-			if (prime == value) return true;
+			if (prime > upper_bound) break;
 
-			if (value % prime == 0) return false;
+			if (value % prime == 0) return prime == value;
 		}
-		return true;
+		return false;
 	}
 
 	// A probabilistic Miller-Rabin primality test
@@ -143,7 +143,7 @@ namespace Factoriser::Basic {
 	bool is_prime(int_limited<bit_size> const& N) {
 		if (N == 2) return true;
 		if ((uint64_t(N)&1) == 0) return false;
-		if (N.ilog2() < 40) return is_small_prime(uint64_t(N));
+		if (N.ilog2() < 40) return is_small_prime(uint64_t(N), 1000000);
 		return Miller_Rabin_test(N);
 	}
 }
