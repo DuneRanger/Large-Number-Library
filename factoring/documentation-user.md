@@ -114,7 +114,7 @@ If a solution doesn't exist, zero is returned.
 int_limited gcd(int_limited const& a, int_limited const& b)
 ```
 
-Returns the greatest common divisor of `a` and `b`
+Returns the greatest common divisor of `a` and `b`.
 
 ---
 
@@ -235,7 +235,7 @@ The algorithm specialises for numbers with a few large prime factors, though it 
 Because the algorithm work better for large numbers, values under 80 bits are artificially increased to help keep a consistent speed for small inputs (though that does not always guarantee a fast speed).
 
 Notably, the algorithm is unable to factorise values with a factorisation of a single prime power - $prime^x$.
-This is explained more in the [Developer Documentation](documentation-dev.md)
+This is explained more in the [Developer Documentation](documentation-dev.md#factoriserquadraticsieve)
 
 ## Examples
 

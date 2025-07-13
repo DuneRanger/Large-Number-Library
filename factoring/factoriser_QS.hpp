@@ -103,7 +103,7 @@ namespace Factoriser {
 			std::vector<ui64> solutions_mod_p;
 		
 			// Since this is a simple single-polynomial version of the quadratic sieve,
-			// there is a special constructor for Q(x) = (A + x)^2 - C = (sqrt(kN) + x)^2 - kN
+			// there is a special constructor for Q(x) = (K + x)^2 - M = (sqrt(kN) + x)^2 - kN
 			QS_poly(qs_int const& kN) {
 				// (sqrt(kN) + x)^2 - kN = x^2 + 2*sqrt(kN) + sqrt(kN)^2 - kN;
 				A = 1;
@@ -380,11 +380,12 @@ namespace Factoriser {
 			std::vector<qs_int> divisors;
 	
 			// NOTE:
-			// Now that the Smoothness bound and factor base have changed sizes, this is now only sometimes the slowest part of the algorithm
+			// Now that the formulas for the smoothness bound and factor base have changed
+			// this is now only sometimes the slowest part of the algorithm
 			// Because we only now usually find 5-50 solutions
 			// However, the solution cap is still required, because sometimes we still find 1000+ solutions
 			int solution_count = 0;
-			const int solution_cap = 100;
+			const int solution_cap = 50;
 			if (debug) std::cout << "Finding factors from " << std::min(solution_cap, int(solutions.size())) << " solutions...";
 			for (CustomBitset& bitset : solutions) {
 				if (solution_count++ > solution_cap) break;
@@ -496,7 +497,7 @@ namespace Factoriser {
 				ui64 sieve_count = 0;
 				if (last_value == value) globals.sieve_start = last_sieve_start;
 				ui64 sieve_start = globals.sieve_start;
-				// 100% is enough to guarantee a solution
+				// 100% is enough to guarantee a solution/factor
 				// 90% seems to work as well for most inputs, but I can't guarantee it's always enough
 				ui64 percentage = 105;
 				while (relations.size() < percentage*globals.factor_base.size()/100) {
