@@ -73,7 +73,7 @@ namespace Factoriser {
 					value /= prime;
 					factors.push_back(prime);
 				}
-			} while (!Basic::is_prime(value));
+			} while (value != 1 && !Basic::is_prime(value));
 			if (QS_debug) std::cout << std::endl;
 		}
 		

@@ -141,6 +141,7 @@ namespace Factoriser::Basic {
 
 	template<int bit_size>
 	bool is_prime(int_limited<bit_size> const& N) {
+		if (N == 1) return false;
 		if (N == 2) return true;
 		if ((uint64_t(N)&1) == 0) return false;
 		if (N.ilog2() < 40) return is_small_prime(uint64_t(N), 1000000);
