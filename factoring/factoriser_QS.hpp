@@ -465,12 +465,14 @@ namespace Factoriser {
 			}
 			if (debug) std::cout << prime_factors.size() << " prime factors found" << std::endl;
 		}
+
+		// Used to move the sieve_start position when repeatedly attempting the same value
+		qs_int last_value;
+		ui64 last_sieve_start;
 	
 		public:
 			bool debug = false;
 			bool sieve_debug = false;
-			qs_int last_value;
-			ui64 last_sieve_start;
 			QuadraticSieve() {}
 			QuadraticSieve(bool _debug) : debug(_debug) {}
 			QuadraticSieve(bool _debug, bool _sieve_debug) : debug(_debug), sieve_debug(_sieve_debug) {}
@@ -478,6 +480,7 @@ namespace Factoriser {
 	
 			std::vector<qs_int> factorise(qs_int const& value) {
 				if (debug) std::cout << "QUADRATIC SIEVE DEBUG LOG:" << std::endl;
+				if (Basic::is_prime(value)) return {value};
 				QS_global globals;
 				globals.N = value;
 				globals.kN = calc_kN(globals.N);
@@ -508,8 +511,11 @@ namespace Factoriser {
 	
 				std::vector<qs_int> prime_factors;
 				find_factors_from_relations(globals, relations, prime_factors);
-				last_value = value;
-				last_sieve_start = globals.sieve_start;
+				if (Basic::is_prime(globals.N)) prime_factors.push_back(globals.N);
+				if (prime_factors.size() == 0) {
+					last_value = value;
+					last_sieve_start = globals.sieve_start;
+				}
 				if (debug) std::cout << "QUADRATIC SIEVE COMPLETED" << std::endl;
 				return prime_factors;
 			}
