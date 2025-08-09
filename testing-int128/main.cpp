@@ -470,33 +470,24 @@ std::vector<double> averageBenchmarkMyInt128(int testNumberCount = 3000, int ite
 }
 
 void formatBenchmarkTimesTable(std::vector<std::vector<double>> averageBenchmarkResults) {
-	std::vector<std::string> operationNames = {"ADDITION", "SUBTRACTION", "MULTIPLICATION", "DIVISION", "MODULO"};
+	std::vector<std::string> operationNames = {"Addition", "Subtraction", "Multiplication", "Division", "Modulo"};
 	std::vector<std::string> benchmarkResultTypeNames = {"Boost int128", "int128"};
 	assert(averageBenchmarkResults.size() == benchmarkResultTypeNames.size());
 	assert(averageBenchmarkResults[0].size() == operationNames.size());
 
-	printf("+");
-	for (int buffer = 0; buffer < operationNames.size()+ 1; buffer++) {
-		printf("----------------+"); // 16 long, because of the space before %-15
-	}
-	printf("\n");
-	std::printf("| %-15s|", "");
+	std::printf("| %-15s|", "Type");
 	for (std::string opName : operationNames) {
 		printf(" %-15s|", opName.c_str());
 	}
-	printf("\n+");
+	printf("\n|");
 	for (int buffer = 0; buffer < operationNames.size()+ 1; buffer++) {
-		printf("----------------+"); // 16 long, because of the space before %-15
+		printf(" %-15s|", "---"); // 16 long, because of the space before %-15
 	}
 	printf("\n");
 	for (int i = 0; i < averageBenchmarkResults.size(); i++) {
 		printf("| %-15s|", benchmarkResultTypeNames[i].c_str());
 		for (int j = 0; j < operationNames.size(); j++) {
 			printf(" %-15.8f|", averageBenchmarkResults[i][j]);
-		}
-		printf("\n+");
-		for (int buffer = 0; buffer < operationNames.size() + 1; buffer++) {
-			printf("----------------+"); // 15 long
 		}
 		printf("\n");
 	}
@@ -507,9 +498,9 @@ int main() {
 	int iterations = 10;
 	uint64_t randState = 1;
 	std::vector<std::vector<double>> averageBenchmarkResults;
-	verifyCorrectnessOfMyInt128<int128>();
-	// speedBenchmarkBoost(testCaseAmount);
-	// speedBenchmarkMyInt<int128>(testCaseAmount);
+	// verifyCorrectnessOfMyInt128<int128>();
+	speedBenchmarkBoost(testCaseAmount);
+	speedBenchmarkMyInt<int128>(testCaseAmount);
 
 	averageBenchmarkResults.push_back(averageBenchmarkBoost(testCaseAmount, iterations));
 	averageBenchmarkResults.push_back(averageBenchmarkMyInt128<int128>(testCaseAmount, iterations));

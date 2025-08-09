@@ -291,25 +291,25 @@ int main() {
 	verifyCorrectnessOfInt_limited<32*2>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*2 + 1>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*4>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<32*4 + 2>(testCaseAmount, randState); // bad modulo
+	verifyCorrectnessOfInt_limited<32*4 + 2>(testCaseAmount, randState);
 	testCaseAmount = 500;
 	verifyCorrectnessOfInt_limited<32*6>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<32*6 + 3>(testCaseAmount, randState); // bad modulo
+	verifyCorrectnessOfInt_limited<32*6 + 3>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*8>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<32*8 + 6>(testCaseAmount, randState); // bad modulo
+	verifyCorrectnessOfInt_limited<32*8 + 6>(testCaseAmount, randState);
 	testCaseAmount = 400;
 	verifyCorrectnessOfInt_limited<32*20>(testCaseAmount, randState);
-	verifyCorrectnessOfInt_limited<32*20 + 17>(testCaseAmount, randState); // bad modulo
+	verifyCorrectnessOfInt_limited<32*20 + 17>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*32>(testCaseAmount, randState); // 1024
 	verifyCorrectnessOfInt_limited<32*32 + 31>(testCaseAmount, randState); // 1055
 	testCaseAmount = 250;
 	verifyCorrectnessOfInt_limited<32*42>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*42 + 32>(testCaseAmount, randState);
 	verifyCorrectnessOfInt_limited<32*64>(testCaseAmount, randState); // 2048
-	verifyCorrectnessOfInt_limited<32*64 + 59>(testCaseAmount, randState); // 2107 bad modulo
+	verifyCorrectnessOfInt_limited<32*64 + 59>(testCaseAmount, randState); // 2107
 	testCaseAmount = 150;
 	verifyCorrectnessOfInt_limited<32*128>(testCaseAmount, randState); // 4096
-	verifyCorrectnessOfInt_limited<32*128 + 63>(testCaseAmount, randState); // 4159 bad modulo
+	verifyCorrectnessOfInt_limited<32*128 + 63>(testCaseAmount, randState); // 4159
 
 	testCaseAmount = 50;
 	verifyCorrectnessOfInt_limited<32*512>(testCaseAmount, randState); // 16384
