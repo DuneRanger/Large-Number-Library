@@ -70,6 +70,22 @@ namespace largeNumberLibrary {
 				B1 = 0;
 				B0 = a;
 			}
+			int128(const char* s) {
+				bool negative = false;
+				if (*s != '\0' && *s == '-') {
+					negative = true;
+					s++;
+				}
+				while (*s != '\0') {
+					const char c = *s;
+					if (c < '0' || c > '9') throw std::domain_error("String to int_limited conversion exception");
+					// multiply by ten
+					*this = ((*this << 2) + *this) << 1;
+					*this += (c-'0');
+					s++;
+				}
+				if (negative) *this = ~*this + 1;
+			}
 
 			// All explicit conversions simply returns the bits for the given bit amount
 			// For example the minimum value (in two's complement) converted to a int64_t will simply return 0
