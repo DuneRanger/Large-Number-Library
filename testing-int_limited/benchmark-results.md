@@ -1,5 +1,7 @@
 # Benchmark results
 
+All benchmarks were run with O2 optimization, unless stated differently.
+
 ## Comparison
 
 Unique test numbers in benchmark: 5000 (Including 0, 1, -1) \

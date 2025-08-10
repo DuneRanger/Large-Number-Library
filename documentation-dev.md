@@ -33,7 +33,8 @@ For an overview of the capabilities of every class, see the [User Documentation]
 
 # Terminology
 
-In this text, `word` is to be understood as a 64 bit unsigned integer, which is the standard machine word size for a processor at the time of creation.
+In this text, `word` is to be understood as the size of the integers making up the internal structure of the class.
+For `int128` this will be 64 bits, whereas for `int_limited` it is 32 bits.
 
 When discussing time or space complexity, $N$ refers to the amount of bits the terms for the operator have (e.g. for `int_limited<bitSize>`: `N == bitSize`).
 
@@ -45,15 +46,14 @@ The main envisioned use case of this library is the ability to use large bit num
 
 # Integer values
 
-All integer values should be saved in unsigned 64 bit integers, stored in little endian order (least significant word first).
+If a class is made up of an array of integers, then unsigned 32 bit integers are used to make use of 64 bit operations.
+Other cases, where the integers are stored in different variables (i.e. `int128`) simply use unsigned 64 bit integers.
+These values should be stored in little endian order (least significant word first).
 Casting an integer value to a standard library integer type should only return the least significant word cast into the type, to allow for easier bit manipulation.
 
 ## int128
 
 `int128` is made to represent a 128 bit signed integer in two's complement representation.
-This class should be kep relatively simple, however there are a few functions that should still be implemented, before this class can be considered truly complete:
-- Conversion *from* `std::string` to `int128`
-- Extraction from stream
 
 Class sections:
 <!-- no toc -->
@@ -66,16 +66,24 @@ Class sections:
 ### Construction and type casting
 
 Currently, construction from two unsigned integers is done with the most significant word first.
-This is the be changed in the future, to be more consistent with other classes, which start with least significant word first.
+This is to be changed in the future, to be more consistent with other classes, which start with least significant word first.
+
+Construction from a string is supported, but does not check whether the value overflows or not.
 
 ### Arithmetic operators
 
 Addition is implemented with the addition of each 64 bit word and subtraction simply negates the right hand side of the operator and then calls addition.
-It may be possible to slightly optimize subtraction by implementing it similarly to addition (mainly saving time on creating a copy of the value), however no changes should be made without testing and benchmarking.
+Subtraction currently negates the right hand side and then conducts addition, resulting in it being two times slower than addition.
 
-Multiplication, division and modulo are all implemented with shift-addition, resulting in a quadratic complexity based on the number of bits. Due to the relatively small integer values, a asymptotically optimal algorithm would only be slower, due to a large amount of constants, so the only changes made here should be a constant optimization of the current algorithm.
+Multiplication is implemented by multiplying individual 32 bit words and conducting one iteration of Karatsuba's algorithm to get the intermediate values.
 
-Every arithmetic operator should be implemented first as its compound operator (e.g. `+=`), then the basic operator simply create a copy of the left hand side variable and use the compound operator on the copy.
+Division and modulo both use the algorithm described in Knuth's Art of Computer Programming - Volume 2 (p. 272-273).
+Because of this, an array of 32 bit values to use is constructed.
+
+It may be worth converting the int128 as a whole to utilise 32 bits. This would only slightly slow down addition and subtraction
+(bringing it closer to Boost's int128), but it could significantly speed up multiplication, division and modulo, due to no more bit truncating.
+
+Every arithmetic operator first implements its compound operator (e.g. `+=`), then the basic operator simply creates a copy of the left hand side variable and use the compound operator on the copy.
 Example:
 ```cpp
 int128 operator/(int128 const& rhs) {
@@ -90,8 +98,7 @@ The only exception to this is subtraction, where the basic operator may as well 
 Every bit operator acts upon the whole value without any regard to its numerical value. The operator `~` is implemented as a bit NOT, not as a complement operator.
 
 Bit-shifting only accepts positive values.
-It also defines bit-shifting for values larger than or equal to the integers bit size.
-In those cases every bit is simply set to zero.
+It also defines bit-shifting for values larger than or equal to the integers bit size, those cases simply set every bit to zero.
 
 ### Relational operators
 
