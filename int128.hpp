@@ -1,15 +1,11 @@
 #pragma once
+#include "constants.hpp"
 #include <cstdint>
 #include <iostream>
 #include <string>
 #include <vector>
 
 namespace largeNumberLibrary {
-	// equivalent to INT64_MAX
-	constexpr uint64_t UINT63_MAX = 0x7FFFFFFFFFFFFFFF;
-	// equivalent to INT64_MIN
-	constexpr uint64_t BIT64_ON = 0x8000000000000000;
-
 	// Two's complement
 	class int128 {
 		private: 

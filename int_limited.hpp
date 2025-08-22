@@ -1,4 +1,5 @@
 #pragma once
+#include "constants.hpp"
 #include <cstdint>
 #include <iostream>
 #include <string>
@@ -7,16 +8,14 @@
 
 
 namespace largeNumberLibrary {
-	// equivalent to INT32_MIN
-	constexpr uint32_t BIT32_ON = 0x80000000;
-
 	// Two's complement
-	// Constructs a vector of 64 bit unsigned integers, so that the specified bit size fits
+	// Constructs an array of 32 bit unsigned integers, so that the specified bit size fits
 	// If the bitSize isn't a multiple of 32, operations will still be processed for all 32 bits of the most significant word
 	// However overflow will still occur if the value were to surpass the bitSize
 	// Comparisons will also ignore any extra bits above the bitSize
 	// No further optimizations are made on the most significant word (even if the instance only has 1 word)
 	// All operations occur on class instances with equal bitSize
+	// In case of different sizes, both values are set to the size of the left hand side
 	template <int bitSize>
 	class int_limited {
 		private:
