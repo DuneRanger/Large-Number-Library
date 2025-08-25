@@ -37,6 +37,7 @@ namespace largeNumberLibrary {
 			/*
 			SECTION: HELPER FUNCTIONS
 			=============================================================
+			Concat 32 bits to 64 DONE
 			Truncate extra bits DONE
 			Update LSW DONE
 			Update MSW DONE
@@ -81,8 +82,10 @@ namespace largeNumberLibrary {
 				while (upperBound > -1 && this->words[upperBound] == 0) {
 					upperBound--;
 				}
-				// stay within index range
-				if (upperBound < 0) upperBound = 0;
+				// occurs when the value is zero
+				// there is no other way to check other then going through the whole value
+				if (upperBound == -1) upperBound = 0;
+
 				this->MSW = upperBound;
 				if (this->MSW == this->wordCount - 1) {
 					this->truncateExtraBits();
@@ -90,7 +93,7 @@ namespace largeNumberLibrary {
 				return;
 			}
 			
-			// Shift a whole word left by an amount of words
+			// Shift a single word left by an amount of words
 			void wordShiftLeft(int wordIndex, int shift) {
 				if (shift == 0) return;
 				if (wordIndex + shift < this->wordCount) {
@@ -100,7 +103,7 @@ namespace largeNumberLibrary {
 				return;
 			}
 
-			// Shift a whole word right by an amount of words
+			// Shift a single word right by an amount of words
 			void wordShiftRight(int wordIndex, int shift) {
 				if (shift == 0) return;
 				if (wordIndex - shift > -1) {
@@ -110,7 +113,8 @@ namespace largeNumberLibrary {
 				return;
 			}
 
-			// Shifts a whole word left by an amount of bits
+			// Shifts a single word left by an amount of bits
+			// Expects the shift to be less than or equal to 32 bits
 			void bitShiftLeft(int wordIndex, int shift) {
 				if (shift == 0) return;
 				if (wordIndex + 1 < this->wordCount) {
@@ -120,7 +124,8 @@ namespace largeNumberLibrary {
 				return;
 			}
 
-			// Shifts a whole word right by an amount of bits
+			// Shifts a single word right by an amount of bits
+			// Expects the shift to be less than or equal to 32 bits
 			void bitShiftRight(int wordIndex, int shift) {
 				if (shift == 0) return;
 				if (wordIndex - 1 > -1) {
@@ -132,6 +137,7 @@ namespace largeNumberLibrary {
 
 			int_limited& basicMult(int_limited const& A, int_limited const& B) {
 				*this = 0;
+				if (!A || !B) return *this;
 				for (int b_i = B.LSW; b_i <= B.MSW; b_i++) {
 					uint32_t carry = 0;
 					bool secondCarry = false;
@@ -159,7 +165,7 @@ namespace largeNumberLibrary {
 						bool flag2 = this->words[a_i + b_i] < BIT32_ON;
 						// The maximum value of (product >> 32) is UINT32_MAX, which means that
 						// by itself, it can fit in the carry, but (flag1 && flag2) doesn't have to
-						// That is why we separate them
+						// That is why we separate them (e.g. -1*-1 with Karatsuba's algorithm - 512+ bits)
 						carry = (uint32_t)(product >> 32);
 						secondCarry = (flag1 + flag2) > 1;
 					}
@@ -173,7 +179,7 @@ namespace largeNumberLibrary {
 
 					// No need to worry about checking for a new carry, because [b_i + A.MSW + 1] is guaranteed to have been empty at this point
 				}
-				this->updateLSW(A.LSW);
+				this->updateLSW(A.LSW); // B in non-zero, so it can only grow
 				this->updateMSW(A.MSW + B.MSW + 1);
 				return *this;
 			}
